@@ -305,26 +305,6 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
   y = drawSectionHeader(doc, 'AÇIKLAMA', y, margin, contentWidth);
   y = drawTextBlock(doc, 'Konu (Detaylı Açıklama)', data.content_details || '-', y, margin, contentWidth);
 
-  const riskRows = [
-    ['Olasılık', data.risk_probability?.toString() || '-'],
-    ['Şiddet', data.risk_severity?.toString() || '-'],
-    ['Risk Skoru',
-      data.risk_probability && data.risk_severity
-        ? `${data.risk_probability * data.risk_severity} (${data.risk_probability} x ${data.risk_severity})`
-        : '-'],
-    ['DÖF Gereksinimi', data.corrective_action_required || '-'],
-  ];
-  const riskSectionHeight = sectionGap + estimateTableHeight(riskRows.length);
-  y = ensureSpace(doc, riskSectionHeight, y);
-  y = drawSectionHeader(doc, 'RİSK ANALİZİ', y, margin, contentWidth);
-
-  autoTable(doc, {
-    ...fwStyles,
-    startY: y,
-    body: riskRows,
-  });
-  y = (doc as any).lastAutoTable.finalY + 6;
-
   const actionRows = [['Sorumlu Kişi', data.responsible_person || '-']];
   const actionTextEstimate = sectionGap + estimateTableHeight(actionRows.length) + 50;
   y = ensureSpace(doc, actionTextEstimate, y);
