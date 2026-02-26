@@ -215,6 +215,10 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                     <dd className="text-sm text-gray-900 font-medium">{data.applicant_name || '-'}</dd>
                   </div>
                   <div>
+                    <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Geri Bildirimi Alan</dt>
+                    <dd className="text-sm text-gray-900 font-medium">{data.received_by || '-'}</dd>
+                  </div>
+                  <div>
                     <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Yetkili Kişi</dt>
                     <dd className="text-sm text-gray-900">{data.contact_person || '-'}</dd>
                   </div>

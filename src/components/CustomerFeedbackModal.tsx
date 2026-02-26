@@ -41,6 +41,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
   const [formData, setFormData] = useState<any>({
     application_no: '',
     form_date: new Date().toISOString().split('T')[0],
+    received_by: '',
     feedback_type: 'İstek',
     communication_channel: 'E-posta',
     source_type: 'Müşteri',
@@ -69,6 +70,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
       setFormData({
         application_no: editData.application_no || '',
         form_date: editData.form_date || new Date().toISOString().split('T')[0],
+        received_by: editData.received_by || '',
         feedback_type: editData.feedback_type || 'İstek',
         communication_channel: editData.communication_channel || 'E-posta',
         source_type: editData.source_type || 'Müşteri',
@@ -351,6 +353,23 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Geri Bildirimi Alan</label>
+                <div className="relative">
+                  <select
+                    value={formData.received_by}
+                    onChange={(e) => setFormData({ ...formData, received_by: e.target.value })}
+                    className="w-full appearance-none px-4 py-2.5 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all bg-white text-[11px]"
+                  >
+                    <option value="">-- Personel Seçin --</option>
+                    {personnelList.map((p) => (
+                      <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
               </div>
 
               <div className="md:col-span-2">
