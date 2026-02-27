@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerFeedbackModal from './CustomerFeedbackModal';
 import CustomerFeedbackDetailView from './CustomerFeedbackDetailView';
-import { fetchFinalApprovalRoleNames } from '../utils/signatureService';
 
 interface CustomerFeedbackViewProps {
   autoOpenRecordId?: string | null;
@@ -32,15 +31,12 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
   const [lockedRecordIds, setLockedRecordIds] = useState<Set<string>>(new Set());
 
   const fetchLockedRecords = async () => {
-    const finalRoleNames = await fetchFinalApprovalRoleNames('customer_feedback');
-    if (finalRoleNames.length === 0) return;
     const { data } = await supabase
-      .from('record_signatures')
-      .select('record_id')
-      .eq('module_key', 'customer_feedback')
-      .in('signer_role', finalRoleNames);
+      .from('feedback_records')
+      .select('id')
+      .eq('is_locked', true);
     if (data) {
-      setLockedRecordIds(new Set(data.map(r => r.record_id)));
+      setLockedRecordIds(new Set(data.map(r => r.id)));
     }
   };
 
@@ -220,6 +216,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
       'Devam Ediyor': 'bg-blue-100 text-blue-800 border-blue-200',
       'Tamamlandı': 'bg-green-100 text-green-800 border-green-200',
       'Kapatıldı': 'bg-gray-100 text-gray-800 border-gray-200',
+      'IMZALI': 'bg-green-100 text-green-800 border-green-200',
     };
     return styles[status] || 'bg-gray-100 text-gray-800 border-gray-200';
   };

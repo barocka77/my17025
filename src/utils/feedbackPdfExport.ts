@@ -308,7 +308,34 @@ function drawSignaturesSection(
   return y + totalRows * (boxH + 4) + 4;
 }
 
-export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string, signatures: RecordSignature[] = [], roles: ModuleSignatureRole[] = []) => {
+function addImzaliWatermark(doc: jsPDF) {
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+
+    doc.saveGraphicsState();
+    const gState = new (doc as any).GState({ opacity: 0.06 });
+    doc.setGState(gState);
+
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setFontSize(72);
+    doc.setTextColor(34, 139, 34);
+
+    const cx = pw / 2;
+    const cy = ph / 2;
+
+    doc.text('IMZALI', cx, cy, {
+      align: 'center',
+      angle: 45,
+    });
+
+    doc.restoreGraphicsState();
+  }
+}
+
+export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string, signatures: RecordSignature[] = [], roles: ModuleSignatureRole[] = [], isLocked: boolean = false) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   await registerFonts(doc);
 
@@ -447,6 +474,10 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
       doc.setPage(i);
       doc.addImage(logoImgData, 'PNG', pageWidth - 42, 4, 26, 18);
     }
+  }
+
+  if (isLocked) {
+    addImzaliWatermark(doc);
   }
 
   const customerPart = sanitizeForFilename(data.applicant_name || '');

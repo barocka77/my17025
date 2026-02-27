@@ -1,4 +1,4 @@
-import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download } from 'lucide-react';
+import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
@@ -6,7 +6,7 @@ import { generateFeedbackPDF } from '../utils/feedbackPdfExport';
 import { useModuleDocument } from '../hooks/useModuleDocument';
 import DocumentSelectModal from './DocumentSelectModal';
 import SignaturesSection from './SignaturesSection';
-import { fetchSignatures, fetchModuleRoles } from '../utils/signatureService';
+import { fetchSignatures, fetchModuleRoles, fetchRecordLockState } from '../utils/signatureService';
 
 interface DetailViewProps {
   isOpen: boolean;
@@ -42,11 +42,12 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
 
   const handlePdfDownload = () => {
     requestPdf(async (meta) => {
-      const [sigs, moduleRoles] = await Promise.all([
+      const [sigs, moduleRoles, lockInfo] = await Promise.all([
         data.id ? fetchSignatures('customer_feedback', data.id) : Promise.resolve([]),
         fetchModuleRoles('customer_feedback'),
+        data.id ? fetchRecordLockState(data.id) : Promise.resolve({ is_locked: false, locked_at: null, locked_by: null, unlocked_at: null, unlocked_by: null, unlock_reason: null }),
       ]);
-      await generateFeedbackPDF(data, orgName, meta, logoUrl, sigs, moduleRoles);
+      await generateFeedbackPDF(data, orgName, meta, logoUrl, sigs, moduleRoles, lockInfo.is_locked);
     });
   };
 
@@ -102,6 +103,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
       'Devam Ediyor': 'bg-blue-100 text-blue-800 border-blue-200',
       'Tamamlandı': 'bg-green-100 text-green-800 border-green-200',
       'Kapatıldı': 'bg-gray-100 text-gray-800 border-gray-200',
+      'IMZALI': 'bg-green-100 text-green-800 border-green-200',
     };
     return styles[status] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
@@ -175,6 +177,15 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
         </div>
 
         <div className="p-6 md:p-8 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {recordLocked && (
+            <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <Lock className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-green-800">IMZALI - Bu kayit kilitlenmistir</p>
+                <p className="text-xs text-green-700 mt-0.5">Kayit imzalanmis ve duzenlemeye karsi koruma altindadir.</p>
+              </div>
+            </div>
+          )}
           <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg p-6 border border-slate-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>

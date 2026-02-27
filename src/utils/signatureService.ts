@@ -21,6 +21,15 @@ export interface ModuleSignatureRole {
   is_final_approval: boolean;
 }
 
+export interface RecordLockState {
+  is_locked: boolean;
+  locked_at: string | null;
+  locked_by: string | null;
+  unlocked_at: string | null;
+  unlocked_by: string | null;
+  unlock_reason: string | null;
+}
+
 export async function fetchModuleRoles(moduleKey: string): Promise<ModuleSignatureRole[]> {
   const { data, error } = await supabase
     .from('module_signature_roles')
@@ -42,6 +51,24 @@ export async function fetchSignatures(moduleKey: string, recordId: string): Prom
 
   if (error) throw error;
   return (data || []) as RecordSignature[];
+}
+
+export async function fetchRecordLockState(recordId: string): Promise<RecordLockState> {
+  const { data, error } = await supabase
+    .from('feedback_records')
+    .select('is_locked, locked_at, locked_by, unlocked_at, unlocked_by, unlock_reason')
+    .eq('id', recordId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return {
+    is_locked: data?.is_locked ?? false,
+    locked_at: data?.locked_at ?? null,
+    locked_by: data?.locked_by ?? null,
+    unlocked_at: data?.unlocked_at ?? null,
+    unlocked_by: data?.unlocked_by ?? null,
+    unlock_reason: data?.unlock_reason ?? null,
+  };
 }
 
 export async function saveSignature(params: {
@@ -116,4 +143,18 @@ export async function fetchFinalApprovalRoleNames(moduleKey: string): Promise<st
 
   if (error) return [];
   return (data || []).map(r => r.role_name);
+}
+
+export async function adminUnlockRecord(recordId: string, reason: string): Promise<void> {
+  const { data, error } = await supabase.rpc('unlock_feedback_record', {
+    p_record_id: recordId,
+    p_reason: reason,
+  });
+
+  if (error) throw error;
+
+  const result = data as { success: boolean; message: string } | null;
+  if (result && !result.success) {
+    throw new Error(result.message);
+  }
 }
