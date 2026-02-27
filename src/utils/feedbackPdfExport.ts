@@ -27,6 +27,8 @@ interface FeedbackData {
   response_date?: string;
   action_taken?: string;
   explanation?: string;
+  izahat_text?: string;
+  izahat_by?: string;
   attachments?: string[];
   created_by?: string;
   updated_by?: string;
@@ -452,6 +454,21 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
   y = (doc as any).lastAutoTable.finalY + 3;
   y = drawTextBlock(doc, 'Alınan Aksiyon / Cevap', data.action_taken || '-', y, margin, contentWidth);
   y = drawTextBlock(doc, 'Açıklama / Notlar', data.explanation || '-', y, margin, contentWidth);
+
+  if (data.izahat_text || data.izahat_by) {
+    const izahatRows = [['Bildirime Sebep Olan Taraf', data.izahat_by || '-']];
+    const izahatEstimate = sectionGap + estimateTableHeight(izahatRows.length) + 40;
+    y = ensureSpace(doc, izahatEstimate, y);
+    y = drawSectionHeader(doc, 'İZAHAT', y, margin, contentWidth);
+
+    autoTable(doc, {
+      ...fwStyles,
+      startY: y,
+      body: izahatRows,
+    });
+    y = (doc as any).lastAutoTable.finalY + 3;
+    y = drawTextBlock(doc, 'Bildirime Sebep Taraf İzahatı', data.izahat_text || '-', y, margin, contentWidth);
+  }
 
   if (roles.length > 0) {
     const sigImages = new Map<string, string>();

@@ -65,6 +65,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
     risk_severity: 'Hafif',
     status: 'Açık',
     izahat_text: '',
+    izahat_by: '',
   });
 
   useEffect(() => {
@@ -95,6 +96,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         risk_severity: editData.risk_severity || 'Hafif',
         status: editData.status || 'Açık',
         izahat_text: editData.izahat_text || '',
+        izahat_by: editData.izahat_by || '',
       });
 
       (async () => {
@@ -732,15 +734,27 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 <div className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center text-sm font-semibold">6</div>
                 İzahat
               </h3>
-              <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">İzahat Metni</label>
-                <textarea
-                  value={formData.izahat_text}
-                  onChange={(e) => setFormData({ ...formData, izahat_text: e.target.value })}
-                  rows={5}
-                  className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all resize-none"
-                  placeholder="Geri bildirimle ilgili izahat ve açıklamalar..."
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Olan Taraf (Personel/Tedarikçi/Taşeron vb.)</label>
+                  <input
+                    type="text"
+                    value={formData.izahat_by}
+                    onChange={(e) => setFormData({ ...formData, izahat_by: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all text-[11px]"
+                    placeholder="Personel adı, tedarikçi, taşeron vb."
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Taraf İzahatı (Personel/Tedarikçi/Taşeron vb.)</label>
+                  <textarea
+                    value={formData.izahat_text}
+                    onChange={(e) => setFormData({ ...formData, izahat_text: e.target.value })}
+                    rows={5}
+                    className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all resize-none"
+                    placeholder="Geri bildirimle ilgili izahat ve açıklamalar..."
+                  />
+                </div>
               </div>
             </div>
           )}

@@ -379,6 +379,29 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
               </div>
             </section>
 
+            {(data.izahat_text || data.izahat_by) && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-8 w-1 bg-cyan-600 rounded-full"></div>
+                  <h3 className="text-lg font-bold text-gray-900">İzahat</h3>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <dl className="space-y-4">
+                    <div>
+                      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Bildirime Sebep Olan Taraf</dt>
+                      <dd className="text-sm text-gray-900 font-medium">{data.izahat_by || '-'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Bildirime Sebep Taraf İzahatı</dt>
+                      <dd className="text-sm text-gray-900 leading-relaxed bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">
+                        {data.izahat_text || '-'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+            )}
+
             {attachments.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
