@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,7 +23,10 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [signingIndex, setSigningIndex] = useState<number | null>(null);
+  const [lockToast, setLockToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isLocked = !!(editData?.is_locked);
 
   useEffect(() => {
     const fetchPersonnel = async () => {
@@ -225,6 +228,11 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) {
+      setLockToast(true);
+      setTimeout(() => setLockToast(false), 3500);
+      return;
+    }
     setLoading(true);
 
     try {
@@ -326,6 +334,24 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {isLocked && (
+            <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-300 rounded-xl">
+              <Lock className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Bu kayıt imzalanmış ve kilitlidir.</p>
+                <p className="text-xs text-red-600 mt-0.5">Düzenleme yapılamaz. Değişiklik gerekiyorsa önce admin tarafından kilidin açılması gerekir.</p>
+              </div>
+            </div>
+          )}
+
+          {lockToast && (
+            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-5 py-3 bg-red-600 text-white text-sm font-medium rounded-lg shadow-lg animate-fade-in">
+              <Lock className="w-4 h-4 flex-shrink-0" />
+              Kilitli kayıt güncellenemez.
+            </div>
+          )}
+
+          <fieldset disabled={isLocked} className="space-y-4">
           <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-sm font-semibold">1</div>
@@ -778,22 +804,26 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
             </div>
           )}
 
+          </fieldset>
+
           <div className="flex justify-end gap-2 pt-3 pb-safe border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-3 md:py-2 text-xs md:text-[11px] border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all font-medium"
             >
-              İptal
+              {isLocked ? 'Kapat' : 'İptal'}
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-3 md:py-2 text-xs md:text-[11px] bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4 md:w-3.5 md:h-3.5" />
-              {loading ? 'Kaydediliyor...' : editData ? 'Güncelle' : 'Kaydet'}
-            </button>
+            {!isLocked && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-3 md:py-2 text-xs md:text-[11px] bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                {loading ? 'Kaydediliyor...' : editData ? 'Güncelle' : 'Kaydet'}
+              </button>
+            )}
           </div>
         </form>
       </div>
