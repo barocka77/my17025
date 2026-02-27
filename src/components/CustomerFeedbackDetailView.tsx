@@ -1,10 +1,12 @@
 import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { generateFeedbackPDF } from '../utils/feedbackPdfExport';
 import { useModuleDocument } from '../hooks/useModuleDocument';
 import DocumentSelectModal from './DocumentSelectModal';
+import SignaturesSection from './SignaturesSection';
+import { fetchSignatures } from '../utils/signatureService';
 
 interface DetailViewProps {
   isOpen: boolean;
@@ -17,7 +19,12 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
   const [signingIndex, setSigningIndex] = useState<number | null>(null);
   const [orgName, setOrgName] = useState<string | undefined>(undefined);
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
+  const [recordLocked, setRecordLocked] = useState(false);
   const { showSelector, closeSelector, onDocumentSelected, requestPdf } = useModuleDocument('customer_feedback');
+
+  const handleLockChange = useCallback((locked: boolean) => {
+    setRecordLocked(locked);
+  }, []);
 
   useEffect(() => {
     const fetchOrg = async () => {
@@ -35,7 +42,8 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
 
   const handlePdfDownload = () => {
     requestPdf(async (meta) => {
-      await generateFeedbackPDF(data, orgName, meta, logoUrl);
+      const sigs = data.id ? await fetchSignatures('customer_feedback', data.id) : [];
+      await generateFeedbackPDF(data, orgName, meta, logoUrl, sigs);
     });
   };
 
@@ -386,6 +394,13 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                   </ul>
                 </div>
               </section>
+            )}
+            {data.id && (
+              <SignaturesSection
+                moduleKey="customer_feedback"
+                recordId={data.id}
+                onLockChange={handleLockChange}
+              />
             )}
           </div>
         </div>

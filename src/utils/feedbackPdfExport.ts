@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { DocumentMeta } from './documentLinkService';
 import { formatRevDate } from './documentLinkService';
+import { getRoleLabel, type RecordSignature } from './signatureService';
 
 interface FeedbackData {
   id?: string;
@@ -201,7 +202,98 @@ function fullWidthTableStyles(contentWidth: number, margin: number) {
   };
 }
 
-export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string) => {
+async function loadImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function drawSignaturesSection(
+  doc: jsPDF,
+  y: number,
+  margin: number,
+  contentWidth: number,
+  signatures: RecordSignature[],
+  sigImages: Map<string, string>,
+): number {
+  const sectionHeight = 7 + 50;
+  y = ensureSpace(doc, sectionHeight, y);
+  y = drawSectionHeader(doc, 'IMZALAR', y, margin, contentWidth);
+
+  if (signatures.length === 0) {
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('Henuz imza eklenmemis.', margin + 4, y + 4);
+    return y + 10;
+  }
+
+  const colCount = Math.min(signatures.length, 3);
+  const boxGap = 4;
+  const boxW = (contentWidth - boxGap * (colCount - 1)) / colCount;
+  const boxH = 48;
+
+  y = ensureSpace(doc, boxH + 4, y);
+
+  signatures.forEach((sig, idx) => {
+    const col = idx % 3;
+    const row = Math.floor(idx / 3);
+
+    if (row > 0 && col === 0) {
+      y = ensureSpace(doc, boxH + 6, y);
+    }
+
+    const bx = margin + col * (boxW + boxGap);
+    const by = y + row * (boxH + 4);
+
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.2);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(bx, by, boxW, boxH, 1.5, 1.5, 'FD');
+
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...PRIMARY_COLOR);
+    doc.text(getRoleLabel(sig.signer_role).toUpperCase(), bx + 3, by + 5);
+
+    const imgData = sigImages.get(sig.id);
+    if (imgData) {
+      const imgW = boxW - 8;
+      const imgH = 18;
+      doc.addImage(imgData, 'PNG', bx + 4, by + 8, imgW, imgH);
+    }
+
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.15);
+    doc.line(bx + 4, by + 28, bx + boxW - 4, by + 28);
+
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(sig.signer_name, bx + 3, by + 34);
+
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...TEXT_MUTED);
+    const sigDate = new Date(sig.signed_at).toLocaleDateString('tr-TR', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+    doc.text(sigDate, bx + 3, by + 39);
+  });
+
+  const totalRows = Math.ceil(signatures.length / 3);
+  return y + totalRows * (boxH + 4) + 4;
+}
+
+export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string, signatures: RecordSignature[] = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   await registerFonts(doc);
 
@@ -318,6 +410,19 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
   y = (doc as any).lastAutoTable.finalY + 3;
   y = drawTextBlock(doc, 'Alınan Aksiyon / Cevap', data.action_taken || '-', y, margin, contentWidth);
   y = drawTextBlock(doc, 'Açıklama / Notlar', data.explanation || '-', y, margin, contentWidth);
+
+  if (signatures.length > 0) {
+    const sigImages = new Map<string, string>();
+    await Promise.all(
+      signatures.map(async (sig) => {
+        if (sig.signature_image_url) {
+          const imgData = await loadImageAsDataUrl(sig.signature_image_url);
+          if (imgData) sigImages.set(sig.id, imgData);
+        }
+      })
+    );
+    y = drawSignaturesSection(doc, y, margin, contentWidth, signatures, sigImages);
+  }
 
   addFooter(doc, docCode, revNo, revDate);
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Eye, AlertTriangle, Lightbulb, MessageSquare, Flag, Clock, CheckCircle2, PlayCircle, Filter, X, RotateCcw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, AlertTriangle, Lightbulb, MessageSquare, Flag, Clock, CheckCircle2, PlayCircle, Filter, X, RotateCcw, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerFeedbackModal from './CustomerFeedbackModal';
 import CustomerFeedbackDetailView from './CustomerFeedbackDetailView';
+import { FINAL_APPROVAL_ROLE } from '../utils/signatureService';
 
 interface CustomerFeedbackViewProps {
   autoOpenRecordId?: string | null;
@@ -28,6 +29,18 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [lockedRecordIds, setLockedRecordIds] = useState<Set<string>>(new Set());
+
+  const fetchLockedRecords = async () => {
+    const { data } = await supabase
+      .from('record_signatures')
+      .select('record_id')
+      .eq('module_key', 'customer_feedback')
+      .eq('signer_role', FINAL_APPROVAL_ROLE);
+    if (data) {
+      setLockedRecordIds(new Set(data.map(r => r.record_id)));
+    }
+  };
 
   const fetchFeedbacks = async (includeDeleted = false) => {
     setLoading(true);
@@ -55,6 +68,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
 
   useEffect(() => {
     fetchFeedbacks(showDeleted);
+    fetchLockedRecords();
   }, [showDeleted]);
 
   useEffect(() => {
@@ -455,18 +469,27 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleEdit(feedback)}
-                            className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(feedback.id)}
-                            className="inline-flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {lockedRecordIds.has(feedback.id) ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
+                              <Lock className="w-3 h-3" />
+                              Kilitli
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEdit(feedback)}
+                                className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(feedback.id)}
+                                className="inline-flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
@@ -571,22 +594,31 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                               className="inline-flex items-center gap-0.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
                             >
                               <Eye className="w-2.5 h-2.5" />
-                              Görüntüle
+                              Goruntule
                             </button>
-                            <button
-                              onClick={() => handleEdit(feedback)}
-                              className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
-                            >
-                              <Edit2 className="w-2.5 h-2.5" />
-                              Düzenle
-                            </button>
-                            <button
-                              onClick={() => handleDelete(feedback.id)}
-                              className="inline-flex items-center gap-0.5 text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
-                            >
-                              <Trash2 className="w-2.5 h-2.5" />
-                              Sil
-                            </button>
+                            {lockedRecordIds.has(feedback.id) ? (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
+                                <Lock className="w-2.5 h-2.5" />
+                                Kilitli
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleEdit(feedback)}
+                                  className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                                >
+                                  <Edit2 className="w-2.5 h-2.5" />
+                                  Duzenle
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(feedback.id)}
+                                  className="inline-flex items-center gap-0.5 text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                  Sil
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       </td>
