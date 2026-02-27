@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SignaturesSection from './SignaturesSection';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXT = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -359,11 +360,11 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-sm font-semibold">1</div>
-              Başvuru Detayları
+              Bildirim Kaydı
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Başvuru No</label>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirim No</label>
                 <input
                   type="text"
                   value={formData.application_no}
@@ -463,11 +464,11 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">2</div>
-              Başvuru Sahibi Bilgileri
+              Bildirim Sahibi Bilgileri
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Başvuru Sahibi / Kurum Adı</label>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirim Sahibi / Kurum Adı</label>
                 <input
                   type="text"
                   value={formData.applicant_name}
@@ -513,46 +514,9 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
             </div>
           </div>
 
-          {editData && (
-            <div className="bg-gradient-to-br from-cyan-50 to-sky-50 rounded-xl p-6 border border-cyan-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center text-sm font-semibold">3</div>
-                İzahat
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Olan Taraf (Personel/Tedarikçi/Taşeron vb.)</label>
-                  <div className="relative">
-                    <select
-                      value={formData.izahat_by}
-                      onChange={(e) => setFormData({ ...formData, izahat_by: e.target.value })}
-                      className="w-full appearance-none px-4 py-2.5 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all bg-white text-[11px]"
-                    >
-                      <option value="">-- Personel Seçin --</option>
-                      {personnelList.map((p) => (
-                        <option key={p.id} value={p.full_name}>{p.full_name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Taraf İzahatı</label>
-                  <textarea
-                    value={formData.izahat_text}
-                    onChange={(e) => setFormData({ ...formData, izahat_text: e.target.value })}
-                    rows={5}
-                    className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all resize-none"
-                    placeholder="Geri bildirimle ilgili izahat ve açıklamalar..."
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-semibold">4</div>
+              <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-semibold">3</div>
               İçerik ve İlk Değerlendirme
             </h3>
             <div className="space-y-6">
@@ -563,7 +527,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                   onChange={(e) => setFormData({ ...formData, content_details: e.target.value })}
                   rows={5}
                   className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
-                  placeholder="Başvurunun detaylı içeriği..."
+                  placeholder="Bildirimin detaylı içeriği..."
                   required
                 />
               </div>
@@ -612,6 +576,53 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
               </div>
             </div>
           </div>
+
+          {editData && (
+            <div className="bg-gradient-to-br from-cyan-50 to-sky-50 rounded-xl p-6 border border-cyan-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center text-sm font-semibold">4</div>
+                İzahat
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Olan Taraf (Personel/Tedarikçi/Taşeron vb.)</label>
+                  <div className="relative">
+                    <select
+                      value={formData.izahat_by}
+                      onChange={(e) => setFormData({ ...formData, izahat_by: e.target.value })}
+                      className="w-full appearance-none px-4 py-2.5 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all bg-white text-[11px]"
+                    >
+                      <option value="">-- Personel Seçin --</option>
+                      {personnelList.map((p) => (
+                        <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Taraf İzahatı</label>
+                  <textarea
+                    value={formData.izahat_text}
+                    onChange={(e) => setFormData({ ...formData, izahat_text: e.target.value })}
+                    rows={5}
+                    className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all resize-none"
+                    placeholder="Geri bildirimle ilgili izahat ve açıklamalar..."
+                  />
+                </div>
+              </div>
+
+              {editData?.id && (
+                <div className="mt-6 pt-6 border-t border-cyan-200">
+                  <SignaturesSection
+                    moduleKey="customer_feedback"
+                    recordId={editData.id}
+                    onLockChange={(locked) => {}}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">

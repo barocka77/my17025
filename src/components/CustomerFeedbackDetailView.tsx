@@ -216,7 +216,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-8 w-1 bg-slate-600 rounded-full"></div>
-                <h3 className="text-lg font-bold text-gray-900">Başvuru Sahibi Bilgileri</h3>
+                <h3 className="text-lg font-bold text-gray-900">Bildirim Sahibi Bilgileri</h3>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
@@ -229,7 +229,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Başvuru No</dt>
+                    <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bildirim No</dt>
                     <dd className="text-sm font-semibold text-slate-700">{data.application_no || '-'}</dd>
                   </div>
                   <div>

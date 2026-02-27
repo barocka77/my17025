@@ -385,7 +385,7 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
 
   const leftRows = [
     ['Form Tarihi', formatDate(data.form_date)],
-    ['Başvuru No', data.application_no || '-'],
+    ['Bildirim No', data.application_no || '-'],
     ['Bildirim Türü', data.feedback_type || 'İstek'],
     ['Kaynak', data.source_type || '-'],
     ['Durum', data.status || 'Açık'],
