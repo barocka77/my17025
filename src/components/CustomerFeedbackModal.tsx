@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-
+import SignaturesSection from './SignaturesSection';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXT = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -612,6 +612,15 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 </div>
               </div>
 
+              {editData?.id && (
+                <div className="mt-6 pt-6 border-t border-cyan-200">
+                  <SignaturesSection
+                    moduleKey="customer_feedback"
+                    recordId={editData.id}
+                    onLockChange={(locked) => {}}
+                  />
+                </div>
+              )}
             </div>
           )}
 
