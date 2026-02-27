@@ -64,6 +64,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
     risk_probability: 'Düşük',
     risk_severity: 'Hafif',
     status: 'Açık',
+    izahat_text: '',
   });
 
   useEffect(() => {
@@ -93,6 +94,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         risk_probability: editData.risk_probability || 'Düşük',
         risk_severity: editData.risk_severity || 'Hafif',
         status: editData.status || 'Açık',
+        izahat_text: editData.izahat_text || '',
       });
 
       (async () => {
@@ -725,9 +727,28 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           </div>
 
           {editData && (
+            <div className="bg-gradient-to-br from-cyan-50 to-sky-50 rounded-xl p-6 border border-cyan-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center text-sm font-semibold">6</div>
+                İzahat
+              </h3>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">İzahat Metni</label>
+                <textarea
+                  value={formData.izahat_text}
+                  onChange={(e) => setFormData({ ...formData, izahat_text: e.target.value })}
+                  rows={5}
+                  className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all resize-none"
+                  placeholder="Geri bildirimle ilgili izahat ve açıklamalar..."
+                />
+              </div>
+            </div>
+          )}
+
+          {editData && (
             <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 border border-gray-200">
               <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-sm font-semibold">6</div>
+                <div className="w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-sm font-semibold">7</div>
                 Ekler
               </h3>
 
