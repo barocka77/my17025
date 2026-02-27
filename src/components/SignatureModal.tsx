@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { X, PenTool, Loader2, AlertCircle } from 'lucide-react';
 import SignatureCanvas from './SignatureCanvas';
-import { SIGNATURE_ROLES, type SignatureRoleValue } from '../utils/signatureService';
+import type { ModuleSignatureRole } from '../utils/signatureService';
 
 interface SignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (role: SignatureRoleValue, signatureDataUrl: string) => Promise<void>;
+  onSave: (roleName: string, signatureDataUrl: string) => Promise<void>;
   signerName: string;
+  roles: ModuleSignatureRole[];
   disabledRoles?: string[];
 }
 
-export default function SignatureModal({ isOpen, onClose, onSave, signerName, disabledRoles = [] }: SignatureModalProps) {
-  const [selectedRole, setSelectedRole] = useState<SignatureRoleValue | ''>('');
+export default function SignatureModal({ isOpen, onClose, onSave, signerName, roles, disabledRoles = [] }: SignatureModalProps) {
+  const [selectedRole, setSelectedRole] = useState('');
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function SignatureModal({ isOpen, onClose, onSave, signerName, di
     setSaving(true);
     setError(null);
     try {
-      await onSave(selectedRole as SignatureRoleValue, signatureData!);
+      await onSave(selectedRole, signatureData!);
       setSelectedRole('');
       setSignatureData(null);
       onClose();
@@ -44,6 +45,8 @@ export default function SignatureModal({ isOpen, onClose, onSave, signerName, di
     setError(null);
     onClose();
   };
+
+  const gridCols = roles.length <= 2 ? 'grid-cols-2' : 'grid-cols-3';
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
@@ -66,16 +69,16 @@ export default function SignatureModal({ isOpen, onClose, onSave, signerName, di
         <div className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Imza Rolu</label>
-            <div className="grid grid-cols-3 gap-2">
-              {SIGNATURE_ROLES.map(r => {
-                const disabled = disabledRoles.includes(r.value);
-                const selected = selectedRole === r.value;
+            <div className={`grid ${gridCols} gap-2`}>
+              {roles.map(r => {
+                const disabled = disabledRoles.includes(r.role_name);
+                const selected = selectedRole === r.role_name;
                 return (
                   <button
-                    key={r.value}
+                    key={r.id}
                     type="button"
                     disabled={disabled}
-                    onClick={() => setSelectedRole(r.value)}
+                    onClick={() => setSelectedRole(r.role_name)}
                     className={`px-3 py-2.5 rounded-lg text-sm font-medium border-2 transition-all ${
                       disabled
                         ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
@@ -84,7 +87,7 @@ export default function SignatureModal({ isOpen, onClose, onSave, signerName, di
                         : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                     }`}
                   >
-                    {r.label}
+                    {r.role_name}
                     {disabled && <span className="block text-[10px] mt-0.5 text-slate-400">Imzalandi</span>}
                   </button>
                 );

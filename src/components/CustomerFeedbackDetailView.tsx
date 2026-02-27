@@ -6,7 +6,7 @@ import { generateFeedbackPDF } from '../utils/feedbackPdfExport';
 import { useModuleDocument } from '../hooks/useModuleDocument';
 import DocumentSelectModal from './DocumentSelectModal';
 import SignaturesSection from './SignaturesSection';
-import { fetchSignatures } from '../utils/signatureService';
+import { fetchSignatures, fetchModuleRoles } from '../utils/signatureService';
 
 interface DetailViewProps {
   isOpen: boolean;
@@ -42,8 +42,11 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
 
   const handlePdfDownload = () => {
     requestPdf(async (meta) => {
-      const sigs = data.id ? await fetchSignatures('customer_feedback', data.id) : [];
-      await generateFeedbackPDF(data, orgName, meta, logoUrl, sigs);
+      const [sigs, moduleRoles] = await Promise.all([
+        data.id ? fetchSignatures('customer_feedback', data.id) : Promise.resolve([]),
+        fetchModuleRoles('customer_feedback'),
+      ]);
+      await generateFeedbackPDF(data, orgName, meta, logoUrl, sigs, moduleRoles);
     });
   };
 

@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { DocumentMeta } from './documentLinkService';
 import { formatRevDate } from './documentLinkService';
-import { getRoleLabel, type RecordSignature } from './signatureService';
+import { type RecordSignature, type ModuleSignatureRole } from './signatureService';
 
 interface FeedbackData {
   id?: string;
@@ -221,6 +221,7 @@ function drawSignaturesSection(
   y: number,
   margin: number,
   contentWidth: number,
+  roles: ModuleSignatureRole[],
   signatures: RecordSignature[],
   sigImages: Map<string, string>,
 ): number {
@@ -228,22 +229,23 @@ function drawSignaturesSection(
   y = ensureSpace(doc, sectionHeight, y);
   y = drawSectionHeader(doc, 'IMZALAR', y, margin, contentWidth);
 
-  if (signatures.length === 0) {
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...TEXT_MUTED);
-    doc.text('Henuz imza eklenmemis.', margin + 4, y + 4);
-    return y + 10;
-  }
+  const colCount = Math.min(roles.length, 3);
+  if (colCount === 0) return y + 4;
 
-  const colCount = Math.min(signatures.length, 3);
   const boxGap = 4;
   const boxW = (contentWidth - boxGap * (colCount - 1)) / colCount;
   const boxH = 48;
 
+  const sigByRole = new Map<string, RecordSignature>();
+  for (const sig of signatures) {
+    if (!sigByRole.has(sig.signer_role)) {
+      sigByRole.set(sig.signer_role, sig);
+    }
+  }
+
   y = ensureSpace(doc, boxH + 4, y);
 
-  signatures.forEach((sig, idx) => {
+  roles.forEach((r, idx) => {
     const col = idx % 3;
     const row = Math.floor(idx / 3);
 
@@ -262,38 +264,51 @@ function drawSignaturesSection(
     doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(7);
     doc.setTextColor(...PRIMARY_COLOR);
-    doc.text(getRoleLabel(sig.signer_role).toUpperCase(), bx + 3, by + 5);
+    doc.text(r.role_name.toUpperCase(), bx + 3, by + 5);
 
-    const imgData = sigImages.get(sig.id);
-    if (imgData) {
-      const imgW = boxW - 8;
-      const imgH = 18;
-      doc.addImage(imgData, 'PNG', bx + 4, by + 8, imgW, imgH);
+    const sig = sigByRole.get(r.role_name);
+
+    if (sig) {
+      const imgData = sigImages.get(sig.id);
+      if (imgData) {
+        const imgW = boxW - 8;
+        const imgH = 18;
+        doc.addImage(imgData, 'PNG', bx + 4, by + 8, imgW, imgH);
+      }
+
+      doc.setDrawColor(...BORDER_COLOR);
+      doc.setLineWidth(0.15);
+      doc.line(bx + 4, by + 28, bx + boxW - 4, by + 28);
+
+      doc.setFont(FONT_NAME, 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...TEXT_DARK);
+      doc.text(sig.signer_name, bx + 3, by + 34);
+
+      doc.setFont(FONT_NAME, 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...TEXT_MUTED);
+      const sigDate = new Date(sig.signed_at).toLocaleDateString('tr-TR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      });
+      doc.text(sigDate, bx + 3, by + 39);
+    } else {
+      doc.setDrawColor(...BORDER_COLOR);
+      doc.setLineWidth(0.15);
+      doc.line(bx + 4, by + 28, bx + boxW - 4, by + 28);
+
+      doc.setFont(FONT_NAME, 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT_MUTED);
+      doc.text('Imza bekleniyor', bx + 3, by + 34);
     }
-
-    doc.setDrawColor(...BORDER_COLOR);
-    doc.setLineWidth(0.15);
-    doc.line(bx + 4, by + 28, bx + boxW - 4, by + 28);
-
-    doc.setFont(FONT_NAME, 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(...TEXT_DARK);
-    doc.text(sig.signer_name, bx + 3, by + 34);
-
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(...TEXT_MUTED);
-    const sigDate = new Date(sig.signed_at).toLocaleDateString('tr-TR', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-    doc.text(sigDate, bx + 3, by + 39);
   });
 
-  const totalRows = Math.ceil(signatures.length / 3);
+  const totalRows = Math.ceil(roles.length / 3);
   return y + totalRows * (boxH + 4) + 4;
 }
 
-export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string, signatures: RecordSignature[] = []) => {
+export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string, signatures: RecordSignature[] = [], roles: ModuleSignatureRole[] = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   await registerFonts(doc);
 
@@ -411,7 +426,7 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
   y = drawTextBlock(doc, 'Alınan Aksiyon / Cevap', data.action_taken || '-', y, margin, contentWidth);
   y = drawTextBlock(doc, 'Açıklama / Notlar', data.explanation || '-', y, margin, contentWidth);
 
-  if (signatures.length > 0) {
+  if (roles.length > 0) {
     const sigImages = new Map<string, string>();
     await Promise.all(
       signatures.map(async (sig) => {
@@ -421,7 +436,7 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
         }
       })
     );
-    y = drawSignaturesSection(doc, y, margin, contentWidth, signatures, sigImages);
+    y = drawSignaturesSection(doc, y, margin, contentWidth, roles, signatures, sigImages);
   }
 
   addFooter(doc, docCode, revNo, revDate);

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerFeedbackModal from './CustomerFeedbackModal';
 import CustomerFeedbackDetailView from './CustomerFeedbackDetailView';
-import { FINAL_APPROVAL_ROLE } from '../utils/signatureService';
+import { fetchFinalApprovalRoleNames } from '../utils/signatureService';
 
 interface CustomerFeedbackViewProps {
   autoOpenRecordId?: string | null;
@@ -32,11 +32,13 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
   const [lockedRecordIds, setLockedRecordIds] = useState<Set<string>>(new Set());
 
   const fetchLockedRecords = async () => {
+    const finalRoleNames = await fetchFinalApprovalRoleNames('customer_feedback');
+    if (finalRoleNames.length === 0) return;
     const { data } = await supabase
       .from('record_signatures')
       .select('record_id')
       .eq('module_key', 'customer_feedback')
-      .eq('signer_role', FINAL_APPROVAL_ROLE);
+      .in('signer_role', finalRoleNames);
     if (data) {
       setLockedRecordIds(new Set(data.map(r => r.record_id)));
     }

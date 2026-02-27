@@ -13,18 +13,23 @@ export interface RecordSignature {
   created_at: string;
 }
 
-export const SIGNATURE_ROLES = [
-  { value: 'hazirlayan', label: 'Hazirlayan' },
-  { value: 'kontrol_eden', label: 'Kontrol Eden' },
-  { value: 'onaylayan', label: 'Onaylayan' },
-] as const;
+export interface ModuleSignatureRole {
+  id: string;
+  module_key: string;
+  role_name: string;
+  role_order: number;
+  is_final_approval: boolean;
+}
 
-export type SignatureRoleValue = typeof SIGNATURE_ROLES[number]['value'];
+export async function fetchModuleRoles(moduleKey: string): Promise<ModuleSignatureRole[]> {
+  const { data, error } = await supabase
+    .from('module_signature_roles')
+    .select('*')
+    .eq('module_key', moduleKey)
+    .order('role_order', { ascending: true });
 
-export const FINAL_APPROVAL_ROLE: SignatureRoleValue = 'onaylayan';
-
-export function getRoleLabel(value: string): string {
-  return SIGNATURE_ROLES.find(r => r.value === value)?.label || value;
+  if (error) throw error;
+  return (data || []) as ModuleSignatureRole[];
 }
 
 export async function fetchSignatures(moduleKey: string, recordId: string): Promise<RecordSignature[]> {
@@ -42,7 +47,7 @@ export async function fetchSignatures(moduleKey: string, recordId: string): Prom
 export async function saveSignature(params: {
   moduleKey: string;
   recordId: string;
-  signerRole: SignatureRoleValue;
+  signerRole: string;
   signerName: string;
   signerId: string;
   signatureDataUrl: string;
@@ -96,17 +101,19 @@ export async function deleteSignature(signatureId: string, imageUrl: string | nu
   if (error) throw error;
 }
 
-export function isRecordLocked(signatures: RecordSignature[]): boolean {
-  return signatures.some(s => s.signer_role === FINAL_APPROVAL_ROLE);
+export function isRecordLocked(signatures: RecordSignature[], roles: ModuleSignatureRole[]): boolean {
+  const finalRoleNames = roles.filter(r => r.is_final_approval).map(r => r.role_name);
+  if (finalRoleNames.length === 0) return false;
+  return signatures.some(s => finalRoleNames.includes(s.signer_role));
 }
 
-export async function getSignatureImageUrl(storagePath: string): Promise<string | null> {
-  if (storagePath.startsWith('http')) return storagePath;
+export async function fetchFinalApprovalRoleNames(moduleKey: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('module_signature_roles')
+    .select('role_name')
+    .eq('module_key', moduleKey)
+    .eq('is_final_approval', true);
 
-  const { data, error } = await supabase.storage
-    .from('signatures')
-    .createSignedUrl(storagePath, 3600);
-
-  if (error) return null;
-  return data.signedUrl;
+  if (error) return [];
+  return (data || []).map(r => r.role_name);
 }

@@ -5,12 +5,12 @@ import { supabase } from '../lib/supabase';
 import SignatureModal from './SignatureModal';
 import {
   fetchSignatures,
+  fetchModuleRoles,
   saveSignature,
   deleteSignature,
   isRecordLocked,
-  getRoleLabel,
   type RecordSignature,
-  type SignatureRoleValue,
+  type ModuleSignatureRole,
 } from '../utils/signatureService';
 
 interface SignaturesSectionProps {
@@ -22,19 +22,20 @@ interface SignaturesSectionProps {
 export default function SignaturesSection({ moduleKey, recordId, onLockChange }: SignaturesSectionProps) {
   const { user, role } = useAuth();
   const [signatures, setSignatures] = useState<RecordSignature[]>([]);
+  const [roles, setRoles] = useState<ModuleSignatureRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [signerName, setSignerName] = useState('');
 
-  const locked = isRecordLocked(signatures);
+  const locked = isRecordLocked(signatures, roles);
 
   useEffect(() => {
     if (onLockChange) onLockChange(locked);
   }, [locked, onLockChange]);
 
   useEffect(() => {
-    loadSignatures();
+    loadData();
   }, [moduleKey, recordId]);
 
   useEffect(() => {
@@ -44,19 +45,24 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
     }
   }, [user]);
 
-  const loadSignatures = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await fetchSignatures(moduleKey, recordId);
-      setSignatures(data);
+      const [sigs, moduleRoles] = await Promise.all([
+        fetchSignatures(moduleKey, recordId),
+        fetchModuleRoles(moduleKey),
+      ]);
+      setSignatures(sigs);
+      setRoles(moduleRoles);
     } catch {
       setSignatures([]);
+      setRoles([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async (signerRole: SignatureRoleValue, dataUrl: string) => {
+  const handleSave = async (roleName: string, dataUrl: string) => {
     if (!user) return;
 
     const { data: profile } = await supabase
@@ -70,13 +76,13 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
     await saveSignature({
       moduleKey,
       recordId,
-      signerRole,
+      signerRole: roleName,
       signerName: name,
       signerId: user.id,
       signatureDataUrl: dataUrl,
     });
 
-    await loadSignatures();
+    await loadData();
   };
 
   const handleDelete = async (sig: RecordSignature) => {
@@ -84,7 +90,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
     setDeletingId(sig.id);
     try {
       await deleteSignature(sig.id, sig.signature_image_url);
-      await loadSignatures();
+      await loadData();
     } catch {
       alert('Imza silinemedi.');
     } finally {
@@ -109,6 +115,8 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
       minute: '2-digit',
     });
   };
+
+  const gridCols = roles.length <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
 
   return (
     <section>
@@ -145,7 +153,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
             <p className="text-sm text-slate-500">Henuz imza eklenmemis.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
             {signatures.map(sig => (
               <div
                 key={sig.id}
@@ -154,7 +162,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
                 <div className="flex items-center justify-between mb-3">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded-md uppercase tracking-wide">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    {getRoleLabel(sig.signer_role)}
+                    {sig.signer_role}
                   </span>
                   {canDelete(sig) && (
                     <button
@@ -196,6 +204,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
         onClose={() => setShowModal(false)}
         onSave={handleSave}
         signerName={signerName}
+        roles={roles}
         disabledRoles={disabledRoles}
       />
     </section>
