@@ -474,7 +474,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                           {lockedRecordIds.has(feedback.id) ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
                               <Lock className="w-3 h-3" />
-                              Kilitli
+                              Imzali
                             </span>
                           ) : (
                             <>
@@ -601,7 +601,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                             {lockedRecordIds.has(feedback.id) ? (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
                                 <Lock className="w-2.5 h-2.5" />
-                                Kilitli
+                                Imzali
                               </span>
                             ) : (
                               <>
@@ -672,6 +672,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
         onClose={() => {
           setIsDetailViewOpen(false);
           setViewData(null);
+          fetchLockedRecords();
         }}
         data={viewData}
       />
