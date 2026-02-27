@@ -517,7 +517,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-semibold">3</div>
-              İçerik ve İlk Değerlendirme
+              İçerik
             </h3>
             <div className="space-y-6">
               <div>
@@ -532,47 +532,63 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 />
               </div>
 
-              <div className="bg-white p-5 rounded-lg border-2 border-purple-300">
-                <label className="block text-[11px] font-semibold text-gray-900 mb-2 uppercase tracking-wide">Geçerlilik Durumu</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  {[
-                    { status: 'Değerlendirmede', color: 'blue' },
-                    { status: 'Geçerli/Uygun', color: 'green' },
-                    { status: 'Geçersiz/Uygun Değil', color: 'red' }
-                  ].map(({ status, color }) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, validation_status: status })}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        formData.validation_status === status
-                          ? color === 'blue'
-                            ? 'border-blue-500 bg-blue-50 text-blue-900'
-                            : color === 'green'
-                            ? 'border-green-500 bg-green-50 text-green-900'
-                            : 'border-red-500 bg-red-50 text-red-900'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <span className="font-medium">{status}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+            </div>
+          </div>
 
+          <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl p-6 border border-slate-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-semibold">3b</div>
+              Sorumluluk Kararı
+            </h3>
+            <div className="space-y-6">
               <div>
                 <label className="block text-[11px] font-medium text-gray-700 mb-1">Değerlendirme Notları</label>
                 <textarea
                   value={formData.evaluation}
                   onChange={(e) => setFormData({ ...formData, evaluation: e.target.value })}
                   rows={4}
-                  className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
                   placeholder={
                     isInvalid
                       ? 'Red gerekçesini yazınız...'
                       : 'İçeriği ele alacak personel ve detaylar...'
                   }
                 />
+              </div>
+
+              <div className="bg-white p-5 rounded-lg border-2 border-slate-300">
+                <label className="block text-[11px] font-semibold text-gray-900 mb-2 uppercase tracking-wide">Sorumluluk Kararı</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { status: 'Değerlendirmede', label: 'Değerlendirmede', color: 'blue', tooltip: '' },
+                    { status: 'Geçerli/Uygun', label: 'KABUL / Geçerli / Uygun', color: 'green', tooltip: 'Bildirim sorumluluğu Kabul edildiğinde; gerekli aksiyonlar başlatılır.' },
+                    { status: 'Geçersiz/Uygun Değil', label: 'RET / Geçersiz / Uygun Değil', color: 'red', tooltip: 'Bildirim sorumluluğu Reddedilirse, Bildirim sahibine bilgi verilerek kayıt kapatılır. İlgili tarafın Ret kararına itirazı varsa yeni gerekçeleriyle birlikte yeni bir kayıt açılarak tekrar değerlendirilir.' },
+                  ].map(({ status, label, color, tooltip }) => (
+                    <div key={status} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, validation_status: status })}
+                        className={`w-full p-4 rounded-lg border-2 transition-all ${
+                          formData.validation_status === status
+                            ? color === 'blue'
+                              ? 'border-blue-500 bg-blue-50 text-blue-900'
+                              : color === 'green'
+                              ? 'border-green-500 bg-green-50 text-green-900'
+                              : 'border-red-500 bg-red-50 text-red-900'
+                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                        }`}
+                      >
+                        <span className="font-medium text-sm">{label}</span>
+                      </button>
+                      {tooltip && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 pointer-events-none">
+                          {tooltip}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
