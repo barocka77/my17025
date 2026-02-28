@@ -455,7 +455,7 @@ export const generateFeedbackPDF = async (
   ];
 
   const rightRows = [
-    ['Musteri / Kurum', data.applicant_name || '-'],
+    [data.source_type || 'Kaynak', data.applicant_name || '-'],
     ['Yetkili Kisi', data.contact_person || '-'],
     ['Telefon', data.contact_phone || data.phone || '-'],
     ['E-posta', data.contact_email || data.email || '-'],
