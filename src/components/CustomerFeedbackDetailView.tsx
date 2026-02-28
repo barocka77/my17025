@@ -528,8 +528,9 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                       <SignaturesSection
                         moduleKey="feedback_izahat"
                         recordId={data.id}
-                        title="İzahat Sahibi İmzası"
+                        title="İzahat İmzaları"
                         onLockChange={() => {}}
+                        signOnly
                       />
                     </div>
                   )}

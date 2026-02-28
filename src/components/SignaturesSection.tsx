@@ -22,9 +22,10 @@ interface SignaturesSectionProps {
   recordId: string;
   onLockChange?: (locked: boolean) => void;
   title?: string;
+  signOnly?: boolean;
 }
 
-export default function SignaturesSection({ moduleKey, recordId, onLockChange, title }: SignaturesSectionProps) {
+export default function SignaturesSection({ moduleKey, recordId, onLockChange, title, signOnly = false }: SignaturesSectionProps) {
   const { user, role } = useAuth();
   const [signatures, setSignatures] = useState<RecordSignature[]>([]);
   const [roles, setRoles] = useState<ModuleSignatureRole[]>([]);
@@ -202,14 +203,16 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
                 <KeyRound className="w-4 h-4" />
                 Onayla ve Imzala
               </button>
-              <button
-                type="button"
-                onClick={() => setShowModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <PenTool className="w-4 h-4" />
-                Imza Ekle
-              </button>
+              {!signOnly && (
+                <button
+                  type="button"
+                  onClick={() => setShowModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <PenTool className="w-4 h-4" />
+                  Imza Ekle
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -289,87 +292,131 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-          </div>
-        ) : signatures.length === 0 ? (
-          <div className="text-center py-8">
-            <PenTool className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-500">Henuz imza eklenmemis.</p>
-          </div>
-        ) : (
-          <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
-            {roles.map(r => {
-              const sig = signatures.find(s => s.signer_role === r.role_name);
-              return (
-                <div
-                  key={r.id}
-                  className={`relative border rounded-lg p-4 transition-colors ${
-                    sig
-                      ? 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-                      : 'border-dashed border-slate-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded-md uppercase tracking-wide">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      {r.role_name}
-                      {r.is_final_approval && (
-                        <span className="text-[9px] text-slate-500 font-medium normal-case ml-1">(Nihai)</span>
-                      )}
-                    </span>
-                    {sig && canDelete(sig) && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(sig)}
-                        disabled={deletingId === sig.id}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                      >
-                        {deletingId === sig.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {sig ? (
-                    <>
-                      {sig.signature_type === 'auth' ? (
-                        <div className="flex items-center gap-2 py-3 mb-3">
-                          <div className="p-2 bg-emerald-50 rounded-lg">
-                            <KeyRound className="w-5 h-5 text-emerald-600" />
-                          </div>
-                          <span className="text-xs font-medium text-emerald-700">Sifre ile onaylandi</span>
-                        </div>
-                      ) : sig.signature_image_url ? (
-                        <div className="bg-white border border-slate-200 rounded-md p-2 mb-3">
-                          <img
-                            src={sig.signature_image_url}
-                            alt={`${sig.signer_name} imzasi`}
-                            className="w-full h-16 object-contain"
-                          />
-                        </div>
-                      ) : null}
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-slate-800">{sig.signer_name}</p>
-                        <p className="text-xs text-slate-500">{formatDate(sig.signed_at)}</p>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="py-4 text-center">
-                      <p className="text-xs text-slate-400">Imza bekleniyor</p>
+      {signOnly ? (
+        <div>
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            </div>
+          ) : signatures.length > 0 ? (
+            <div className="space-y-2">
+              {signatures.map(sig => (
+                <div key={sig.id} className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 bg-emerald-100 rounded-md">
+                      <KeyRound className="w-4 h-4 text-emerald-600" />
                     </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{sig.signer_name}</p>
+                      <p className="text-xs text-slate-500">
+                        <span className="font-medium text-emerald-700">{sig.signer_role}</span>
+                        {' - '}
+                        {formatDate(sig.signed_at)}
+                      </p>
+                    </div>
+                  </div>
+                  {canDelete(sig) && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(sig)}
+                      disabled={deletingId === sig.id}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      {deletingId === sig.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            </div>
+          ) : signatures.length === 0 ? (
+            <div className="text-center py-8">
+              <PenTool className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Henuz imza eklenmemis.</p>
+            </div>
+          ) : (
+            <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
+              {roles.map(r => {
+                const sig = signatures.find(s => s.signer_role === r.role_name);
+                return (
+                  <div
+                    key={r.id}
+                    className={`relative border rounded-lg p-4 transition-colors ${
+                      sig
+                        ? 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                        : 'border-dashed border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded-md uppercase tracking-wide">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        {r.role_name}
+                        {r.is_final_approval && (
+                          <span className="text-[9px] text-slate-500 font-medium normal-case ml-1">(Nihai)</span>
+                        )}
+                      </span>
+                      {sig && canDelete(sig) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(sig)}
+                          disabled={deletingId === sig.id}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          {deletingId === sig.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {sig ? (
+                      <>
+                        {sig.signature_type === 'auth' ? (
+                          <div className="flex items-center gap-2 py-3 mb-3">
+                            <div className="p-2 bg-emerald-50 rounded-lg">
+                              <KeyRound className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <span className="text-xs font-medium text-emerald-700">Sifre ile onaylandi</span>
+                          </div>
+                        ) : sig.signature_image_url ? (
+                          <div className="bg-white border border-slate-200 rounded-md p-2 mb-3">
+                            <img
+                              src={sig.signature_image_url}
+                              alt={`${sig.signer_name} imzasi`}
+                              className="w-full h-16 object-contain"
+                            />
+                          </div>
+                        ) : null}
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-slate-800">{sig.signer_name}</p>
+                          <p className="text-xs text-slate-500">{formatDate(sig.signed_at)}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-4 text-center">
+                        <p className="text-xs text-slate-400">Imza bekleniyor</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <SignatureModal
         isOpen={showModal}
