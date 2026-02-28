@@ -403,32 +403,6 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Bildirim Türü</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { type: 'İstek', icon: MessageSquare },
-                    { type: 'Öneri', icon: Lightbulb },
-                    { type: 'İtiraz', icon: Flag },
-                    { type: 'Şikayet', icon: AlertTriangle }
-                  ].map(({ type, icon: Icon }) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, feedback_type: type })}
-                      className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
-                        formData.feedback_type === type
-                          ? 'border-slate-600 bg-slate-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium">{type}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[11px] font-medium text-gray-700 mb-1">İletişim Kanalı</label>
                 <select
@@ -593,6 +567,32 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-900 mb-2 uppercase tracking-wide">Bildirim Türü</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { type: 'İstek', icon: MessageSquare },
+                    { type: 'Öneri', icon: Lightbulb },
+                    { type: 'İtiraz', icon: Flag },
+                    { type: 'Şikayet', icon: AlertTriangle }
+                  ].map(({ type, icon: Icon }) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, feedback_type: type })}
+                      className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                        formData.feedback_type === type
+                          ? 'border-slate-600 bg-slate-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium">{type}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-white p-5 rounded-lg border-2 border-slate-300">
                 <label className="block text-[11px] font-semibold text-gray-900 mb-2 uppercase tracking-wide">Sorumluluk Kararı</label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -626,6 +626,51 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-lg border-2 border-slate-300">
+                <label className="block text-[11px] font-semibold text-gray-900 mb-2 uppercase tracking-wide">Düzeltici Faaliyet (DF) Gereksinimi</label>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { value: true, label: 'Evet', color: 'red' },
+                    { value: false, label: 'Hayır', color: 'green' },
+                  ].map(({ value, label, color }) => (
+                    <div key={label} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, requires_capa: value })}
+                        className={`w-full p-4 rounded-lg border-2 transition-all ${
+                          formData.requires_capa === value
+                            ? color === 'red'
+                              ? 'border-red-500 bg-red-50 text-red-900'
+                              : 'border-green-500 bg-green-50 text-green-900'
+                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                        }`}
+                      >
+                        <span className="font-medium text-sm">{label}</span>
+                      </button>
+                      {formData.requires_capa === value && (
+                        <p className={`mt-2 text-xs ${color === 'red' ? 'text-red-700' : 'text-green-700'}`}>
+                          {value
+                            ? 'Bildirim uygunsuzluk ve DF formuna devredilerek kapatılır.'
+                            : 'Düzeltme Faaliyeti bu form üzerinde takip edilir.'}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {formData.requires_capa && (
+                  <div className="mt-4">
+                    <label className="block text-[11px] font-medium text-gray-700 mb-1">DF Numarası</label>
+                    <input
+                      type="text"
+                      value={formData.capa_no}
+                      onChange={(e) => setFormData({ ...formData, capa_no: e.target.value })}
+                      className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                      placeholder="DF-2024-001"
+                    />
+                  </div>
+                )}
               </div>
 
               {editData?.id && (
@@ -713,33 +758,6 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-emerald-200">
-                <div className="flex items-center gap-3 bg-white p-4 rounded-lg border border-emerald-200">
-                  <input
-                    type="checkbox"
-                    id="requires_capa"
-                    checked={formData.requires_capa}
-                    onChange={(e) => setFormData({ ...formData, requires_capa: e.target.checked })}
-                    className="w-5 h-5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-                  />
-                  <label htmlFor="requires_capa" className="text-sm font-medium text-gray-700 cursor-pointer">
-                    Düzeltici Faaliyet (DF) açılacak mı?
-                  </label>
-                </div>
-
-                {formData.requires_capa && (
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-1">DF Numarası</label>
-                    <input
-                      type="text"
-                      value={formData.capa_no}
-                      onChange={(e) => setFormData({ ...formData, capa_no: e.target.value })}
-                      className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      placeholder="DF-2024-001"
-                    />
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
