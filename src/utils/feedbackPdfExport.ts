@@ -442,7 +442,7 @@ export const generateFeedbackPDF = async (
   y = drawTextBlock(doc, 'Konu (Detayli Aciklama)', data.content_details || '-', y, margin, contentWidth);
 
   // 3. IZAHAT
-  if (data.izahat_text || data.izahat_by) {
+  {
     const izahatRows = [['Bildirime Sebep Olan Taraf', data.izahat_by || '-']];
     const izahatEstimate = 9 + estimateTableHeight(izahatRows.length) + 40;
     y = ensureSpace(doc, izahatEstimate, y);
@@ -540,8 +540,8 @@ export const generateFeedbackPDF = async (
     }
   }
 
-  // 7. KAPATMA
-  if (data.closure_date || data.closure_notes) {
+  // 6. KAPATMA
+  {
     const closureRows = [
       ['Kapatma Tarihi', formatDate(data.closure_date)],
     ];
@@ -552,24 +552,24 @@ export const generateFeedbackPDF = async (
     autoTable(doc, { ...fwStyles, startY: y, body: closureRows });
     y = (doc as any).lastAutoTable.finalY + 3;
 
-    if (data.closure_notes) {
-      y = drawTextBlock(doc, 'Kapatma Notlari', data.closure_notes, y, margin, contentWidth);
+    y = drawTextBlock(doc, 'Kapatma Notlari', data.closure_notes || '-', y, margin, contentWidth);
+
+    if (data.closure_date) {
+      doc.setFont(FONT_NAME, 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT_MUTED);
+      const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
+      const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
+      const noticeHeight = noticeLines.length * 3 + 6;
+      y = ensureSpace(doc, noticeHeight, y);
+
+      doc.setFillColor(240, 253, 250);
+      doc.setDrawColor(153, 246, 228);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(margin + 1, y - 1, contentWidth - 2, noticeHeight, 1.5, 1.5, 'FD');
+      doc.text(noticeLines, margin + 4, y + 3);
+      y += noticeHeight + 4;
     }
-
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...TEXT_MUTED);
-    const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
-    const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
-    const noticeHeight = noticeLines.length * 3 + 6;
-    y = ensureSpace(doc, noticeHeight, y);
-
-    doc.setFillColor(240, 253, 250);
-    doc.setDrawColor(153, 246, 228);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(margin + 1, y - 1, contentWidth - 2, noticeHeight, 1.5, 1.5, 'FD');
-    doc.text(noticeLines, margin + 4, y + 3);
-    y += noticeHeight + 4;
 
     const closureSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_closure');
     if (closureSigGroup) {
