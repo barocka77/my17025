@@ -177,10 +177,16 @@ export async function verifyAndSign(params: {
     }),
   });
 
-  const result = await response.json();
+  let result: any;
+  const text = await response.text();
+  try {
+    result = JSON.parse(text);
+  } catch {
+    throw new Error(`Sunucu hatasi (${response.status})`);
+  }
 
   if (!response.ok) {
-    throw new Error(result.error || 'Imza islemi basarisiz');
+    throw new Error(result.error || `Imza islemi basarisiz (${response.status})`);
   }
 
   return result.signature as RecordSignature;
