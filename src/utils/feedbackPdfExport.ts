@@ -255,7 +255,7 @@ function addImzaliWatermark(doc: jsPDF) {
   }
 }
 
-function drawSignatureGroup(
+function drawSignatureBoxes(
   doc: jsPDF,
   group: FeedbackSignatureGroup,
   y: number,
@@ -269,48 +269,49 @@ function drawSignatureGroup(
 
   if (roleNames.length === 0) return y;
 
-  const sigRows = roleNames.map((role) => {
+  const boxHeight = 18;
+  const boxGap = 4;
+  const cols = Math.min(roleNames.length, 3);
+  const boxWidth = (contentWidth - boxGap * (cols - 1)) / cols;
+
+  y = ensureSpace(doc, boxHeight + 6, y);
+
+  roleNames.forEach((role, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+
+    if (row > 0 && col === 0) {
+      y = ensureSpace(doc, boxHeight + 4, y);
+    }
+
+    const bx = margin + col * (boxWidth + boxGap);
+    const by = y + row * (boxHeight + 4);
+
     const sig = sigMap.get(role);
-    return [role, sig?.signer_name || '-', sig ? formatDate(sig.signed_at) : '-'];
+    const isSigned = !!sig;
+
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.2);
+    doc.setFillColor(isSigned ? 240 : 250, isSigned ? 253 : 250, isSigned ? 250 : 250);
+    doc.roundedRect(bx, by, boxWidth, boxHeight, 1.5, 1.5, 'FD');
+
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(role, bx + 3, by + 5);
+
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(sig?.signer_name || '', bx + 3, by + 10.5);
+
+    doc.setFontSize(6.5);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(sig ? formatDate(sig.signed_at) : '', bx + 3, by + 15);
   });
 
-  const tableHeight = estimateTableHeight(sigRows.length) + 14;
-  y = ensureSpace(doc, tableHeight, y);
-
-  doc.setFont(FONT_NAME, 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...TEXT_MUTED);
-  doc.text(`Imzalar - ${group.label}`, margin + 2, y);
-  y += 4;
-
-  autoTable(doc, {
-    startY: y,
-    margin: { left: margin, right: margin },
-    theme: 'plain' as const,
-    head: [['Rol', 'Imzalayan', 'Tarih']],
-    body: sigRows,
-    styles: {
-      font: FONT_NAME,
-      fontSize: 7.5,
-      cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 },
-      textColor: TEXT_DARK,
-      lineColor: BORDER_COLOR,
-      lineWidth: 0.15,
-    },
-    headStyles: {
-      fillColor: [241, 245, 249],
-      textColor: TEXT_MUTED,
-      fontStyle: 'bold',
-      fontSize: 7,
-    },
-    columnStyles: {
-      0: { cellWidth: contentWidth * 0.3 },
-      1: { cellWidth: contentWidth * 0.4 },
-      2: { cellWidth: contentWidth * 0.3 },
-    },
-  });
-
-  return (doc as any).lastAutoTable.finalY + 4;
+  const totalRows = Math.ceil(roleNames.length / cols);
+  return y + totalRows * (boxHeight + 4) + 2;
 }
 
 interface GeneratePdfOptions {
@@ -480,7 +481,7 @@ export const generateFeedbackPDF = async (
 
   const feedbackSigGroup = signatureGroups.find((g) => g.moduleKey === 'customer_feedback');
   if (feedbackSigGroup) {
-    y = drawSignatureGroup(doc, feedbackSigGroup, y, margin, contentWidth);
+    y = drawSignatureBoxes(doc, feedbackSigGroup, y, margin, contentWidth);
   }
 
   // 5. PLANLAMA VE AKSIYON
@@ -540,7 +541,7 @@ export const generateFeedbackPDF = async (
 
     const actionSigGroups = signatureGroups.filter((g) => g.moduleKey.startsWith('feedback_action_'));
     for (const sg of actionSigGroups) {
-      y = drawSignatureGroup(doc, sg, y, margin, contentWidth);
+      y = drawSignatureBoxes(doc, sg, y, margin, contentWidth);
     }
   }
 
@@ -577,7 +578,7 @@ export const generateFeedbackPDF = async (
 
     const closureSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_closure');
     if (closureSigGroup) {
-      y = drawSignatureGroup(doc, closureSigGroup, y, margin, contentWidth);
+      y = drawSignatureBoxes(doc, closureSigGroup, y, margin, contentWidth);
     }
   }
 
