@@ -449,9 +449,7 @@ export const generateFeedbackPDF = async (
     ['Form Tarihi', formatDate(data.form_date)],
     ['Bildirim No', data.application_no || '-'],
     ['Iletisim Kanali', data.communication_channel || '-'],
-    ['Kaynak', data.source_type || '-'],
     ['G.B. Alan', data.received_by || '-'],
-    ['Durum', data.status || 'Acik'],
   ];
 
   const rightRows = [
