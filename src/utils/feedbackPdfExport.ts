@@ -474,9 +474,14 @@ export const generateFeedbackPDF = async (
   }
 
   // 4. SORUMLULUK KARARI
+  const validityMap: Record<string, string> = {
+    'Geçerli/Uygun': 'KABUL / Gecerli / Uygun',
+    'Geçersiz/Uygun Değil': 'RET / Gecersiz / Uygun Degil',
+  };
+  const validityLabel = validityMap[data.validation_status || ''] || data.validation_status || 'Degerlendirmede';
   const evalRows = [
     ['Bildirim Turu', data.feedback_type || '-'],
-    ['Gecerlilik', data.validation_status || 'Degerlendirmede'],
+    ['Gecerlilik Karari', validityLabel],
     ['DF Gereksinimi', data.requires_capa ? 'Evet' : 'Hayir'],
   ];
   if (data.requires_capa && data.capa_no) {
