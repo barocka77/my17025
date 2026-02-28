@@ -63,20 +63,21 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
         data.id ? fetchRecordLockState(data.id) : Promise.resolve({ is_locked: false, locked_at: null, locked_by: null, unlocked_at: null, unlocked_by: null, unlock_reason: null }),
       ]);
 
+      const [feedbackRoles, closureRoles, actionRoles] = await Promise.all([
+        fetchModuleRoles('customer_feedback'),
+        fetchModuleRoles('feedback_closure'),
+        fetchModuleRoles('feedback_action'),
+      ]);
+
       const actionSigPromises = actions.map((a) =>
         fetchSignatures(`feedback_action_${a.id}`, a.id).then((sigs) => ({
           moduleKey: `feedback_action_${a.id}`,
           label: `Aksiyon: ${a.action_description?.substring(0, 40) || a.id}`,
           signatures: sigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
-          roles: [],
+          roles: actionRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         } as FeedbackSignatureGroup))
       );
       const actionSigGroups = await Promise.all(actionSigPromises);
-
-      const [feedbackRoles, closureRoles] = await Promise.all([
-        fetchModuleRoles('customer_feedback'),
-        fetchModuleRoles('feedback_closure'),
-      ]);
 
       const signatureGroups: FeedbackSignatureGroup[] = [
         {
@@ -85,7 +86,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
           signatures: feedbackSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
           roles: feedbackRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         },
-        ...actionSigGroups.filter((g) => g.signatures.length > 0),
+        ...actionSigGroups,
         {
           moduleKey: 'feedback_closure',
           label: 'Kapatma',

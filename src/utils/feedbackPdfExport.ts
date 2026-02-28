@@ -262,13 +262,17 @@ function drawSignatureGroup(
   margin: number,
   contentWidth: number
 ): number {
-  if (group.signatures.length === 0) return y;
+  const sigMap = new Map(group.signatures.map((s) => [s.signer_role, s]));
+  const roleNames = group.roles.length > 0
+    ? group.roles.sort((a, b) => a.role_order - b.role_order).map((r) => r.role_name)
+    : group.signatures.map((s) => s.signer_role);
 
-  const sigRows = group.signatures.map((s) => [
-    s.signer_role,
-    s.signer_name,
-    formatDate(s.signed_at),
-  ]);
+  if (roleNames.length === 0) return y;
+
+  const sigRows = roleNames.map((role) => {
+    const sig = sigMap.get(role);
+    return [role, sig?.signer_name || '-', sig ? formatDate(sig.signed_at) : '-'];
+  });
 
   const tableHeight = estimateTableHeight(sigRows.length) + 14;
   y = ensureSpace(doc, tableHeight, y);
