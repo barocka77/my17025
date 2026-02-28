@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import OrganizationLogoUpload from './OrganizationLogoUpload';
@@ -14,14 +14,18 @@ interface UserProfile {
   created_at: string;
 }
 
-interface NewUserForm {
+interface UserForm {
   email: string;
   password: string;
   full_name: string;
   role: AppRole;
 }
 
-const EMPTY_FORM: NewUserForm = { email: '', password: '', full_name: '', role: 'personnel' };
+interface EditUserForm extends UserForm {
+  user_id: string;
+}
+
+const EMPTY_FORM: UserForm = { email: '', password: '', full_name: '', role: 'personnel' };
 
 export default function AdminPanel() {
   const { role: currentUserRole } = useAuth();
@@ -31,9 +35,12 @@ export default function AdminPanel() {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
+  const [newUser, setNewUser] = useState<UserForm>(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [editingUser, setEditingUser] = useState<EditUserForm | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -110,6 +117,63 @@ export default function AdminPanel() {
       showToast('Baglanti hatasi', 'error');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openEditModal = (user: UserProfile) => {
+    setEditingUser({
+      user_id: user.id,
+      email: user.email,
+      full_name: user.full_name || '',
+      password: '',
+      role: user.role,
+    });
+    setShowEditPassword(false);
+  };
+
+  const updateUser = async () => {
+    if (!editingUser) return;
+    if (editingUser.password && editingUser.password.length < 6) {
+      showToast('Sifre en az 6 karakter olmalidir', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const payload: Record<string, string> = {
+        user_id: editingUser.user_id,
+        full_name: editingUser.full_name,
+        email: editingUser.email,
+        role: editingUser.role,
+      };
+      if (editingUser.password) {
+        payload.password = editingUser.password;
+      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            Apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) {
+        showToast(result.error || 'Kullanici guncellenemedi', 'error');
+      } else {
+        showToast('Kullanici basariyla guncellendi', 'success');
+        setEditingUser(null);
+        fetchUsers();
+      }
+    } catch {
+      showToast('Baglanti hatasi', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -241,7 +305,17 @@ export default function AdminPanel() {
                       <div className="text-sm text-slate-600">{formatDate(user.created_at)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="relative">
+                      <div className="flex items-center gap-2">
+                        {currentUserRole === 'admin' && (
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Duzenle
+                          </button>
+                        )}
+                        <div className="relative">
                         <button
                           onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
                           disabled={updatingUserId === user.id}
@@ -284,6 +358,7 @@ export default function AdminPanel() {
                             </div>
                           </>
                         )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -394,6 +469,103 @@ export default function AdminPanel() {
                   <>
                     <UserPlus className="w-4 h-4" />
                     Kullanici Olustur
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-700 to-slate-600">
+              <div className="flex items-center gap-3">
+                <Pencil className="w-5 h-5 text-white" />
+                <h3 className="text-lg font-semibold text-white">Kullanici Duzenle</h3>
+              </div>
+              <button
+                onClick={() => { setEditingUser(null); setShowEditPassword(false); }}
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Ad Soyad</label>
+                <input
+                  type="text"
+                  value={editingUser.full_name}
+                  onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">E-posta</label>
+                <input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Yeni Sifre <span className="text-slate-400 font-normal">(bos birakirsaniz degismez)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    value={editingUser.password}
+                    onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all pr-10"
+                    placeholder="En az 6 karakter"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Rol</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as AppRole })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-white"
+                >
+                  <option value="personnel">Personel</option>
+                  <option value="quality_manager">Kalite Muduru</option>
+                  <option value="admin">Yonetici</option>
+                </select>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => { setEditingUser(null); setShowEditPassword(false); }}
+                className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Iptal
+              </button>
+              <button
+                onClick={updateUser}
+                disabled={saving || !editingUser.email}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Kaydediliyor...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Kaydet
                   </>
                 )}
               </button>
