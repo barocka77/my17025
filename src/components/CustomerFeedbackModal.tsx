@@ -130,6 +130,33 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         }
       })();
     } else {
+      setFormData({
+        application_no: '',
+        form_date: new Date().toISOString().split('T')[0],
+        received_by: '',
+        feedback_type: 'İstek',
+        communication_channel: 'E-posta',
+        source_type: 'Müşteri',
+        applicant_name: '',
+        contact_person: '',
+        phone: '',
+        email: '',
+        content_details: '',
+        validation_status: 'Değerlendirmede',
+        evaluation: '',
+        action_plan: '',
+        responsible_person: '',
+        deadline: '',
+        requires_capa: false,
+        capa_no: '',
+        risk_probability: 'Düşük',
+        risk_severity: 'Hafif',
+        status: 'Açık',
+        izahat_text: '',
+        izahat_by: '',
+        closure_date: '',
+        closure_notes: '',
+      });
       generateApplicationNo();
       setAttachments([]);
       setActions([]);
