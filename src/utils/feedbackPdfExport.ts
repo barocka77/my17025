@@ -114,6 +114,43 @@ function ensureSpace(doc: jsPDF, neededHeight: number, currentY: number): number
   return currentY;
 }
 
+function ensureSectionFits(doc: jsPDF, totalSectionHeight: number, currentY: number): number {
+  const maxSectionHeight = PAGE_BOTTOM - TOP_MARGIN;
+  if (totalSectionHeight > maxSectionHeight) {
+    return currentY;
+  }
+  if (currentY + totalSectionHeight > PAGE_BOTTOM) {
+    doc.addPage();
+    return TOP_MARGIN;
+  }
+  return currentY;
+}
+
+function estimateTextBlockHeight(doc: jsPDF, label: string, text: string, contentWidth: number): number {
+  doc.setFont(FONT_NAME, 'bold');
+  doc.setFontSize(8);
+  const labelLines = doc.splitTextToSize(label, contentWidth - 8);
+  const labelHeight = labelLines.length * 3.5;
+
+  doc.setFont(FONT_NAME, 'normal');
+  doc.setFontSize(8);
+  const bodyLines = doc.splitTextToSize(text || '-', contentWidth - 8);
+  const bodyHeight = bodyLines.length * 3.5 + 4;
+
+  return labelHeight + bodyHeight + 6 + 3;
+}
+
+function estimateSignatureGroupHeight(group: FeedbackSignatureGroup): number {
+  const roleNames = group.roles.length > 0
+    ? group.roles.map((r) => r.role_name)
+    : group.signatures.map((s) => s.signer_role);
+  if (roleNames.length === 0) return 0;
+  const cols = Math.min(roleNames.length, 3);
+  const totalRows = Math.ceil(roleNames.length / cols);
+  const boxHeight = 18;
+  return 6 + totalRows * (boxHeight + 4) + 2;
+}
+
 function drawSectionHeader(doc: jsPDF, title: string, y: number, x: number, width: number, color?: [number, number, number]): number {
   doc.setFillColor(...(color || PRIMARY_COLOR));
   doc.rect(x, y, width, 7, 'F');
@@ -450,23 +487,29 @@ export const generateFeedbackPDF = async (
   const fwStyles = fullWidthTableStyles(contentWidth, margin);
 
   // 2. ICERIK
-  const descriptionEstimate = 7 + 8 + 30;
-  y = ensureSpace(doc, descriptionEstimate, y);
+  {
+    const sectionHeight = 9 + estimateTextBlockHeight(doc, 'Konu (Detayli Aciklama)', data.content_details || '-', contentWidth);
+    y = ensureSectionFits(doc, sectionHeight, y);
+  }
   y = drawSectionHeader(doc, 'ICERIK', y, margin, contentWidth);
   y = drawTextBlock(doc, 'Konu (Detayli Aciklama)', data.content_details || '-', y, margin, contentWidth);
 
   // 3. IZAHAT
   {
     const izahatRows = [['Bildirime Sebep Olan Taraf', data.izahat_by || '-']];
-    const izahatEstimate = 9 + estimateTableHeight(izahatRows.length) + 40;
-    y = ensureSpace(doc, izahatEstimate, y);
+    const izahatSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_izahat');
+    const izahatSectionHeight = 9
+      + estimateTableHeight(izahatRows.length) + 3
+      + estimateTextBlockHeight(doc, 'Bildirime Sebep Taraf Izahati', data.izahat_text || '-', contentWidth)
+      + (izahatSigGroup ? estimateSignatureGroupHeight(izahatSigGroup) : 0);
+    y = ensureSectionFits(doc, izahatSectionHeight, y);
+
     y = drawSectionHeader(doc, 'IZAHAT', y, margin, contentWidth);
 
     autoTable(doc, { ...fwStyles, startY: y, body: izahatRows });
     y = (doc as any).lastAutoTable.finalY + 3;
     y = drawTextBlock(doc, 'Bildirime Sebep Taraf Izahati', data.izahat_text || '-', y, margin, contentWidth);
 
-    const izahatSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_izahat');
     if (izahatSigGroup) {
       y = drawSignatureSectionLabel(doc, 'Izahat Sahibi Imzasi', y, margin);
       y = drawSignatureBoxes(doc, izahatSigGroup, y, margin, contentWidth);
@@ -488,8 +531,14 @@ export const generateFeedbackPDF = async (
     evalRows.push(['DF Numarasi', data.capa_no]);
   }
 
-  const evalEstimate = 9 + estimateTableHeight(evalRows.length) + (data.evaluation ? 40 : 4);
-  y = ensureSpace(doc, evalEstimate, y);
+  const feedbackSigGroup = signatureGroups.find((g) => g.moduleKey === 'customer_feedback');
+  {
+    const evalSectionHeight = 9
+      + estimateTableHeight(evalRows.length) + 3
+      + (data.evaluation ? estimateTextBlockHeight(doc, 'Degerlendirme Notlari', data.evaluation, contentWidth) : 0)
+      + (feedbackSigGroup ? estimateSignatureGroupHeight(feedbackSigGroup) : 0);
+    y = ensureSectionFits(doc, evalSectionHeight, y);
+  }
   y = drawSectionHeader(doc, 'SORUMLULUK KARARI', y, margin, contentWidth);
 
   autoTable(doc, { ...fwStyles, startY: y, body: evalRows });
@@ -499,7 +548,6 @@ export const generateFeedbackPDF = async (
     y = drawTextBlock(doc, 'Degerlendirme Notlari', data.evaluation, y, margin, contentWidth);
   }
 
-  const feedbackSigGroup = signatureGroups.find((g) => g.moduleKey === 'customer_feedback');
   if (feedbackSigGroup) {
     y = drawSignatureSectionLabel(doc, 'Karar Verici Imzasi', y, margin);
     y = drawSignatureBoxes(doc, feedbackSigGroup, y, margin, contentWidth);
@@ -524,8 +572,11 @@ export const generateFeedbackPDF = async (
         ])
       : [['1', '-', '-', '-', '-', '-']];
 
-    const actionEstimate = 9 + estimateTableHeight(actionTableRows.length + 1) + 4;
-    y = ensureSpace(doc, actionEstimate, y);
+    const actionSigGroups = signatureGroups.filter((g) => g.moduleKey.startsWith('feedback_action_'));
+    const actionSigHeight = actionSigGroups.reduce((sum, sg) => sum + estimateSignatureGroupHeight(sg), 0);
+    const actionSectionHeight = 9 + estimateTableHeight(actionTableRows.length + 1) + 4 + actionSigHeight;
+    y = ensureSectionFits(doc, actionSectionHeight, y);
+
     y = drawSectionHeader(doc, 'PLANLAMA VE AKSIYON', y, margin, contentWidth);
 
     autoTable(doc, {
@@ -560,7 +611,6 @@ export const generateFeedbackPDF = async (
     });
     y = (doc as any).lastAutoTable.finalY + 4;
 
-    const actionSigGroups = signatureGroups.filter((g) => g.moduleKey.startsWith('feedback_action_'));
     for (const sg of actionSigGroups) {
       y = drawSignatureBoxes(doc, sg, y, margin, contentWidth);
     }
@@ -571,8 +621,24 @@ export const generateFeedbackPDF = async (
     const closureRows = [
       ['Kapatma Tarihi', formatDate(data.closure_date)],
     ];
-    const closureEstimate = 9 + estimateTableHeight(closureRows.length) + (data.closure_notes ? 50 : 8);
-    y = ensureSpace(doc, closureEstimate, y);
+    const closureSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_closure');
+
+    let closureNoticeHeight = 0;
+    if (data.closure_date) {
+      doc.setFont(FONT_NAME, 'normal');
+      doc.setFontSize(7);
+      const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
+      const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
+      closureNoticeHeight = noticeLines.length * 3 + 6 + 4;
+    }
+
+    const closureSectionHeight = 9
+      + estimateTableHeight(closureRows.length) + 3
+      + estimateTextBlockHeight(doc, 'Kapatma Notlari', data.closure_notes || '-', contentWidth)
+      + closureNoticeHeight
+      + (closureSigGroup ? estimateSignatureGroupHeight(closureSigGroup) : 0);
+    y = ensureSectionFits(doc, closureSectionHeight, y);
+
     y = drawSectionHeader(doc, 'KAPATMA', y, margin, contentWidth, TEAL_COLOR);
 
     autoTable(doc, { ...fwStyles, startY: y, body: closureRows });
@@ -587,7 +653,6 @@ export const generateFeedbackPDF = async (
       const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
       const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
       const noticeHeight = noticeLines.length * 3 + 6;
-      y = ensureSpace(doc, noticeHeight, y);
 
       doc.setFillColor(240, 253, 250);
       doc.setDrawColor(153, 246, 228);
@@ -597,7 +662,6 @@ export const generateFeedbackPDF = async (
       y += noticeHeight + 4;
     }
 
-    const closureSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_closure');
     if (closureSigGroup) {
       y = drawSignatureSectionLabel(doc, 'Kapatan Yetkili Imzasi', y, margin);
       y = drawSignatureBoxes(doc, closureSigGroup, y, margin, contentWidth);
