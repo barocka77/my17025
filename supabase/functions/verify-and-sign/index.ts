@@ -176,7 +176,9 @@ Deno.serve(async (req: Request) => {
       },
       200
     );
-  } catch (_err) {
-    return jsonResponse({ error: "Beklenmeyen bir hata olustu" }, 500);
+  } catch (err) {
+    console.error("verify-and-sign unhandled error:", err);
+    const message = err instanceof Error ? err.message : "Beklenmeyen bir hata olustu";
+    return jsonResponse({ error: message }, 500);
   }
 });
