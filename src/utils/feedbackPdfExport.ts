@@ -472,7 +472,7 @@ export const generateFeedbackPDF = async (
   const rightX = margin + colWidth + gap;
 
   const leftY = drawSectionHeader(doc, 'BASVURU BILGILERI', y, leftX, colWidth);
-  const rightY = drawSectionHeader(doc, 'MUSTERI BILGILERI', y, rightX, colWidth);
+  const rightY = drawSectionHeader(doc, 'GERI BILDIRIM SAHIBI', y, rightX, colWidth);
 
   const leftStyles = columnTableStyles(colWidth, leftX);
   autoTable(doc, { ...leftStyles, startY: leftY, body: leftRows });
