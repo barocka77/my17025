@@ -181,6 +181,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
         <div className="flex items-center gap-2">
           {locked && role === 'admin' && (
             <button
+              type="button"
               onClick={() => {
                 setShowUnlockForm(!showUnlockForm);
                 setUnlockError(null);
@@ -194,6 +195,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
           {!locked && (
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setShowReAuthModal(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
               >
@@ -201,6 +203,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
                 Onayla ve Imzala
               </button>
               <button
+                type="button"
                 onClick={() => setShowModal(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
               >
@@ -263,6 +266,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
           )}
           <div className="flex justify-end gap-2">
             <button
+              type="button"
               onClick={() => {
                 setShowUnlockForm(false);
                 setUnlockReason('');
@@ -273,6 +277,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
               Iptal
             </button>
             <button
+              type="button"
               onClick={handleUnlock}
               disabled={unlocking || !unlockReason.trim()}
               className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
@@ -317,6 +322,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
                     </span>
                     {sig && canDelete(sig) && (
                       <button
+                        type="button"
                         onClick={() => handleDelete(sig)}
                         disabled={deletingId === sig.id}
                         className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"

@@ -55,8 +55,11 @@ export default function ReAuthSignatureModal({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && canConfirm && !saving) {
-      handleConfirm();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (canConfirm && !saving) {
+        handleConfirm();
+      }
     }
   };
 
