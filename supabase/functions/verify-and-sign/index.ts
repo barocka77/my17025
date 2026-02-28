@@ -33,19 +33,6 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const callerClient = createClient(supabaseUrl, serviceRoleKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
-
-    const {
-      data: { user: caller },
-    } = await callerClient.auth.getUser();
-
-    if (!caller) {
-      return jsonResponse({ error: "Gecersiz oturum" }, 401);
-    }
-
     const {
       password,
       module_key,
@@ -55,6 +42,20 @@ Deno.serve(async (req: Request) => {
       ip_address,
       user_agent,
     } = await req.json();
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user: caller },
+      error: userError,
+    } = await adminClient.auth.getUser(token);
+
+    if (userError || !caller) {
+      return jsonResponse({ error: "Gecersiz oturum" }, 401);
+    }
 
     if (!password || !module_key || !record_id || !role_id || !role_name) {
       return jsonResponse({ error: "Eksik parametreler" }, 400);
@@ -74,10 +75,6 @@ Deno.serve(async (req: Request) => {
     if (signInError) {
       return jsonResponse({ error: "Sifre hatali" }, 403);
     }
-
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    });
 
     const { data: profile } = await adminClient
       .from("profiles")
