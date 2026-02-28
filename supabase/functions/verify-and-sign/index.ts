@@ -122,8 +122,11 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: insertError.message }, 400);
     }
 
+    console.log("Signature insert successful", { module_key, record_id, signer: signerName });
+
     if (roleData?.is_final_approval && module_key === "customer_feedback") {
-      await adminClient
+      console.log("Attempting to lock record", { record_id, status: "IMZALI" });
+      const { error: lockError } = await adminClient
         .from("feedback_records")
         .update({
           is_locked: true,
@@ -132,10 +135,16 @@ Deno.serve(async (req: Request) => {
           status: "IMZALI",
         })
         .eq("id", record_id);
+      if (lockError) {
+        console.error("Failed to lock record", lockError);
+      } else {
+        console.log("Record locked successfully", { record_id, status: "IMZALI" });
+      }
     }
 
     if (roleData?.is_final_approval && module_key === "feedback_records") {
-      await adminClient
+      console.log("Attempting to lock record", { record_id, status: "Kapalı" });
+      const { error: closeLockError } = await adminClient
         .from("feedback_records")
         .update({
           is_locked: true,
@@ -144,6 +153,11 @@ Deno.serve(async (req: Request) => {
           status: "Kapalı",
         })
         .eq("id", record_id);
+      if (closeLockError) {
+        console.error("Failed to lock record", closeLockError);
+      } else {
+        console.log("Record locked successfully", { record_id, status: "Kapalı" });
+      }
     }
 
     return jsonResponse(
