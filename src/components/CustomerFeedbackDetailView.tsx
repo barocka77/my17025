@@ -1,4 +1,4 @@
-import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock, ShieldCheck } from 'lucide-react';
+import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock, ShieldCheck, Ban, KeyRound, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
@@ -7,26 +7,67 @@ import type { FeedbackAction, FeedbackSignatureGroup } from '../utils/feedbackPd
 import { useModuleDocument } from '../hooks/useModuleDocument';
 import DocumentSelectModal from './DocumentSelectModal';
 import SignaturesSection from './SignaturesSection';
-import { fetchSignatures, fetchModuleRoles, fetchRecordLockState } from '../utils/signatureService';
+import { fetchSignatures, fetchModuleRoles, fetchRecordLockState, closeFeedbackRecord } from '../utils/signatureService';
 
 interface DetailViewProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
+  onDataChange?: () => void;
 }
 
-const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) => {
+const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: DetailViewProps) => {
   const { role } = useAuth();
   const [signingIndex, setSigningIndex] = useState<number | null>(null);
   const [orgName, setOrgName] = useState<string | undefined>(undefined);
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
   const [recordLocked, setRecordLocked] = useState(false);
+  const [recordClosed, setRecordClosed] = useState(false);
   const [actions, setActions] = useState<FeedbackAction[]>([]);
   const { showSelector, closeSelector, onDocumentSelected, requestPdf } = useModuleDocument('customer_feedback');
+
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closePassword, setClosePassword] = useState('');
+  const [showClosePassword, setShowClosePassword] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
 
   const handleLockChange = useCallback((locked: boolean) => {
     setRecordLocked(locked);
   }, []);
+
+  useEffect(() => {
+    if (data) {
+      setRecordClosed(data.status === 'Kapalı' && data.is_locked === true);
+    }
+  }, [data]);
+
+  const handleCloseFeedback = async () => {
+    if (!closePassword || !data?.id) return;
+    setClosing(true);
+    setCloseError(null);
+    try {
+      await closeFeedbackRecord({ password: closePassword, recordId: data.id });
+      setShowCloseModal(false);
+      setClosePassword('');
+      setShowClosePassword(false);
+      setRecordClosed(true);
+      setRecordLocked(true);
+      if (onDataChange) onDataChange();
+    } catch (err: any) {
+      setCloseError(err?.message || 'Bildirimi kapatma islemi basarisiz.');
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const handleCloseModalDismiss = () => {
+    if (closing) return;
+    setShowCloseModal(false);
+    setClosePassword('');
+    setShowClosePassword(false);
+    setCloseError(null);
+  };
 
   useEffect(() => {
     const fetchOrg = async () => {
@@ -168,6 +209,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
       'Tamamlandı': 'bg-green-100 text-green-800 border-green-200',
       'Kapatıldı': 'bg-gray-100 text-gray-800 border-gray-200',
       'IMZALI': 'bg-green-100 text-green-800 border-green-200',
+      'Kapalı': 'bg-slate-200 text-slate-800 border-slate-300',
     };
     return styles[status] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
@@ -241,7 +283,16 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
         </div>
 
         <div className="p-6 md:p-8 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-          {recordLocked && (
+          {recordClosed && (
+            <div className="flex items-center gap-3 p-4 bg-slate-100 border border-slate-300 rounded-lg">
+              <Ban className="w-5 h-5 text-slate-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Bu bildirim kapatilmis ve kilitlenmistir.</p>
+                <p className="text-xs text-slate-600 mt-0.5">Kapatilan bildirimler uzerinde degisiklik yapilamaz.</p>
+              </div>
+            </div>
+          )}
+          {recordLocked && !recordClosed && (
             <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
               <Lock className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div>
@@ -591,31 +642,124 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
         )}
 
         <div className="sticky bottom-0 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl print:hidden">
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={handlePdfDownload}
-              className="px-6 py-2.5 bg-white text-slate-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              PDF Indir
-            </button>
-            <button
-              onClick={handlePrint}
-              className="px-6 py-2.5 bg-white text-slate-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              Yazdir
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all font-medium"
-            >
-              Kapat
-            </button>
+          <div className="flex justify-between gap-3">
+            <div>
+              {!recordLocked && !recordClosed && (
+                <button
+                  onClick={() => setShowCloseModal(true)}
+                  className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium flex items-center gap-2"
+                >
+                  <Ban className="w-4 h-4" />
+                  Bildirimi Kapat
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handlePdfDownload}
+                className="px-6 py-2.5 bg-white text-slate-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                PDF Indir
+              </button>
+              <button
+                onClick={handlePrint}
+                className="px-6 py-2.5 bg-white text-slate-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Yazdir
+              </button>
+              <button
+                onClick={onClose}
+                className="px-6 py-2.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all font-medium"
+              >
+                Kapat
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+    {showCloseModal && (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4">
+        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-50 rounded-lg">
+                <Ban className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Bildirimi Kapat</h3>
+                <p className="text-sm text-slate-500">{data?.application_no || ''}</p>
+              </div>
+            </div>
+            <button onClick={handleCloseModalDismiss} disabled={closing} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <X className="w-5 h-5 text-slate-500" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-5">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800 font-medium">
+                Bu islem geri alinamaz. Bildirim kalici olarak kapatilacak ve kilitlenecektir.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Sifre</label>
+              <div className="relative">
+                <input
+                  type={showClosePassword ? 'text' : 'password'}
+                  value={closePassword}
+                  onChange={(e) => setClosePassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && closePassword && !closing) handleCloseFeedback();
+                  }}
+                  placeholder="Mevcut sifrenizi girin"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 pr-12 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowClosePassword(!showClosePassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showClosePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {closeError && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-red-700">{closeError}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
+            <button
+              type="button"
+              onClick={handleCloseModalDismiss}
+              disabled={closing}
+              className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Iptal
+            </button>
+            <button
+              type="button"
+              onClick={handleCloseFeedback}
+              disabled={!closePassword || closing}
+              className="px-5 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {closing && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Ban className="w-4 h-4" />
+              Bildirimi Kapat
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 };

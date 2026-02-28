@@ -202,6 +202,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
     switch (status) {
       case 'Tamamlandı':
       case 'Kapatıldı':
+      case 'Kapalı':
         return <CheckCircle2 className="w-2.5 h-2.5" />;
       case 'Devam Ediyor':
         return <PlayCircle className="w-2.5 h-2.5" />;
@@ -217,6 +218,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
       'Tamamlandı': 'bg-green-100 text-green-800 border-green-200',
       'Kapatıldı': 'bg-gray-100 text-gray-800 border-gray-200',
       'IMZALI': 'bg-green-100 text-green-800 border-green-200',
+      'Kapalı': 'bg-slate-200 text-slate-800 border-slate-300',
     };
     return styles[status] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
@@ -670,8 +672,13 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
           setIsDetailViewOpen(false);
           setViewData(null);
           fetchLockedRecords();
+          fetchFeedbacks(showDeleted);
         }}
         data={viewData}
+        onDataChange={() => {
+          fetchFeedbacks(showDeleted);
+          fetchLockedRecords();
+        }}
       />
     </div>
   );

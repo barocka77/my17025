@@ -185,6 +185,25 @@ export async function verifyAndSign(params: {
   return result.signature as RecordSignature;
 }
 
+export async function closeFeedbackRecord(params: {
+  password: string;
+  recordId: string;
+}): Promise<RecordSignature> {
+  const { password, recordId } = params;
+
+  const roles = await fetchModuleRoles('feedback_records');
+  const closerRole = roles.find(r => r.is_final_approval);
+  if (!closerRole) throw new Error('Kapatma rolu bulunamadi');
+
+  return verifyAndSign({
+    password,
+    moduleKey: 'feedback_records',
+    recordId,
+    roleId: closerRole.id,
+    roleName: closerRole.role_name,
+  });
+}
+
 export async function adminUnlockRecord(recordId: string, reason: string): Promise<void> {
   const { data, error } = await supabase.rpc('unlock_feedback_record', {
     p_record_id: recordId,

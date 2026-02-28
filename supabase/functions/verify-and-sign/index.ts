@@ -134,6 +134,18 @@ Deno.serve(async (req: Request) => {
         .eq("id", record_id);
     }
 
+    if (roleData?.is_final_approval && module_key === "feedback_records") {
+      await adminClient
+        .from("feedback_records")
+        .update({
+          is_locked: true,
+          locked_at: new Date().toISOString(),
+          locked_by: caller.id,
+          status: "Kapalı",
+        })
+        .eq("id", record_id);
+    }
+
     return jsonResponse(
       {
         success: true,
