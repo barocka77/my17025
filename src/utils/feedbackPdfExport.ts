@@ -479,37 +479,24 @@ export const generateFeedbackPDF = async (
     y = drawSignatureGroup(doc, feedbackSigGroup, y, margin, contentWidth);
   }
 
-  // 5. RISK ANALIZI
-  if (data.risk_probability || data.risk_severity || data.risk_level) {
-    const riskRows = [
-      ['Olasilik', data.risk_probability || '-'],
-      ['Siddet', data.risk_severity || '-'],
-      ['Risk Seviyesi', data.risk_level || '-'],
-    ];
-    const riskEstimate = 9 + estimateTableHeight(riskRows.length) + 4;
-    y = ensureSpace(doc, riskEstimate, y);
-    y = drawSectionHeader(doc, 'RISK ANALIZI', y, margin, contentWidth);
-
-    autoTable(doc, { ...fwStyles, startY: y, body: riskRows });
-    y = (doc as any).lastAutoTable.finalY + 6;
-  }
-
-  // 6. PLANLAMA VE AKSIYON
-  if (actions.length > 0) {
+  // 5. PLANLAMA VE AKSIYON
+  {
     const statusMap: Record<string, string> = {
       'Planlandı': 'Planlandi',
       'Devam Ediyor': 'Devam Ediyor',
       'Tamamlandı': 'Tamamlandi',
     };
 
-    const actionTableRows = actions.map((a, i) => [
-      String(i + 1),
-      a.action_description || '-',
-      a.responsible_person || '-',
-      formatDate(a.deadline),
-      statusMap[a.status] || a.status || '-',
-      formatDate(a.completed_date),
-    ]);
+    const actionTableRows = actions.length > 0
+      ? actions.map((a, i) => [
+          String(i + 1),
+          a.action_description || '-',
+          a.responsible_person || '-',
+          formatDate(a.deadline),
+          statusMap[a.status] || a.status || '-',
+          formatDate(a.completed_date),
+        ])
+      : [['1', '-', '-', '-', '-', '-']];
 
     const actionEstimate = 9 + estimateTableHeight(actionTableRows.length + 1) + 4;
     y = ensureSpace(doc, actionEstimate, y);
