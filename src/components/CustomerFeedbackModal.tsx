@@ -479,6 +479,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                   <option>Telefon</option>
                   <option>Faks</option>
                   <option>E-posta</option>
+                  <option>WhatsApp</option>
                 </select>
               </div>
 
