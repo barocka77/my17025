@@ -1,16 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Users, Shield, ChevronDown, Check, AlertCircle } from 'lucide-react';
+import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import OrganizationLogoUpload from './OrganizationLogoUpload';
+
+type AppRole = 'admin' | 'quality_manager' | 'personnel';
 
 interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
-  role: 'admin' | 'quality_manager' | 'personnel';
+  role: AppRole;
   created_at: string;
 }
+
+interface NewUserForm {
+  email: string;
+  password: string;
+  full_name: string;
+  role: AppRole;
+}
+
+const EMPTY_FORM: NewUserForm = { email: '', password: '', full_name: '', role: 'personnel' };
 
 export default function AdminPanel() {
   const { role: currentUserRole } = useAuth();
@@ -19,6 +30,10 @@ export default function AdminPanel() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
+  const [creating, setCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -54,6 +69,48 @@ export default function AdminPanel() {
       fetchUsers();
     }
     setUpdatingUserId(null);
+  };
+
+  const createUser = async () => {
+    if (!newUser.email || !newUser.password) {
+      showToast('E-posta ve sifre zorunludur', 'error');
+      return;
+    }
+    if (newUser.password.length < 6) {
+      showToast('Sifre en az 6 karakter olmalidir', 'error');
+      return;
+    }
+    setCreating(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            Apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify(newUser),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) {
+        showToast(result.error || 'Kullanici olusturulamadi', 'error');
+      } else {
+        showToast('Kullanici basariyla eklendi', 'success');
+        setShowAddModal(false);
+        setNewUser(EMPTY_FORM);
+        setShowPassword(false);
+        fetchUsers();
+      }
+    } catch {
+      showToast('Baglanti hatasi', 'error');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -124,11 +181,22 @@ export default function AdminPanel() {
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-slate-700" />
-              <h2 className="text-lg font-semibold text-slate-800">
-                Kullanıcılar ({users.length})
-              </h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-slate-700" />
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Kullanıcılar ({users.length})
+                </h2>
+              </div>
+              {currentUserRole === 'admin' && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Kullanici Ekle
+                </button>
+              )}
             </div>
           </div>
 
@@ -236,6 +304,103 @@ export default function AdminPanel() {
           <OrganizationLogoUpload />
         </div>
       </div>
+
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-700 to-slate-600">
+              <div className="flex items-center gap-3">
+                <UserPlus className="w-5 h-5 text-white" />
+                <h3 className="text-lg font-semibold text-white">Yeni Kullanici</h3>
+              </div>
+              <button
+                onClick={() => { setShowAddModal(false); setNewUser(EMPTY_FORM); setShowPassword(false); }}
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Ad Soyad</label>
+                <input
+                  type="text"
+                  value={newUser.full_name}
+                  onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all"
+                  placeholder="Ornek: Ahmet Yilmaz"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">E-posta *</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all"
+                  placeholder="ornek@sirket.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Sifre *</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all pr-10"
+                    placeholder="En az 6 karakter"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Rol</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as AppRole })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-white"
+                >
+                  <option value="personnel">Personel</option>
+                  <option value="quality_manager">Kalite Muduru</option>
+                  <option value="admin">Yonetici</option>
+                </select>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowAddModal(false); setNewUser(EMPTY_FORM); setShowPassword(false); }}
+                className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Iptal
+              </button>
+              <button
+                onClick={createUser}
+                disabled={creating || !newUser.email || !newUser.password}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Olusturuluyor...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" />
+                    Kullanici Olustur
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 ${
