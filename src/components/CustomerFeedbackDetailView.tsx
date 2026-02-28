@@ -57,14 +57,16 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
 
   const handlePdfDownload = () => {
     requestPdf(async (meta) => {
-      const [feedbackSigs, closureSigs, lockInfo] = await Promise.all([
+      const [feedbackSigs, izahatSigs, closureSigs, lockInfo] = await Promise.all([
         data.id ? fetchSignatures('customer_feedback', data.id) : Promise.resolve([]),
+        data.id ? fetchSignatures('feedback_izahat', data.id) : Promise.resolve([]),
         data.id ? fetchSignatures('feedback_closure', data.id) : Promise.resolve([]),
         data.id ? fetchRecordLockState(data.id) : Promise.resolve({ is_locked: false, locked_at: null, locked_by: null, unlocked_at: null, unlocked_by: null, unlock_reason: null }),
       ]);
 
-      const [feedbackRoles, closureRoles, actionRoles] = await Promise.all([
+      const [feedbackRoles, izahatRoles, closureRoles, actionRoles] = await Promise.all([
         fetchModuleRoles('customer_feedback'),
+        fetchModuleRoles('feedback_izahat'),
         fetchModuleRoles('feedback_closure'),
         fetchModuleRoles('feedback_action'),
       ]);
@@ -81,15 +83,21 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
 
       const signatureGroups: FeedbackSignatureGroup[] = [
         {
+          moduleKey: 'feedback_izahat',
+          label: 'Izahat Sahibi Imzasi',
+          signatures: izahatSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          roles: izahatRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
+        },
+        {
           moduleKey: 'customer_feedback',
-          label: 'Sorumluluk Karari',
+          label: 'Karar Verici Imzasi',
           signatures: feedbackSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
           roles: feedbackRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         },
         ...actionSigGroups,
         {
           moduleKey: 'feedback_closure',
-          label: 'Kapatma',
+          label: 'Kapatan Yetkili Imzasi',
           signatures: closureSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
           roles: closureRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         },
@@ -405,6 +413,16 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                     </dd>
                   </div>
                 </dl>
+                {data.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <SignaturesSection
+                      moduleKey="customer_feedback"
+                      recordId={data.id}
+                      title="Karar Verici İmzası"
+                      onLockChange={handleLockChange}
+                    />
+                  </div>
+                )}
               </div>
             </section>
 
@@ -454,6 +472,16 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                       </dd>
                     </div>
                   </dl>
+                  {data.id && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <SignaturesSection
+                        moduleKey="feedback_izahat"
+                        recordId={data.id}
+                        title="İzahat Sahibi İmzası"
+                        onLockChange={() => {}}
+                      />
+                    </div>
+                  )}
                 </div>
               </section>
             )}
@@ -524,6 +552,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                       <SignaturesSection
                         moduleKey="feedback_closure"
                         recordId={data.id}
+                        title="Kapatan Yetkili İmzası"
                         onLockChange={() => {}}
                       />
                     </div>
@@ -532,13 +561,6 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
               </section>
             )}
 
-            {data.id && (
-              <SignaturesSection
-                moduleKey="customer_feedback"
-                recordId={data.id}
-                onLockChange={handleLockChange}
-              />
-            )}
           </div>
         </div>
 

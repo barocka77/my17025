@@ -255,6 +255,15 @@ function addImzaliWatermark(doc: jsPDF) {
   }
 }
 
+function drawSignatureSectionLabel(doc: jsPDF, label: string, y: number, margin: number): number {
+  y = ensureSpace(doc, 8, y);
+  doc.setFont(FONT_NAME, 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text(label, margin + 2, y + 3);
+  return y + 6;
+}
+
 function drawSignatureBoxes(
   doc: jsPDF,
   group: FeedbackSignatureGroup,
@@ -456,6 +465,12 @@ export const generateFeedbackPDF = async (
     autoTable(doc, { ...fwStyles, startY: y, body: izahatRows });
     y = (doc as any).lastAutoTable.finalY + 3;
     y = drawTextBlock(doc, 'Bildirime Sebep Taraf Izahati', data.izahat_text || '-', y, margin, contentWidth);
+
+    const izahatSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_izahat');
+    if (izahatSigGroup) {
+      y = drawSignatureSectionLabel(doc, 'Izahat Sahibi Imzasi', y, margin);
+      y = drawSignatureBoxes(doc, izahatSigGroup, y, margin, contentWidth);
+    }
   }
 
   // 4. SORUMLULUK KARARI
@@ -481,6 +496,7 @@ export const generateFeedbackPDF = async (
 
   const feedbackSigGroup = signatureGroups.find((g) => g.moduleKey === 'customer_feedback');
   if (feedbackSigGroup) {
+    y = drawSignatureSectionLabel(doc, 'Karar Verici Imzasi', y, margin);
     y = drawSignatureBoxes(doc, feedbackSigGroup, y, margin, contentWidth);
   }
 
@@ -578,6 +594,7 @@ export const generateFeedbackPDF = async (
 
     const closureSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_closure');
     if (closureSigGroup) {
+      y = drawSignatureSectionLabel(doc, 'Kapatan Yetkili Imzasi', y, margin);
       y = drawSignatureBoxes(doc, closureSigGroup, y, margin, contentWidth);
     }
   }

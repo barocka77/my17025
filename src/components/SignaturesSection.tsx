@@ -19,9 +19,10 @@ interface SignaturesSectionProps {
   moduleKey: string;
   recordId: string;
   onLockChange?: (locked: boolean) => void;
+  title?: string;
 }
 
-export default function SignaturesSection({ moduleKey, recordId, onLockChange }: SignaturesSectionProps) {
+export default function SignaturesSection({ moduleKey, recordId, onLockChange, title }: SignaturesSectionProps) {
   const { user, role } = useAuth();
   const [signatures, setSignatures] = useState<RecordSignature[]>([]);
   const [roles, setRoles] = useState<ModuleSignatureRole[]>([]);
@@ -154,7 +155,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange }:
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="h-8 w-1 bg-slate-600 rounded-full"></div>
-          <h3 className="text-lg font-bold text-gray-900">Imzalar</h3>
+          <h3 className="text-lg font-bold text-gray-900">{title || 'Imzalar'}</h3>
           {locked && (
             <span className="inline-flex items-center gap-1 ml-2 px-2.5 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-200">
               <Lock className="w-3 h-3" />
