@@ -1,8 +1,9 @@
-import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock } from 'lucide-react';
+import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
 import { generateFeedbackPDF } from '../utils/feedbackPdfExport';
+import type { FeedbackAction, FeedbackSignatureGroup } from '../utils/feedbackPdfExport';
 import { useModuleDocument } from '../hooks/useModuleDocument';
 import DocumentSelectModal from './DocumentSelectModal';
 import SignaturesSection from './SignaturesSection';
@@ -20,6 +21,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
   const [orgName, setOrgName] = useState<string | undefined>(undefined);
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
   const [recordLocked, setRecordLocked] = useState(false);
+  const [actions, setActions] = useState<FeedbackAction[]>([]);
   const { showSelector, closeSelector, onDocumentSelected, requestPdf } = useModuleDocument('customer_feedback');
 
   const handleLockChange = useCallback((locked: boolean) => {
@@ -40,14 +42,67 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
     fetchOrg();
   }, []);
 
+  useEffect(() => {
+    if (!data?.id) return;
+    const fetchActions = async () => {
+      const { data: rows } = await supabase
+        .from('feedback_actions')
+        .select('id, action_description, responsible_person, deadline, status, completed_date')
+        .eq('feedback_id', data.id)
+        .order('sort_order', { ascending: true });
+      setActions((rows || []) as FeedbackAction[]);
+    };
+    fetchActions();
+  }, [data?.id]);
+
   const handlePdfDownload = () => {
     requestPdf(async (meta) => {
-      const [sigs, moduleRoles, lockInfo] = await Promise.all([
+      const [feedbackSigs, closureSigs, lockInfo] = await Promise.all([
         data.id ? fetchSignatures('customer_feedback', data.id) : Promise.resolve([]),
-        fetchModuleRoles('customer_feedback'),
+        data.id ? fetchSignatures('feedback_closure', data.id) : Promise.resolve([]),
         data.id ? fetchRecordLockState(data.id) : Promise.resolve({ is_locked: false, locked_at: null, locked_by: null, unlocked_at: null, unlocked_by: null, unlock_reason: null }),
       ]);
-      await generateFeedbackPDF(data, orgName, meta, logoUrl, sigs, moduleRoles, lockInfo.is_locked);
+
+      const actionSigPromises = actions.map((a) =>
+        fetchSignatures(`feedback_action_${a.id}`, a.id).then((sigs) => ({
+          moduleKey: `feedback_action_${a.id}`,
+          label: `Aksiyon: ${a.action_description?.substring(0, 40) || a.id}`,
+          signatures: sigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          roles: [],
+        } as FeedbackSignatureGroup))
+      );
+      const actionSigGroups = await Promise.all(actionSigPromises);
+
+      const [feedbackRoles, closureRoles] = await Promise.all([
+        fetchModuleRoles('customer_feedback'),
+        fetchModuleRoles('feedback_closure'),
+      ]);
+
+      const signatureGroups: FeedbackSignatureGroup[] = [
+        {
+          moduleKey: 'customer_feedback',
+          label: 'Sorumluluk Karari',
+          signatures: feedbackSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          roles: feedbackRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
+        },
+        ...actionSigGroups.filter((g) => g.signatures.length > 0),
+        {
+          moduleKey: 'feedback_closure',
+          label: 'Kapatma',
+          signatures: closureSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          roles: closureRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
+        },
+      ];
+
+      await generateFeedbackPDF({
+        data,
+        organizationName: orgName,
+        docMeta: meta,
+        logoUrl,
+        isLocked: lockInfo.is_locked,
+        actions,
+        signatureGroups,
+      });
     });
   };
 
@@ -432,6 +487,50 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data }: DetailViewProps) 
                 </div>
               </section>
             )}
+            {(data.closure_date || data.closure_notes) && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-8 w-1 bg-teal-600 rounded-full"></div>
+                  <ShieldCheck className="w-5 h-5 text-teal-600" />
+                  <h3 className="text-lg font-bold text-gray-900">Kapatma</h3>
+                </div>
+                <div className="bg-white border border-teal-200 rounded-lg p-6">
+                  <dl className="space-y-4">
+                    <div>
+                      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kapatma Tarihi</dt>
+                      <dd className="text-sm text-gray-900 font-medium">
+                        {data.closure_date ? new Date(data.closure_date).toLocaleDateString('tr-TR', {
+                          day: '2-digit', month: 'long', year: 'numeric'
+                        }) : '-'}
+                      </dd>
+                    </div>
+                    {data.closure_notes && (
+                      <div>
+                        <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kapatma Notlari</dt>
+                        <dd className="text-sm text-gray-900 leading-relaxed bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">
+                          {data.closure_notes}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                    <p className="text-xs text-teal-800 leading-relaxed">
+                      Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.
+                    </p>
+                  </div>
+                  {data.id && (
+                    <div className="mt-4 pt-4 border-t border-teal-100">
+                      <SignaturesSection
+                        moduleKey="feedback_closure"
+                        recordId={data.id}
+                        onLockChange={() => {}}
+                      />
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
             {data.id && (
               <SignaturesSection
                 moduleKey="customer_feedback"

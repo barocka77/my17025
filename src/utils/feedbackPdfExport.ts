@@ -12,27 +12,52 @@ interface FeedbackData {
   contact_phone?: string;
   contact_email?: string;
   contact_address?: string;
+  phone?: string;
+  email?: string;
   source_type?: string;
   feedback_type?: string;
+  communication_channel?: string;
+  received_by?: string;
   content_details?: string;
   validation_status?: string;
-  risk_probability?: number;
-  risk_severity?: number;
-  risk_level?: number;
-  corrective_action_required?: string;
+  evaluation?: string;
+  risk_probability?: string;
+  risk_severity?: string;
+  risk_level?: string;
+  requires_capa?: boolean;
+  capa_no?: string;
   responsible_person?: string;
   status?: string;
   deadline?: string;
   response_date?: string;
+  action_plan?: string;
   action_taken?: string;
   explanation?: string;
   izahat_text?: string;
   izahat_by?: string;
+  closure_date?: string;
+  closure_notes?: string;
   attachments?: string[];
   created_by?: string;
   updated_by?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface FeedbackAction {
+  id: string;
+  action_description: string;
+  responsible_person: string;
+  deadline: string;
+  status: string;
+  completed_date: string | null;
+}
+
+export interface FeedbackSignatureGroup {
+  moduleKey: string;
+  label: string;
+  signatures: { signer_role: string; signer_name: string; signed_at: string; signature_image_url: string | null }[];
+  roles: { role_name: string; role_order: number }[];
 }
 
 const FONT_NAME = 'Roboto';
@@ -41,6 +66,7 @@ const PRIMARY_COLOR: [number, number, number] = [51, 65, 85];
 const BORDER_COLOR: [number, number, number] = [203, 213, 225];
 const TEXT_DARK: [number, number, number] = [15, 23, 42];
 const TEXT_MUTED: [number, number, number] = [100, 116, 139];
+const TEAL_COLOR: [number, number, number] = [13, 148, 136];
 
 const PAGE_BOTTOM = 275;
 const TOP_MARGIN = 25;
@@ -53,7 +79,6 @@ const formatDate = (d: string | null | undefined): string => {
     year: 'numeric',
   });
 };
-
 
 const TURKISH_MAP: Record<string, string> = {
   'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'İ': 'I',
@@ -89,8 +114,8 @@ function ensureSpace(doc: jsPDF, neededHeight: number, currentY: number): number
   return currentY;
 }
 
-function drawSectionHeader(doc: jsPDF, title: string, y: number, x: number, width: number): number {
-  doc.setFillColor(...PRIMARY_COLOR);
+function drawSectionHeader(doc: jsPDF, title: string, y: number, x: number, width: number, color?: [number, number, number]): number {
+  doc.setFillColor(...(color || PRIMARY_COLOR));
   doc.rect(x, y, width, 7, 'F');
   doc.setFont(FONT_NAME, 'bold');
   doc.setFontSize(8.5);
@@ -230,14 +255,106 @@ function addImzaliWatermark(doc: jsPDF) {
   }
 }
 
-export const generateFeedbackPDF = async (data: FeedbackData, organizationName?: string, docMeta?: DocumentMeta, logoUrl?: string, _signatures: unknown[] = [], _roles: unknown[] = [], isLocked: boolean = false) => {
+function drawSignatureGroup(
+  doc: jsPDF,
+  group: FeedbackSignatureGroup,
+  y: number,
+  margin: number,
+  contentWidth: number
+): number {
+  if (group.signatures.length === 0) return y;
+
+  const sigRows = group.signatures.map((s) => [
+    s.signer_role,
+    s.signer_name,
+    formatDate(s.signed_at),
+  ]);
+
+  const tableHeight = estimateTableHeight(sigRows.length) + 14;
+  y = ensureSpace(doc, tableHeight, y);
+
+  doc.setFont(FONT_NAME, 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text(`Imzalar - ${group.label}`, margin + 2, y);
+  y += 4;
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    theme: 'plain' as const,
+    head: [['Rol', 'Imzalayan', 'Tarih']],
+    body: sigRows,
+    styles: {
+      font: FONT_NAME,
+      fontSize: 7.5,
+      cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 },
+      textColor: TEXT_DARK,
+      lineColor: BORDER_COLOR,
+      lineWidth: 0.15,
+    },
+    headStyles: {
+      fillColor: [241, 245, 249],
+      textColor: TEXT_MUTED,
+      fontStyle: 'bold',
+      fontSize: 7,
+    },
+    columnStyles: {
+      0: { cellWidth: contentWidth * 0.3 },
+      1: { cellWidth: contentWidth * 0.4 },
+      2: { cellWidth: contentWidth * 0.3 },
+    },
+  });
+
+  return (doc as any).lastAutoTable.finalY + 4;
+}
+
+interface GeneratePdfOptions {
+  data: FeedbackData;
+  organizationName?: string;
+  docMeta?: DocumentMeta;
+  logoUrl?: string;
+  isLocked?: boolean;
+  actions?: FeedbackAction[];
+  signatureGroups?: FeedbackSignatureGroup[];
+}
+
+export const generateFeedbackPDF = async (
+  dataOrOptions: FeedbackData | GeneratePdfOptions,
+  organizationName?: string,
+  docMeta?: DocumentMeta,
+  logoUrl?: string,
+  _signatures: unknown[] = [],
+  _roles: unknown[] = [],
+  isLocked: boolean = false
+) => {
+  let opts: GeneratePdfOptions;
+
+  if ('data' in dataOrOptions && dataOrOptions.data) {
+    opts = dataOrOptions as GeneratePdfOptions;
+  } else {
+    opts = {
+      data: dataOrOptions as FeedbackData,
+      organizationName,
+      docMeta,
+      logoUrl,
+      isLocked,
+      actions: [],
+      signatureGroups: [],
+    };
+  }
+
+  const data = opts.data;
+  const actions = opts.actions || [];
+  const signatureGroups = opts.signatureGroups || [];
+
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   await registerFonts(doc);
 
-  const docCode = docMeta?.dokuman_kodu || 'FR-12';
-  const docName = docMeta?.dokuman_adi || 'Geri Bildirim Raporu';
-  const revNo = docMeta?.rev_no || '';
-  const revDate = docMeta?.revizyon_tarihi ? formatRevDate(docMeta.revizyon_tarihi) : '';
+  const docCode = opts.docMeta?.dokuman_kodu || 'FR-12';
+  const docName = opts.docMeta?.dokuman_adi || 'Geri Bildirim Raporu';
+  const revNo = opts.docMeta?.rev_no || '';
+  const revDate = opts.docMeta?.revizyon_tarihi ? formatRevDate(opts.docMeta.revizyon_tarihi) : '';
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
@@ -260,9 +377,9 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
   doc.text(docName, pageWidth / 2, 17, { align: 'center' });
 
   let logoImgData: string | null = null;
-  if (logoUrl) {
+  if (opts.logoUrl) {
     try {
-      const resp = await fetch(logoUrl);
+      const resp = await fetch(opts.logoUrl);
       const blob = await resp.blob();
       logoImgData = await new Promise<string>((resolve) => {
         const reader = new FileReader();
@@ -276,27 +393,24 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
 
   y = 34;
 
+  // 1. BASVURU BILGILERI & MUSTERI BILGILERI (side-by-side)
   const leftRows = [
     ['Form Tarihi', formatDate(data.form_date)],
     ['Bildirim No', data.application_no || '-'],
-    ['Bildirim Türü', data.feedback_type || 'İstek'],
+    ['Iletisim Kanali', data.communication_channel || '-'],
     ['Kaynak', data.source_type || '-'],
-    ['Durum', data.status || 'Açık'],
-    ['Geçerlilik', data.validation_status || 'Değerlendirmede'],
-    ['Termin Tarihi', formatDate(data.deadline)],
-    ['Yanıt Tarihi', formatDate(data.response_date)],
+    ['G.B. Alan', data.received_by || '-'],
+    ['Durum', data.status || 'Acik'],
   ];
 
   const rightRows = [
-    ['Müşteri / Kurum', data.applicant_name || '-'],
-    ['Yetkili Kişi', data.contact_person || '-'],
-    ['Telefon', data.contact_phone || '-'],
-    ['E-posta', data.contact_email || '-'],
-    ['Adres', data.contact_address || '-'],
+    ['Musteri / Kurum', data.applicant_name || '-'],
+    ['Yetkili Kisi', data.contact_person || '-'],
+    ['Telefon', data.contact_phone || data.phone || '-'],
+    ['E-posta', data.contact_email || data.email || '-'],
   ];
 
   const headerHeight = 7;
-  const sectionGap = 9;
   const leftTableHeight = estimateTableHeight(leftRows.length);
   const rightTableHeight = estimateTableHeight(rightRows.length);
   const totalSideBySideHeight = headerHeight + Math.max(leftTableHeight, rightTableHeight) + 4;
@@ -306,61 +420,174 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
   const leftX = margin;
   const rightX = margin + colWidth + gap;
 
-  let leftY = drawSectionHeader(doc, 'BAŞVURU BİLGİLERİ', y, leftX, colWidth);
-  let rightY = drawSectionHeader(doc, 'MÜŞTERİ BİLGİLERİ', y, rightX, colWidth);
+  const leftY = drawSectionHeader(doc, 'BASVURU BILGILERI', y, leftX, colWidth);
+  const rightY = drawSectionHeader(doc, 'MUSTERI BILGILERI', y, rightX, colWidth);
 
   const leftStyles = columnTableStyles(colWidth, leftX);
-  autoTable(doc, {
-    ...leftStyles,
-    startY: leftY,
-    body: leftRows,
-  });
+  autoTable(doc, { ...leftStyles, startY: leftY, body: leftRows });
   const leftFinalY = (doc as any).lastAutoTable.finalY;
 
   const rightStyles = columnTableStyles(colWidth, rightX);
-  autoTable(doc, {
-    ...rightStyles,
-    startY: rightY,
-    body: rightRows,
-  });
+  autoTable(doc, { ...rightStyles, startY: rightY, body: rightRows });
   const rightFinalY = (doc as any).lastAutoTable.finalY;
 
   y = Math.max(leftFinalY, rightFinalY) + 6;
 
   const fwStyles = fullWidthTableStyles(contentWidth, margin);
 
+  // 2. ICERIK
   const descriptionEstimate = 7 + 8 + 30;
   y = ensureSpace(doc, descriptionEstimate, y);
-  y = drawSectionHeader(doc, 'AÇIKLAMA', y, margin, contentWidth);
-  y = drawTextBlock(doc, 'Konu (Detaylı Açıklama)', data.content_details || '-', y, margin, contentWidth);
+  y = drawSectionHeader(doc, 'ICERIK', y, margin, contentWidth);
+  y = drawTextBlock(doc, 'Konu (Detayli Aciklama)', data.content_details || '-', y, margin, contentWidth);
 
-  const actionRows = [['Sorumlu Kişi', data.responsible_person || '-']];
-  const actionTextEstimate = sectionGap + estimateTableHeight(actionRows.length) + 50;
-  y = ensureSpace(doc, actionTextEstimate, y);
-  y = drawSectionHeader(doc, 'AKSİYON BİLGİSİ', y, margin, contentWidth);
-
-  autoTable(doc, {
-    ...fwStyles,
-    startY: y,
-    body: actionRows,
-  });
-  y = (doc as any).lastAutoTable.finalY + 3;
-  y = drawTextBlock(doc, 'Alınan Aksiyon / Cevap', data.action_taken || '-', y, margin, contentWidth);
-  y = drawTextBlock(doc, 'Açıklama / Notlar', data.explanation || '-', y, margin, contentWidth);
-
+  // 3. IZAHAT
   if (data.izahat_text || data.izahat_by) {
     const izahatRows = [['Bildirime Sebep Olan Taraf', data.izahat_by || '-']];
-    const izahatEstimate = sectionGap + estimateTableHeight(izahatRows.length) + 40;
+    const izahatEstimate = 9 + estimateTableHeight(izahatRows.length) + 40;
     y = ensureSpace(doc, izahatEstimate, y);
-    y = drawSectionHeader(doc, 'İZAHAT', y, margin, contentWidth);
+    y = drawSectionHeader(doc, 'IZAHAT', y, margin, contentWidth);
+
+    autoTable(doc, { ...fwStyles, startY: y, body: izahatRows });
+    y = (doc as any).lastAutoTable.finalY + 3;
+    y = drawTextBlock(doc, 'Bildirime Sebep Taraf Izahati', data.izahat_text || '-', y, margin, contentWidth);
+  }
+
+  // 4. SORUMLULUK KARARI
+  const evalRows = [
+    ['Bildirim Turu', data.feedback_type || '-'],
+    ['Gecerlilik', data.validation_status || 'Degerlendirmede'],
+    ['DF Gereksinimi', data.requires_capa ? 'Evet' : 'Hayir'],
+  ];
+  if (data.requires_capa && data.capa_no) {
+    evalRows.push(['DF Numarasi', data.capa_no]);
+  }
+
+  const evalEstimate = 9 + estimateTableHeight(evalRows.length) + (data.evaluation ? 40 : 4);
+  y = ensureSpace(doc, evalEstimate, y);
+  y = drawSectionHeader(doc, 'SORUMLULUK KARARI', y, margin, contentWidth);
+
+  autoTable(doc, { ...fwStyles, startY: y, body: evalRows });
+  y = (doc as any).lastAutoTable.finalY + 3;
+
+  if (data.evaluation) {
+    y = drawTextBlock(doc, 'Degerlendirme Notlari', data.evaluation, y, margin, contentWidth);
+  }
+
+  const feedbackSigGroup = signatureGroups.find((g) => g.moduleKey === 'customer_feedback');
+  if (feedbackSigGroup) {
+    y = drawSignatureGroup(doc, feedbackSigGroup, y, margin, contentWidth);
+  }
+
+  // 5. RISK ANALIZI
+  if (data.risk_probability || data.risk_severity || data.risk_level) {
+    const riskRows = [
+      ['Olasilik', data.risk_probability || '-'],
+      ['Siddet', data.risk_severity || '-'],
+      ['Risk Seviyesi', data.risk_level || '-'],
+    ];
+    const riskEstimate = 9 + estimateTableHeight(riskRows.length) + 4;
+    y = ensureSpace(doc, riskEstimate, y);
+    y = drawSectionHeader(doc, 'RISK ANALIZI', y, margin, contentWidth);
+
+    autoTable(doc, { ...fwStyles, startY: y, body: riskRows });
+    y = (doc as any).lastAutoTable.finalY + 6;
+  }
+
+  // 6. PLANLAMA VE AKSIYON
+  if (actions.length > 0) {
+    const statusMap: Record<string, string> = {
+      'Planlandı': 'Planlandi',
+      'Devam Ediyor': 'Devam Ediyor',
+      'Tamamlandı': 'Tamamlandi',
+    };
+
+    const actionTableRows = actions.map((a, i) => [
+      String(i + 1),
+      a.action_description || '-',
+      a.responsible_person || '-',
+      formatDate(a.deadline),
+      statusMap[a.status] || a.status || '-',
+      formatDate(a.completed_date),
+    ]);
+
+    const actionEstimate = 9 + estimateTableHeight(actionTableRows.length + 1) + 4;
+    y = ensureSpace(doc, actionEstimate, y);
+    y = drawSectionHeader(doc, 'PLANLAMA VE AKSIYON', y, margin, contentWidth);
 
     autoTable(doc, {
-      ...fwStyles,
       startY: y,
-      body: izahatRows,
+      margin: { left: margin, right: margin },
+      theme: 'plain' as const,
+      head: [['#', 'Aksiyon', 'Sorumlu', 'Termin', 'Durum', 'Tamamlanma']],
+      body: actionTableRows,
+      styles: {
+        font: FONT_NAME,
+        fontSize: 7.5,
+        cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 },
+        textColor: TEXT_DARK,
+        lineColor: BORDER_COLOR,
+        lineWidth: 0.15,
+        overflow: 'linebreak' as const,
+      },
+      headStyles: {
+        fillColor: [241, 245, 249],
+        textColor: TEXT_MUTED,
+        fontStyle: 'bold',
+        fontSize: 7,
+      },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' as const },
+        1: { cellWidth: contentWidth * 0.32 },
+        2: { cellWidth: contentWidth * 0.18 },
+        3: { cellWidth: contentWidth * 0.14 },
+        4: { cellWidth: contentWidth * 0.14 },
+        5: { cellWidth: contentWidth - 8 - contentWidth * 0.32 - contentWidth * 0.18 - contentWidth * 0.14 - contentWidth * 0.14 },
+      },
     });
+    y = (doc as any).lastAutoTable.finalY + 4;
+
+    const actionSigGroups = signatureGroups.filter((g) => g.moduleKey.startsWith('feedback_action_'));
+    for (const sg of actionSigGroups) {
+      y = drawSignatureGroup(doc, sg, y, margin, contentWidth);
+    }
+  }
+
+  // 7. KAPATMA
+  if (data.closure_date || data.closure_notes) {
+    const closureRows = [
+      ['Kapatma Tarihi', formatDate(data.closure_date)],
+    ];
+    const closureEstimate = 9 + estimateTableHeight(closureRows.length) + (data.closure_notes ? 50 : 8);
+    y = ensureSpace(doc, closureEstimate, y);
+    y = drawSectionHeader(doc, 'KAPATMA', y, margin, contentWidth, TEAL_COLOR);
+
+    autoTable(doc, { ...fwStyles, startY: y, body: closureRows });
     y = (doc as any).lastAutoTable.finalY + 3;
-    y = drawTextBlock(doc, 'Bildirime Sebep Taraf İzahatı', data.izahat_text || '-', y, margin, contentWidth);
+
+    if (data.closure_notes) {
+      y = drawTextBlock(doc, 'Kapatma Notlari', data.closure_notes, y, margin, contentWidth);
+    }
+
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_MUTED);
+    const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
+    const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
+    const noticeHeight = noticeLines.length * 3 + 6;
+    y = ensureSpace(doc, noticeHeight, y);
+
+    doc.setFillColor(240, 253, 250);
+    doc.setDrawColor(153, 246, 228);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(margin + 1, y - 1, contentWidth - 2, noticeHeight, 1.5, 1.5, 'FD');
+    doc.text(noticeLines, margin + 4, y + 3);
+    y += noticeHeight + 4;
+
+    const closureSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_closure');
+    if (closureSigGroup) {
+      y = drawSignatureGroup(doc, closureSigGroup, y, margin, contentWidth);
+    }
   }
 
   addFooter(doc, docCode, revNo, revDate);
@@ -373,7 +600,7 @@ export const generateFeedbackPDF = async (data: FeedbackData, organizationName?:
     }
   }
 
-  if (isLocked) {
+  if (opts.isLocked) {
     addImzaliWatermark(doc);
   }
 
