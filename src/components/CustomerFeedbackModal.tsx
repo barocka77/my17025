@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2 } from 'lucide-react';
+import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
@@ -67,6 +67,8 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
     status: 'Açık',
     izahat_text: '',
     izahat_by: '',
+    closure_date: '',
+    closure_notes: '',
   });
 
   useEffect(() => {
@@ -97,6 +99,8 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         status: editData.status || 'Açık',
         izahat_text: editData.izahat_text || '',
         izahat_by: editData.izahat_by || '',
+        closure_date: editData.closure_date || '',
+        closure_notes: editData.closure_notes || '',
       });
 
       (async () => {
@@ -271,6 +275,8 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         deadline: formData.deadline || null,
         response_date: null,
         attachments: attachments.length > 0 ? attachments : null,
+        closure_date: formData.closure_date || null,
+        closure_notes: formData.closure_notes || '',
       };
 
       console.log('Attempting to save to feedback_records table:', {
@@ -877,9 +883,58 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
             </div>
           </div>
 
+          {editData && (
+            <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-6 border border-teal-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-semibold">7</div>
+                <ShieldCheck className="w-5 h-5 text-teal-600" />
+                Kapatma
+              </h3>
+
+              <div className="bg-white/80 border border-teal-200 rounded-lg p-4 mb-5">
+                <p className="text-xs text-teal-800 leading-relaxed">
+                  Bu bolum, geri bildirimin resmi olarak kapatildigini, alinan onlemlerin etkinliginin dogrulandigini ve laboratuvarin kalite sistemine sagladigi katki icin tesekkur mesajini icerir.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="max-w-xs">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Kapatma Tarihi</label>
+                  <input
+                    type="date"
+                    value={formData.closure_date}
+                    onChange={(e) => setFormData({ ...formData, closure_date: e.target.value })}
+                    disabled={isLocked}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-[11px] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Kapatma Notlari</label>
+                  <textarea
+                    value={formData.closure_notes}
+                    onChange={(e) => setFormData({ ...formData, closure_notes: e.target.value })}
+                    rows={4}
+                    disabled={isLocked}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-[11px] resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="Geri bildirimin kapatilma gerekceleri, alinan onlemlerin etkinlik degerlendirmesi ve kalite sistemine katkisi..."
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-teal-100">
+                  <SignaturesSection
+                    moduleKey="feedback_closure"
+                    recordId={editData.id}
+                    onLockChange={() => {}}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-sm font-semibold">7</div>
+              <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-sm font-semibold">8</div>
               Risk Analizi
             </h3>
             <div className="space-y-6">
@@ -930,7 +985,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           {editData && (
             <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 border border-gray-200">
               <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-sm font-semibold">8</div>
+                <div className="w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-sm font-semibold">9</div>
                 Ekler (Dosyalar)
               </h3>
 
