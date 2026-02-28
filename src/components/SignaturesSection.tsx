@@ -165,9 +165,6 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
 
   const gridCols = roles.length <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
 
-  const onaylaButtonHidden = locked;
-  console.log("disabled state:", onaylaButtonHidden, "| locked:", locked, "| lockState.is_locked:", lockState.is_locked);
-
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -197,7 +194,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
           {!locked && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { console.log("Imza button clicked"); setShowReAuthModal(true); }}
+                onClick={() => setShowReAuthModal(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <KeyRound className="w-4 h-4" />
