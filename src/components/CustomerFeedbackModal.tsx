@@ -25,7 +25,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [signingIndex, setSigningIndex] = useState<number | null>(null);
   const [lockToast, setLockToast] = useState(false);
-  const [actions, setActions] = useState<{ id?: string; action_description: string; responsible_person: string; deadline: string; status: string }[]>([]);
+  const [actions, setActions] = useState<{ id?: string; action_description: string; responsible_person: string; deadline: string; status: string; completed_date: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLocked = !!(editData?.is_locked);
@@ -118,7 +118,8 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
             action_description: a.action_description || '',
             responsible_person: a.responsible_person || '',
             deadline: a.deadline || '',
-            status: a.status || 'Açık',
+            status: a.status || 'Devam Ediyor',
+            completed_date: a.completed_date || '',
           })));
         } else {
           setActions([]);
@@ -315,27 +316,39 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         if (data && data[0]) recordId = data[0].id;
       }
 
-      if (recordId && actions.length > 0) {
-        await supabase.from('feedback_actions').delete().eq('feedback_id', recordId);
+      if (recordId) {
+        const existingIds = actions.filter(a => a.id).map(a => a.id!);
 
-        const actionsToInsert = actions.map((a, idx) => ({
-          feedback_id: recordId,
-          action_description: a.action_description || '',
-          responsible_person: a.responsible_person || '',
-          deadline: a.deadline || null,
-          status: a.status || 'Açık',
-          sort_order: idx,
-        }));
-
-        const { error: actionsError } = await supabase
-          .from('feedback_actions')
-          .insert(actionsToInsert);
-
-        if (actionsError) {
-          console.error('Actions save error:', actionsError);
+        if (editData) {
+          const { data: currentActions } = await supabase
+            .from('feedback_actions')
+            .select('id')
+            .eq('feedback_id', recordId);
+          const idsToDelete = (currentActions || [])
+            .map((a: any) => a.id)
+            .filter((id: string) => !existingIds.includes(id));
+          if (idsToDelete.length > 0) {
+            await supabase.from('feedback_actions').delete().in('id', idsToDelete);
+          }
         }
-      } else if (recordId && actions.length === 0 && editData) {
-        await supabase.from('feedback_actions').delete().eq('feedback_id', recordId);
+
+        for (let idx = 0; idx < actions.length; idx++) {
+          const a = actions[idx];
+          const payload = {
+            action_description: a.action_description || '',
+            responsible_person: a.responsible_person || '',
+            deadline: a.deadline || null,
+            status: a.status || 'Devam Ediyor',
+            completed_date: a.completed_date || null,
+            sort_order: idx,
+          };
+
+          if (a.id) {
+            await supabase.from('feedback_actions').update(payload).eq('id', a.id);
+          } else {
+            await supabase.from('feedback_actions').insert({ ...payload, feedback_id: recordId });
+          }
+        }
       }
 
       onSuccess();
@@ -739,7 +752,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
               </h3>
               <button
                 type="button"
-                onClick={() => setActions([...actions, { action_description: '', responsible_person: '', deadline: '', status: 'Açık' }])}
+                onClick={() => setActions([...actions, { action_description: '', responsible_person: '', deadline: '', status: 'Devam Ediyor', completed_date: '' }])}
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -818,18 +831,47 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                         value={action.status}
                         onChange={(e) => {
                           const updated = [...actions];
-                          updated[idx] = { ...updated[idx], status: e.target.value };
+                          const newStatus = e.target.value;
+                          updated[idx] = {
+                            ...updated[idx],
+                            status: newStatus,
+                            completed_date: newStatus === 'Tamamlandı' && !updated[idx].completed_date
+                              ? new Date().toISOString().split('T')[0]
+                              : newStatus !== 'Tamamlandı' ? '' : updated[idx].completed_date,
+                          };
                           setActions(updated);
                         }}
                         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-[11px]"
                       >
-                        <option>Açık</option>
                         <option>Devam Ediyor</option>
                         <option>Tamamlandı</option>
-                        <option>Kapatıldı</option>
                       </select>
                     </div>
                   </div>
+                  {action.status === 'Tamamlandı' && (
+                    <div className="max-w-xs">
+                      <label className="block text-[11px] font-medium text-gray-700 mb-1">Tamamlanma Tarihi</label>
+                      <input
+                        type="date"
+                        value={action.completed_date}
+                        onChange={(e) => {
+                          const updated = [...actions];
+                          updated[idx] = { ...updated[idx], completed_date: e.target.value };
+                          setActions(updated);
+                        }}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-[11px]"
+                      />
+                    </div>
+                  )}
+                  {action.id && (
+                    <div className="pt-4 border-t border-emerald-100">
+                      <SignaturesSection
+                        moduleKey="feedback_action"
+                        recordId={action.id}
+                        onLockChange={() => {}}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
