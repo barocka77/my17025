@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { PenTool, Trash2, Lock, Unlock, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+import { PenTool, Trash2, Lock, Unlock, ShieldCheck, Loader2, AlertCircle, KeyRound } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import SignatureModal from './SignatureModal';
+import ReAuthSignatureModal from './ReAuthSignatureModal';
 import {
   fetchSignatures,
   fetchModuleRoles,
@@ -10,6 +11,7 @@ import {
   saveSignature,
   deleteSignature,
   adminUnlockRecord,
+  verifyAndSign,
   type RecordSignature,
   type ModuleSignatureRole,
   type RecordLockState,
@@ -32,6 +34,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
   });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showReAuthModal, setShowReAuthModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [signerName, setSignerName] = useState('');
   const [showUnlockForm, setShowUnlockForm] = useState(false);
@@ -93,6 +96,18 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
       signerName: name,
       signerId: user.id,
       signatureDataUrl: dataUrl,
+    });
+
+    await loadData();
+  };
+
+  const handleReAuthSign = async (roleName: string, roleId: string, password: string) => {
+    await verifyAndSign({
+      password,
+      moduleKey,
+      recordId,
+      roleId,
+      roleName,
     });
 
     await loadData();
@@ -177,13 +192,22 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
             </button>
           )}
           {!locked && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <PenTool className="w-4 h-4" />
-              Imza Ekle
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowReAuthModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                <KeyRound className="w-4 h-4" />
+                Onayla ve Imzala
+              </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <PenTool className="w-4 h-4" />
+                Imza Ekle
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -308,7 +332,14 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
 
                   {sig ? (
                     <>
-                      {sig.signature_image_url && (
+                      {sig.signature_type === 'auth' ? (
+                        <div className="flex items-center gap-2 py-3 mb-3">
+                          <div className="p-2 bg-emerald-50 rounded-lg">
+                            <KeyRound className="w-5 h-5 text-emerald-600" />
+                          </div>
+                          <span className="text-xs font-medium text-emerald-700">Sifre ile onaylandi</span>
+                        </div>
+                      ) : sig.signature_image_url ? (
                         <div className="bg-white border border-slate-200 rounded-md p-2 mb-3">
                           <img
                             src={sig.signature_image_url}
@@ -316,7 +347,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
                             className="w-full h-16 object-contain"
                           />
                         </div>
-                      )}
+                      ) : null}
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-slate-800">{sig.signer_name}</p>
                         <p className="text-xs text-slate-500">{formatDate(sig.signed_at)}</p>
@@ -338,6 +369,15 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleSave}
+        signerName={signerName}
+        roles={roles}
+        disabledRoles={disabledRoles}
+      />
+
+      <ReAuthSignatureModal
+        isOpen={showReAuthModal}
+        onClose={() => setShowReAuthModal(false)}
+        onConfirm={handleReAuthSign}
         signerName={signerName}
         roles={roles}
         disabledRoles={disabledRoles}

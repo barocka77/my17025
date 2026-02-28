@@ -145,6 +145,46 @@ export async function fetchFinalApprovalRoleNames(moduleKey: string): Promise<st
   return (data || []).map(r => r.role_name);
 }
 
+export async function verifyAndSign(params: {
+  password: string;
+  moduleKey: string;
+  recordId: string;
+  roleId: string;
+  roleName: string;
+}): Promise<RecordSignature> {
+  const { password, moduleKey, recordId, roleId, roleName } = params;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Oturum bulunamadi');
+
+  const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-and-sign`;
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      password,
+      module_key: moduleKey,
+      record_id: recordId,
+      role_id: roleId,
+      role_name: roleName,
+      ip_address: null,
+      user_agent: navigator.userAgent,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || 'Imza islemi basarisiz');
+  }
+
+  return result.signature as RecordSignature;
+}
+
 export async function adminUnlockRecord(recordId: string, reason: string): Promise<void> {
   const { data, error } = await supabase.rpc('unlock_feedback_record', {
     p_record_id: recordId,
