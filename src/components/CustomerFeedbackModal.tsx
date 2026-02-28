@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock } from 'lucide-react';
+import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
@@ -25,6 +25,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [signingIndex, setSigningIndex] = useState<number | null>(null);
   const [lockToast, setLockToast] = useState(false);
+  const [actions, setActions] = useState<{ id?: string; action_description: string; responsible_person: string; deadline: string; status: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLocked = !!(editData?.is_locked);
@@ -59,7 +60,6 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
     action_plan: '',
     responsible_person: '',
     deadline: '',
-    response_date: '',
     requires_capa: false,
     capa_no: '',
     risk_probability: 'Düşük',
@@ -90,7 +90,6 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         action_plan: editData.action_plan || '',
         responsible_person: editData.responsible_person || '',
         deadline: editData.deadline || '',
-        response_date: editData.response_date || '',
         requires_capa: editData.requires_capa || false,
         capa_no: editData.capa_no || '',
         risk_probability: editData.risk_probability || 'Düşük',
@@ -107,10 +106,28 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           .eq('id', editData.id)
           .maybeSingle();
         setAttachments(freshRow?.attachments || []);
+
+        const { data: actionsData } = await supabase
+          .from('feedback_actions')
+          .select('*')
+          .eq('feedback_id', editData.id)
+          .order('sort_order', { ascending: true });
+        if (actionsData && actionsData.length > 0) {
+          setActions(actionsData.map((a: any) => ({
+            id: a.id,
+            action_description: a.action_description || '',
+            responsible_person: a.responsible_person || '',
+            deadline: a.deadline || '',
+            status: a.status || 'Açık',
+          })));
+        } else {
+          setActions([]);
+        }
       })();
     } else {
       generateApplicationNo();
       setAttachments([]);
+      setActions([]);
     }
     setUploadError(null);
   }, [editData, isOpen]);
@@ -244,11 +261,14 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
       const riskLevel = calculateRiskLevel(formData.risk_probability, formData.risk_severity);
 
       // Convert empty date strings to null to avoid PostgreSQL errors
+      const { action_plan: _ap, responsible_person: _rp, deadline: _dl, ...restFormData } = formData;
       const dataToSave = {
-        ...formData,
+        ...restFormData,
         risk_level: riskLevel,
+        action_plan: formData.action_plan || null,
+        responsible_person: formData.responsible_person || null,
         deadline: formData.deadline || null,
-        response_date: formData.response_date || null,
+        response_date: null,
         attachments: attachments.length > 0 ? attachments : null,
       };
 
@@ -256,6 +276,8 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         operation: editData ? 'UPDATE' : 'INSERT',
         data: dataToSave
       });
+
+      let recordId = editData?.id;
 
       if (editData) {
         const { data, error } = await supabase
@@ -290,6 +312,30 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           throw error;
         }
         console.log('Insert successful:', data);
+        if (data && data[0]) recordId = data[0].id;
+      }
+
+      if (recordId && actions.length > 0) {
+        await supabase.from('feedback_actions').delete().eq('feedback_id', recordId);
+
+        const actionsToInsert = actions.map((a, idx) => ({
+          feedback_id: recordId,
+          action_description: a.action_description || '',
+          responsible_person: a.responsible_person || '',
+          deadline: a.deadline || null,
+          status: a.status || 'Açık',
+          sort_order: idx,
+        }));
+
+        const { error: actionsError } = await supabase
+          .from('feedback_actions')
+          .insert(actionsToInsert);
+
+        if (actionsError) {
+          console.error('Actions save error:', actionsError);
+        }
+      } else if (recordId && actions.length === 0 && editData) {
+        await supabase.from('feedback_actions').delete().eq('feedback_id', recordId);
       }
 
       onSuccess();
@@ -686,78 +732,106 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           </div>
 
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-semibold">6</div>
-              Aksiyon ve Planlama
-            </h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Gerçekleştirilecek Faaliyet</label>
-                <textarea
-                  value={formData.action_plan}
-                  onChange={(e) => setFormData({ ...formData, action_plan: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none"
-                  placeholder="Alınacak aksiyonlar ve planlanan faaliyetler..."
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Sorumlu Kişi</label>
-                  <div className="relative">
-                    <select
-                      value={formData.responsible_person}
-                      onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
-                      className="w-full appearance-none px-4 py-2.5 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-white text-[11px]"
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-semibold">6</div>
+                Planlama ve Aksiyon
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActions([...actions, { action_description: '', responsible_person: '', deadline: '', status: 'Açık' }])}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Yeni Aksiyon Ekle
+              </button>
+            </div>
+            <div className="space-y-4">
+              {actions.length === 0 && (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  Henüz aksiyon eklenmemiş. Yeni aksiyon eklemek için yukarıdaki butona tıklayın.
+                </div>
+              )}
+              {actions.map((action, idx) => (
+                <div key={idx} className="bg-white rounded-lg border border-emerald-200 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Aksiyon {idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => setActions(actions.filter((_, i) => i !== idx))}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
-                      <option value="">— Personel Seçin —</option>
-                      {personnelList.length === 0 && (
-                        <option disabled>Personel bulunamadı</option>
-                      )}
-                      {personnelList.map((p) => (
-                        <option key={p.id} value={p.full_name}>{p.full_name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-1">Gerçekleştirilecek Faaliyet</label>
+                    <textarea
+                      value={action.action_description}
+                      onChange={(e) => {
+                        const updated = [...actions];
+                        updated[idx] = { ...updated[idx], action_description: e.target.value };
+                        setActions(updated);
+                      }}
+                      rows={3}
+                      className="w-full px-3 py-2 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none"
+                      placeholder="Yapılacak faaliyet detayı..."
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-1">Sorumlu Kişi</label>
+                      <div className="relative">
+                        <select
+                          value={action.responsible_person}
+                          onChange={(e) => {
+                            const updated = [...actions];
+                            updated[idx] = { ...updated[idx], responsible_person: e.target.value };
+                            setActions(updated);
+                          }}
+                          className="w-full appearance-none px-3 py-2.5 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-white text-[11px]"
+                        >
+                          <option value="">-- Personel Seçin --</option>
+                          {personnelList.map((p) => (
+                            <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-1">Termin Tarihi</label>
+                      <input
+                        type="date"
+                        value={action.deadline}
+                        onChange={(e) => {
+                          const updated = [...actions];
+                          updated[idx] = { ...updated[idx], deadline: e.target.value };
+                          setActions(updated);
+                        }}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-[11px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-1">Durum</label>
+                      <select
+                        value={action.status}
+                        onChange={(e) => {
+                          const updated = [...actions];
+                          updated[idx] = { ...updated[idx], status: e.target.value };
+                          setActions(updated);
+                        }}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-[11px]"
+                      >
+                        <option>Açık</option>
+                        <option>Devam Ediyor</option>
+                        <option>Tamamlandı</option>
+                        <option>Kapatıldı</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Termin Tarihi</label>
-                  <input
-                    type="date"
-                    value={formData.deadline}
-                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Cevap Tarihi</label>
-                  <input
-                    type="date"
-                    value={formData.response_date}
-                    onChange={(e) => setFormData({ ...formData, response_date: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Durum</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  >
-                    <option>Açık</option>
-                    <option>Devam Ediyor</option>
-                    <option>Tamamlandı</option>
-                    <option>Kapatıldı</option>
-                  </select>
-                </div>
-              </div>
-
+              ))}
             </div>
           </div>
 
