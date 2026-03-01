@@ -635,6 +635,17 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                     placeholder="Geri bildirimle ilgili izahat ve açıklamalar..."
                   />
                 </div>
+                {editData?.id && (
+                  <div className="pt-4 border-t border-cyan-100">
+                    <SignaturesSection
+                      moduleKey="feedback_izahat"
+                      recordId={editData.id}
+                      onLockChange={() => {}}
+                      title="Izahat Sahibi Imzasi"
+                      signOnly
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
