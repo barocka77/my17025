@@ -273,7 +273,7 @@ export default function EquipmentDetailModal({
             </div>
           )}
 
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'super_admin') && (
             <div className="border border-slate-200 rounded-xl px-5 py-4 bg-slate-50">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Kayıt Bilgileri</p>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3">

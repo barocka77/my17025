@@ -28,7 +28,7 @@ export default function Sidebar({ activeModule, showAdminPanel, showActionTracki
   const popoverRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
   const isQualityManager = role === 'quality_manager';
   const isManager = isAdmin || isQualityManager;
   const canAccessNotes = user?.email === 'toztoprakbaraka@gmail.com' || user?.email === 'oosmanozturk06@gmail.com';

@@ -46,7 +46,10 @@ async function verifyAdmin(req: Request) {
     .eq("id", caller.id)
     .maybeSingle();
 
-  if (!callerProfile || callerProfile.role !== "admin") {
+  if (
+    !callerProfile ||
+    !["admin", "super_admin", "quality_manager"].includes(callerProfile.role)
+  ) {
     return {
       error: jsonResponse(
         { error: "Bu islemi sadece yoneticiler yapabilir" },
@@ -55,13 +58,13 @@ async function verifyAdmin(req: Request) {
     };
   }
 
-  return { adminClient, caller };
+  return { adminClient, caller, callerRole: callerProfile.role as string };
 }
 
 async function handleCreate(req: Request) {
   const auth = await verifyAdmin(req);
   if ("error" in auth) return auth.error;
-  const { adminClient } = auth;
+  const { adminClient, callerRole } = auth;
 
   const { email, password, full_name, role } = await req.json();
 
@@ -69,7 +72,14 @@ async function handleCreate(req: Request) {
     return jsonResponse({ error: "E-posta ve sifre zorunludur" }, 400);
   }
 
-  const validRoles = ["admin", "quality_manager", "personnel"];
+  if (role === "super_admin" && callerRole !== "super_admin") {
+    return jsonResponse(
+      { error: "Super Admin rolu sadece Super Admin tarafindan atanabilir" },
+      403
+    );
+  }
+
+  const validRoles = ["admin", "quality_manager", "personnel", "super_admin"];
   const userRole = validRoles.includes(role) ? role : "personnel";
 
   const { data: newUser, error: createError } =
@@ -105,7 +115,7 @@ async function handleCreate(req: Request) {
 async function handleUpdate(req: Request) {
   const auth = await verifyAdmin(req);
   if ("error" in auth) return auth.error;
-  const { adminClient } = auth;
+  const { adminClient, callerRole } = auth;
 
   const { user_id, email, password, full_name, role } = await req.json();
 
@@ -113,7 +123,14 @@ async function handleUpdate(req: Request) {
     return jsonResponse({ error: "Kullanici ID zorunludur" }, 400);
   }
 
-  const validRoles = ["admin", "quality_manager", "personnel"];
+  if (role === "super_admin" && callerRole !== "super_admin") {
+    return jsonResponse(
+      { error: "Super Admin rolu sadece Super Admin tarafindan atanabilir" },
+      403
+    );
+  }
+
+  const validRoles = ["admin", "quality_manager", "personnel", "super_admin"];
 
   const authUpdate: Record<string, unknown> = {};
   if (email) authUpdate.email = email;

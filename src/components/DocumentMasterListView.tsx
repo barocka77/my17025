@@ -20,7 +20,7 @@ interface DocumentRecord {
 
 export default function DocumentMasterListView() {
   const { role } = useAuth();
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
 
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentRecord[]>([]);

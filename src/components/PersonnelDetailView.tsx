@@ -113,7 +113,7 @@ export default function PersonnelDetailView({ profileId, onBack }: PersonnelDeta
   const [editingTraining, setEditingTraining] = useState<TrainingRecord | null>(null);
   const [deletingTrainingId, setDeletingTrainingId] = useState<string | null>(null);
 
-  const isManager = role === 'admin' || role === 'quality_manager';
+  const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
   const isSelf = user?.id === profileId;
   const canEdit = isManager || isSelf;
 
@@ -537,7 +537,7 @@ export default function PersonnelDetailView({ profileId, onBack }: PersonnelDeta
       </div>
 
       {/* Audit Info – admin only */}
-      {role === 'admin' && (
+      {(role === 'admin' || role === 'super_admin') && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 px-6 py-4">
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Kayıt Bilgileri</p>
           <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">

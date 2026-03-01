@@ -12,7 +12,7 @@ interface CustomerFeedbackViewProps {
 
 const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeedbackViewProps) => {
   const { role } = useAuth();
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
 
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [filteredFeedbacks, setFilteredFeedbacks] = useState<any[]>([]);

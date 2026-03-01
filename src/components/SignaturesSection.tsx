@@ -149,7 +149,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
   const canDelete = (sig: RecordSignature) => {
     if (locked) return false;
     if (!user) return false;
-    return sig.signer_id === user.id || role === 'admin' || role === 'quality_manager';
+    return sig.signer_id === user.id || role === 'admin' || role === 'super_admin' || role === 'quality_manager';
   };
 
   const disabledRoles = signatures.map(s => s.signer_role);
@@ -180,7 +180,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
           )}
         </div>
         <div className="flex items-center gap-2">
-          {locked && role === 'admin' && (
+          {locked && (role === 'admin' || role === 'super_admin') && (
             <button
               type="button"
               onClick={() => {

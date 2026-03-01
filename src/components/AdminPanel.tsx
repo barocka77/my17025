@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import OrganizationLogoUpload from './OrganizationLogoUpload';
 
-type AppRole = 'admin' | 'quality_manager' | 'personnel';
+type AppRole = 'admin' | 'quality_manager' | 'personnel' | 'super_admin';
 
 interface UserProfile {
   id: string;
@@ -59,7 +59,7 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  const updateUserRole = async (userId: string, newRole: 'admin' | 'quality_manager' | 'personnel') => {
+  const updateUserRole = async (userId: string, newRole: AppRole) => {
     setUpdatingUserId(userId);
     setOpenDropdownId(null);
 
@@ -195,8 +195,11 @@ export default function AdminPanel() {
     }
   };
 
+  const isSuperAdmin = currentUserRole === 'super_admin';
+
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
+      super_admin: 'Super Admin',
       admin: 'Yönetici',
       quality_manager: 'Kalite Müdürü',
       personnel: 'Personel',
@@ -213,7 +216,7 @@ export default function AdminPanel() {
     });
   };
 
-  if (!currentUserRole || !['admin', 'quality_manager'].includes(currentUserRole)) {
+  if (!currentUserRole || !['super_admin', 'admin', 'quality_manager'].includes(currentUserRole)) {
     return null;
   }
 
@@ -341,7 +344,7 @@ export default function AdminPanel() {
                               onClick={() => setOpenDropdownId(null)}
                             />
                             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 z-20 overflow-hidden">
-                              {(['personnel', 'quality_manager', 'admin'] as const).map((role) => (
+                              {(['personnel', 'quality_manager', 'admin', ...(isSuperAdmin ? ['super_admin' as const] : [])] as AppRole[]).map((role) => (
                                 <button
                                   key={role}
                                   onClick={() => updateUserRole(user.id, role)}
@@ -445,6 +448,7 @@ export default function AdminPanel() {
                   <option value="personnel">Personel</option>
                   <option value="quality_manager">Kalite Muduru</option>
                   <option value="admin">Yonetici</option>
+                  {isSuperAdmin && <option value="super_admin">Super Admin</option>}
                 </select>
               </div>
             </div>
@@ -542,6 +546,7 @@ export default function AdminPanel() {
                   <option value="personnel">Personel</option>
                   <option value="quality_manager">Kalite Muduru</option>
                   <option value="admin">Yonetici</option>
+                  {isSuperAdmin && <option value="super_admin">Super Admin</option>}
                 </select>
               </div>
             </div>

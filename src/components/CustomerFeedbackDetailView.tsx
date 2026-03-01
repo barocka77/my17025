@@ -616,7 +616,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
           </div>
         </div>
 
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'super_admin') && (
           <div className="px-8 pb-2">
             <div className="border border-slate-200 rounded-lg px-5 py-4 bg-slate-50">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Kayıt Bilgileri</p>
