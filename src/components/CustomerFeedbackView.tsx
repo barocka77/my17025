@@ -29,14 +29,16 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [lockedRecordIds, setLockedRecordIds] = useState<Set<string>>(new Set());
+  const [closedRecordIds, setClosedRecordIds] = useState<Set<string>>(new Set());
 
   const fetchLockedRecords = async () => {
     const { data } = await supabase
       .from('feedback_records')
-      .select('id')
+      .select('id, status')
       .eq('is_locked', true);
     if (data) {
       setLockedRecordIds(new Set(data.map(r => r.id)));
+      setClosedRecordIds(new Set(data.filter(r => r.status === 'Kapalı').map(r => r.id)));
     }
   };
 
@@ -471,10 +473,17 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                             <Eye className="w-4 h-4" />
                           </button>
                           {lockedRecordIds.has(feedback.id) ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
-                              <Lock className="w-3 h-3" />
-                              Imzali
-                            </span>
+                            closedRecordIds.has(feedback.id) ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded">
+                                <Lock className="w-3 h-3" />
+                                KAPALI
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
+                                <Lock className="w-3 h-3" />
+                                Imzali
+                              </span>
+                            )
                           ) : (
                             <>
                               <button
@@ -598,10 +607,17 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                               Goruntule
                             </button>
                             {lockedRecordIds.has(feedback.id) ? (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
-                                <Lock className="w-2.5 h-2.5" />
-                                Imzali
-                              </span>
+                              closedRecordIds.has(feedback.id) ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  KAPALI
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  Imzali
+                                </span>
+                              )
                             ) : (
                               <>
                                 <button
