@@ -255,7 +255,7 @@ export default function AdminPanel() {
                   Kullanıcılar ({users.length})
                 </h2>
               </div>
-              {currentUserRole === 'admin' && (
+              {currentUserRole === 'admin' || currentUserRole === 'super_admin' && (
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
@@ -309,7 +309,7 @@ export default function AdminPanel() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        {currentUserRole === 'admin' && (
+                        {currentUserRole === 'admin' || currentUserRole === 'super_admin' && (
                           <button
                             onClick={() => openEditModal(user)}
                             className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
