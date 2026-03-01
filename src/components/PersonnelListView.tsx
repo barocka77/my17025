@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Users, ChevronUp, ChevronDown, UserCircle2, Eye } from 'lucide-react';
+import { Users, ChevronUp, ChevronDown, UserCircle2, Eye, UserPlus, X, EyeOff, Loader2, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import TableLayout from './TableLayout';
 
 interface PersonnelProfile {
@@ -79,7 +80,19 @@ const getInitials = (name: string | null) => {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 };
 
+type AppRole = 'admin' | 'quality_manager' | 'personnel' | 'super_admin';
+
+interface NewPersonnelForm {
+  full_name: string;
+  email: string;
+  password: string;
+  role: AppRole;
+}
+
+const EMPTY_FORM: NewPersonnelForm = { full_name: '', email: '', password: '', role: 'personnel' };
+
 export default function PersonnelListView({ onSelectProfile }: PersonnelListViewProps) {
+  const { role: currentUserRole } = useAuth();
   const [profiles, setProfiles] = useState<PersonnelProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -87,6 +100,61 @@ export default function PersonnelListView({ onSelectProfile }: PersonnelListView
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ role: 'Tümü', department: 'Tümü' });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPersonnel, setNewPersonnel] = useState<NewPersonnelForm>(EMPTY_FORM);
+  const [creating, setCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const canAdd = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  const isSuperAdmin = currentUserRole === 'super_admin';
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const createPersonnel = async () => {
+    if (!newPersonnel.email || !newPersonnel.password) {
+      showToast('E-posta ve sifre zorunludur', 'error');
+      return;
+    }
+    if (newPersonnel.password.length < 6) {
+      showToast('Sifre en az 6 karakter olmalidir', 'error');
+      return;
+    }
+    setCreating(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            Apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify(newPersonnel),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) {
+        showToast(result.error || 'Personel olusturulamadi', 'error');
+      } else {
+        showToast('Personel basariyla eklendi', 'success');
+        setShowAddModal(false);
+        setNewPersonnel(EMPTY_FORM);
+        setShowPassword(false);
+        fetchProfiles();
+      }
+    } catch {
+      showToast('Baglanti hatasi', 'error');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   useEffect(() => {
     fetchProfiles();
@@ -197,11 +265,13 @@ export default function PersonnelListView({ onSelectProfile }: PersonnelListView
   }
 
   return (
+    <>
     <TableLayout
       title="Personel"
       description={`Laboratuvar personelinin yetki, eğitim ve görev bilgilerinin yönetimi.`}
       addButtonLabel="Yeni Personel Ekle"
-      showAddButton={false}
+      showAddButton={canAdd}
+      onAdd={() => setShowAddModal(true)}
       filters={filterDefs}
       filterValues={filters}
       onFilterChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
@@ -309,5 +379,117 @@ export default function PersonnelListView({ onSelectProfile }: PersonnelListView
         ))}
       </tbody>
     </TableLayout>
+
+    {showAddModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-700 to-slate-600">
+            <div className="flex items-center gap-3">
+              <UserPlus className="w-5 h-5 text-white" />
+              <h3 className="text-lg font-semibold text-white">Yeni Personel Ekle</h3>
+            </div>
+            <button
+              onClick={() => { setShowAddModal(false); setNewPersonnel(EMPTY_FORM); setShowPassword(false); }}
+              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Ad Soyad</label>
+              <input
+                type="text"
+                value={newPersonnel.full_name}
+                onChange={(e) => setNewPersonnel({ ...newPersonnel, full_name: e.target.value })}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all"
+                placeholder="Ornek: Ahmet Yilmaz"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">E-posta *</label>
+              <input
+                type="email"
+                value={newPersonnel.email}
+                onChange={(e) => setNewPersonnel({ ...newPersonnel, email: e.target.value })}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all"
+                placeholder="ornek@sirket.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Sifre *</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPersonnel.password}
+                  onChange={(e) => setNewPersonnel({ ...newPersonnel, password: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all pr-10"
+                  placeholder="En az 6 karakter"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Rol</label>
+              <select
+                value={newPersonnel.role}
+                onChange={(e) => setNewPersonnel({ ...newPersonnel, role: e.target.value as AppRole })}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-white"
+              >
+                <option value="personnel">Personel</option>
+                <option value="quality_manager">Kalite Muduru</option>
+                <option value="admin">Yonetici</option>
+                {isSuperAdmin && <option value="super_admin">Super Admin</option>}
+              </select>
+            </div>
+          </div>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+            <button
+              onClick={() => { setShowAddModal(false); setNewPersonnel(EMPTY_FORM); setShowPassword(false); }}
+              className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Iptal
+            </button>
+            <button
+              onClick={createPersonnel}
+              disabled={creating || !newPersonnel.email || !newPersonnel.password}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Olusturuluyor...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Personel Olustur
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {toast && (
+      <div className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 ${
+        toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+      }`}>
+        {toast.type === 'success' ? (
+          <Check className="w-5 h-5" />
+        ) : (
+          <AlertCircle className="w-5 h-5" />
+        )}
+        <span className="font-medium">{toast.message}</span>
+      </div>
+    )}
+    </>
   );
 }
