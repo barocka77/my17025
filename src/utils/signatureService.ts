@@ -224,3 +224,27 @@ export async function adminUnlockRecord(recordId: string, reason: string): Promi
     throw new Error(result.message);
   }
 }
+
+export async function fetchSignatureHistory(recordId: string): Promise<RecordSignature[]> {
+  const { data, error } = await supabase
+    .from('record_signatures')
+    .select('*')
+    .eq('record_id', recordId)
+    .in('module_key', ['customer_feedback', 'feedback_closure', 'feedback_unlock'])
+    .order('signed_at', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as RecordSignature[];
+}
+
+export async function hasSignatureForModule(moduleKey: string, recordId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('record_signatures')
+    .select('id')
+    .eq('module_key', moduleKey)
+    .eq('record_id', recordId)
+    .limit(1);
+
+  if (error) return false;
+  return (data || []).length > 0;
+}

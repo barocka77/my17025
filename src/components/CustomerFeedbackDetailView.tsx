@@ -1,4 +1,4 @@
-import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock, ShieldCheck, Ban, KeyRound, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { X, Printer, Calendar, AlertTriangle, Lightbulb, MessageSquare, Flag, FileText, Image, ExternalLink, Loader2, Download, Lock, ShieldCheck, Ban, KeyRound, Eye, EyeOff, AlertCircle, Info, Unlock, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
@@ -7,7 +7,7 @@ import type { FeedbackAction, FeedbackSignatureGroup } from '../utils/feedbackPd
 import { useModuleDocument } from '../hooks/useModuleDocument';
 import DocumentSelectModal from './DocumentSelectModal';
 import SignaturesSection from './SignaturesSection';
-import { fetchSignatures, fetchModuleRoles, fetchRecordLockState, closeFeedbackRecord } from '../utils/signatureService';
+import { fetchSignatures, fetchModuleRoles, fetchRecordLockState, closeFeedbackRecord, fetchSignatureHistory, type RecordSignature } from '../utils/signatureService';
 
 interface DetailViewProps {
   isOpen: boolean;
@@ -31,16 +31,34 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
   const [showClosePassword, setShowClosePassword] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
+  const [hasSorumlulukSig, setHasSorumlulukSig] = useState(false);
+  const [hasClosureSig, setHasClosureSig] = useState(false);
+  const [signatureHistory, setSignatureHistory] = useState<RecordSignature[]>([]);
 
   const handleLockChange = useCallback((locked: boolean) => {
     setRecordLocked(locked);
   }, []);
 
+  const checkSignatureStates = useCallback(async () => {
+    if (!data?.id) return;
+    const [sigs, roles, closureSigs, history] = await Promise.all([
+      fetchSignatures('customer_feedback', data.id),
+      fetchModuleRoles('customer_feedback'),
+      fetchSignatures('feedback_closure', data.id),
+      fetchSignatureHistory(data.id),
+    ]);
+    const finalRoleNames = roles.filter(r => r.is_final_approval).map(r => r.role_name);
+    setHasSorumlulukSig(sigs.some(s => finalRoleNames.includes(s.signer_role)));
+    setHasClosureSig(closureSigs.length > 0);
+    setSignatureHistory(history);
+  }, [data?.id]);
+
   useEffect(() => {
     if (data) {
       setRecordClosed(data.status === 'Kapalı' && data.is_locked === true);
+      checkSignatureStates();
     }
-  }, [data]);
+  }, [data, checkSignatureStates]);
 
   const handleCloseFeedback = async () => {
     if (!closePassword || !data?.id) return;
@@ -471,6 +489,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                       recordId={data.id}
                       title="Karar Verici İmzası"
                       onLockChange={handleLockChange}
+                      onSignatureChange={checkSignatureStates}
                     />
                   </div>
                 )}
@@ -568,47 +587,127 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                 </div>
               </section>
             )}
-            {(data.closure_date || data.closure_notes) && (
+            {(data.closure_date || data.closure_notes || hasSorumlulukSig) && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="h-8 w-1 bg-teal-600 rounded-full"></div>
-                  <ShieldCheck className="w-5 h-5 text-teal-600" />
-                  <h3 className="text-lg font-bold text-gray-900">Kapatma</h3>
+                  <div className={`h-8 w-1 rounded-full ${hasSorumlulukSig ? 'bg-teal-600' : 'bg-gray-300'}`}></div>
+                  <ShieldCheck className={`w-5 h-5 ${hasSorumlulukSig ? 'text-teal-600' : 'text-gray-400'}`} />
+                  <h3 className={`text-lg font-bold ${hasSorumlulukSig ? 'text-gray-900' : 'text-gray-400'}`}>Kapatma</h3>
                 </div>
-                <div className="bg-white border border-teal-200 rounded-lg p-6">
-                  <dl className="space-y-4">
+                {!hasSorumlulukSig && (
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kapatma Tarihi</dt>
-                      <dd className="text-sm text-gray-900 font-medium">
-                        {data.closure_date ? new Date(data.closure_date).toLocaleDateString('tr-TR', {
-                          day: '2-digit', month: 'long', year: 'numeric'
-                        }) : '-'}
-                      </dd>
+                      <p className="text-sm font-semibold text-amber-800">Kapatma bolumu henuz aktif degil</p>
+                      <p className="text-xs text-amber-700 mt-1">Oncelikle "Sorumluluk Karari" bolumundeki imza tamamlanmalidir.</p>
                     </div>
-                    {data.closure_notes && (
+                  </div>
+                )}
+                {hasSorumlulukSig && (
+                  <div className="bg-white border border-teal-200 rounded-lg p-6">
+                    <dl className="space-y-4">
                       <div>
-                        <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kapatma Notlari</dt>
-                        <dd className="text-sm text-gray-900 leading-relaxed bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">
-                          {data.closure_notes}
+                        <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kapatma Tarihi</dt>
+                        <dd className="text-sm text-gray-900 font-medium">
+                          {data.closure_date ? new Date(data.closure_date).toLocaleDateString('tr-TR', {
+                            day: '2-digit', month: 'long', year: 'numeric'
+                          }) : '-'}
                         </dd>
                       </div>
-                    )}
-                  </dl>
-                  <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg">
-                    <p className="text-xs text-teal-800 leading-relaxed">
-                      Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.
-                    </p>
-                  </div>
-                  {data.id && (
-                    <div className="mt-4 pt-4 border-t border-teal-100">
-                      <SignaturesSection
-                        moduleKey="feedback_closure"
-                        recordId={data.id}
-                        title="Kapatan Yetkili İmzası"
-                        onLockChange={() => {}}
-                      />
+                      {data.closure_notes && (
+                        <div>
+                          <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kapatma Notlari</dt>
+                          <dd className="text-sm text-gray-900 leading-relaxed bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">
+                            {data.closure_notes}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                    <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                      <p className="text-xs text-teal-800 leading-relaxed">
+                        Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.
+                      </p>
                     </div>
-                  )}
+                    {data.id && (
+                      <div className="mt-4 pt-4 border-t border-teal-100">
+                        <SignaturesSection
+                          moduleKey="feedback_closure"
+                          recordId={data.id}
+                          title="Kapatan Yetkili İmzası"
+                          onLockChange={() => {}}
+                          onSignatureChange={checkSignatureStates}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {signatureHistory.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-8 w-1 bg-slate-400 rounded-full"></div>
+                  <Clock className="w-5 h-5 text-slate-500" />
+                  <h3 className="text-lg font-bold text-gray-900">Imza ve Kilit Gecmisi</h3>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="space-y-3">
+                    {signatureHistory.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={`flex items-start gap-3 p-3 rounded-lg border ${
+                          entry.signature_type === 'unlock'
+                            ? 'bg-amber-50 border-amber-200'
+                            : entry.module_key === 'feedback_closure'
+                            ? 'bg-teal-50 border-teal-200'
+                            : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-md mt-0.5 ${
+                          entry.signature_type === 'unlock'
+                            ? 'bg-amber-100'
+                            : entry.module_key === 'feedback_closure'
+                            ? 'bg-teal-100'
+                            : 'bg-slate-200'
+                        }`}>
+                          {entry.signature_type === 'unlock' ? (
+                            <Unlock className="w-3.5 h-3.5 text-amber-700" />
+                          ) : entry.module_key === 'feedback_closure' ? (
+                            <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
+                          ) : entry.signature_type === 'auth' ? (
+                            <KeyRound className="w-3.5 h-3.5 text-slate-600" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5 text-slate-600" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-slate-800">{entry.signer_name}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                              entry.signature_type === 'unlock'
+                                ? 'bg-amber-200 text-amber-800'
+                                : entry.module_key === 'feedback_closure'
+                                ? 'bg-teal-200 text-teal-800'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}>
+                              {entry.signature_type === 'unlock'
+                                ? 'Kilit Acma'
+                                : entry.module_key === 'feedback_closure'
+                                ? 'Kapatma Onayi'
+                                : 'Sorumluluk Karari'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {entry.signer_role} - {new Date(entry.signed_at).toLocaleDateString('tr-TR', {
+                              day: '2-digit', month: '2-digit', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
             )}
@@ -644,8 +743,8 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
 
         <div className="sticky bottom-0 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl print:hidden">
           <div className="flex justify-between gap-3">
-            <div>
-              {!recordLocked && !recordClosed && (
+            <div className="flex items-center gap-3">
+              {!recordLocked && !recordClosed && hasClosureSig && (
                 <button
                   onClick={() => setShowCloseModal(true)}
                   className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium flex items-center gap-2"
@@ -653,6 +752,12 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                   <Ban className="w-4 h-4" />
                   Bildirimi Kapat
                 </button>
+              )}
+              {!recordLocked && !recordClosed && !hasClosureSig && hasSorumlulukSig && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span className="text-xs text-amber-800 font-medium">Kapatma imzasi olmadan kilitlenemez.</span>
+                </div>
               )}
             </div>
             <div className="flex gap-3">

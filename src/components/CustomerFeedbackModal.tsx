@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2, ShieldCheck, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
+import { fetchSignatures, fetchModuleRoles } from '../utils/signatureService';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXT = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -27,8 +28,30 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
   const [lockToast, setLockToast] = useState(false);
   const [actions, setActions] = useState<{ id?: string; action_description: string; responsible_person: string; deadline: string; status: string; completed_date: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasSorumlulukSig, setHasSorumlulukSig] = useState(false);
+  const [hasClosureSig, setHasClosureSig] = useState(false);
 
   const isLocked = !!(editData?.is_locked);
+
+  const checkSignatureStates = useCallback(async () => {
+    if (!editData?.id) {
+      setHasSorumlulukSig(false);
+      setHasClosureSig(false);
+      return;
+    }
+    const [sigs, roles, closureSigs] = await Promise.all([
+      fetchSignatures('customer_feedback', editData.id),
+      fetchModuleRoles('customer_feedback'),
+      fetchSignatures('feedback_closure', editData.id),
+    ]);
+    const finalRoleNames = roles.filter(r => r.is_final_approval).map(r => r.role_name);
+    setHasSorumlulukSig(sigs.some(s => finalRoleNames.includes(s.signer_role)));
+    setHasClosureSig(closureSigs.length > 0);
+  }, [editData?.id]);
+
+  useEffect(() => {
+    if (isOpen && editData?.id) checkSignatureStates();
+  }, [isOpen, editData?.id, checkSignatureStates]);
 
   useEffect(() => {
     const fetchPersonnel = async () => {
@@ -782,7 +805,8 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                   <SignaturesSection
                     moduleKey="customer_feedback"
                     recordId={editData.id}
-                    onLockChange={(locked) => {}}
+                    onLockChange={() => {}}
+                    onSignatureChange={checkSignatureStates}
                   />
                 </div>
               )}
@@ -923,51 +947,62 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           </div>
 
           {editData && (
-            <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-6 border border-teal-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-semibold">7</div>
-                <ShieldCheck className="w-5 h-5 text-teal-600" />
+            <div className={`bg-gradient-to-br rounded-xl p-6 border ${hasSorumlulukSig ? 'from-teal-50 to-emerald-50 border-teal-200' : 'from-gray-50 to-gray-100 border-gray-300'}`}>
+              <h3 className={`text-lg font-medium mb-6 flex items-center gap-2 ${hasSorumlulukSig ? 'text-gray-900' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center text-sm font-semibold ${hasSorumlulukSig ? 'bg-teal-600' : 'bg-gray-400'}`}>7</div>
+                <ShieldCheck className={`w-5 h-5 ${hasSorumlulukSig ? 'text-teal-600' : 'text-gray-400'}`} />
                 Kapatma
               </h3>
 
-              <div className="bg-white/80 border border-teal-200 rounded-lg p-4 mb-5">
-                <p className="text-xs text-teal-800 leading-relaxed">
-                  Bu bolum, geri bildirimin resmi olarak kapatildigini, alinan onlemlerin etkinliginin dogrulandigini ve laboratuvarin kalite sistemine sagladigi katki icin tesekkur mesajini icerir.
-                </p>
-              </div>
+              {!hasSorumlulukSig && (
+                <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg mb-5">
+                  <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Kapatma bolumu henuz aktif degil</p>
+                    <p className="text-xs text-amber-700 mt-1">Oncelikle "Sorumluluk Karari" bolumundeki imza tamamlanmalidir. Karar verici imzasi atildiktan sonra bu bolum aktif hale gelecektir.</p>
+                  </div>
+                </div>
+              )}
 
-              <div className="space-y-4">
-                <div className="max-w-xs">
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Kapatma Tarihi</label>
-                  <input
-                    type="date"
-                    value={formData.closure_date}
-                    onChange={(e) => setFormData({ ...formData, closure_date: e.target.value })}
-                    disabled={isLocked}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-[11px] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
+              <fieldset disabled={!hasSorumlulukSig || isLocked}>
+                <div className={`bg-white/80 border border-teal-200 rounded-lg p-4 mb-5 ${!hasSorumlulukSig ? 'opacity-50' : ''}`}>
+                  <p className="text-xs text-teal-800 leading-relaxed">
+                    Bu bolum, geri bildirimin resmi olarak kapatildigini, alinan onlemlerin etkinliginin dogrulandigini ve laboratuvarin kalite sistemine sagladigi katki icin tesekkur mesajini icerir.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Kapatma Notlari</label>
-                  <textarea
-                    value={formData.closure_notes}
-                    onChange={(e) => setFormData({ ...formData, closure_notes: e.target.value })}
-                    rows={4}
-                    disabled={isLocked}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-[11px] resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="Geri bildirimin kapatilma gerekceleri, alinan onlemlerin etkinlik degerlendirmesi ve kalite sistemine katkisi..."
-                  />
-                </div>
+                <div className={`space-y-4 ${!hasSorumlulukSig ? 'opacity-50' : ''}`}>
+                  <div className="max-w-xs">
+                    <label className="block text-[11px] font-medium text-gray-700 mb-1">Kapatma Tarihi</label>
+                    <input
+                      type="date"
+                      value={formData.closure_date}
+                      onChange={(e) => setFormData({ ...formData, closure_date: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-[11px] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
 
-                <div className="pt-3 border-t border-teal-100">
-                  <SignaturesSection
-                    moduleKey="feedback_closure"
-                    recordId={editData.id}
-                    onLockChange={() => {}}
-                  />
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-1">Kapatma Notlari</label>
+                    <textarea
+                      value={formData.closure_notes}
+                      onChange={(e) => setFormData({ ...formData, closure_notes: e.target.value })}
+                      rows={4}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-[11px] resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder="Geri bildirimin kapatilma gerekceleri, alinan onlemlerin etkinlik degerlendirmesi ve kalite sistemine katkisi..."
+                    />
+                  </div>
+
+                  <div className="pt-3 border-t border-teal-100">
+                    <SignaturesSection
+                      moduleKey="feedback_closure"
+                      recordId={editData.id}
+                      onLockChange={() => {}}
+                      onSignatureChange={checkSignatureStates}
+                    />
+                  </div>
                 </div>
-              </div>
+              </fieldset>
             </div>
           )}
 

@@ -21,11 +21,12 @@ interface SignaturesSectionProps {
   moduleKey: string;
   recordId: string;
   onLockChange?: (locked: boolean) => void;
+  onSignatureChange?: () => void;
   title?: string;
   signOnly?: boolean;
 }
 
-export default function SignaturesSection({ moduleKey, recordId, onLockChange, title, signOnly = false }: SignaturesSectionProps) {
+export default function SignaturesSection({ moduleKey, recordId, onLockChange, onSignatureChange, title, signOnly = false }: SignaturesSectionProps) {
   const { user, role } = useAuth();
   const [signatures, setSignatures] = useState<RecordSignature[]>([]);
   const [roles, setRoles] = useState<ModuleSignatureRole[]>([]);
@@ -60,7 +61,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
     }
   }, [user]);
 
-  const loadData = async () => {
+  const loadData = async (notify = false) => {
     try {
       setLoading(true);
       const [sigs, moduleRoles, dbLock] = await Promise.all([
@@ -71,6 +72,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
       setSignatures(sigs);
       setRoles(moduleRoles);
       setLockState(dbLock);
+      if (notify && onSignatureChange) onSignatureChange();
     } catch {
       setSignatures([]);
       setRoles([]);
@@ -99,7 +101,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
       signatureDataUrl: dataUrl,
     });
 
-    await loadData();
+    await loadData(true);
   };
 
   const handleReAuthSign = async (roleName: string, roleId: string, password: string) => {
@@ -111,7 +113,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
       roleName,
     });
 
-    await loadData();
+    await loadData(true);
   };
 
   const handleDelete = async (sig: RecordSignature) => {
@@ -119,7 +121,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
     setDeletingId(sig.id);
     try {
       await deleteSignature(sig.id, sig.signature_image_url);
-      await loadData();
+      await loadData(true);
     } catch {
       alert('Imza silinemedi.');
     } finally {
@@ -138,7 +140,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, t
       await adminUnlockRecord(recordId, unlockReason.trim());
       setShowUnlockForm(false);
       setUnlockReason('');
-      await loadData();
+      await loadData(true);
     } catch (err: any) {
       setUnlockError(err?.message || 'Kilit acilamadi.');
     } finally {
