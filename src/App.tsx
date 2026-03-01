@@ -44,7 +44,7 @@ function App() {
     if (isLocked) {
       return;
     }
-    if (role && ['admin', 'quality_manager'].includes(role)) {
+    if (role && ['admin', 'quality_manager', 'super_admin'].includes(role)) {
       setShowAdminPanel(true);
       setActiveModule(null);
       setShowActionTracking(false);

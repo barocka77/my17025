@@ -5,7 +5,7 @@ import { Module } from '../types/modules';
 import EquipmentFormModal from './EquipmentFormModal';
 import EquipmentDetailModal from './EquipmentDetailModal';
 
-type UserRole = 'admin' | 'quality_manager' | 'personnel';
+type UserRole = 'admin' | 'quality_manager' | 'personnel' | 'super_admin';
 
 interface ModuleViewProps {
   module: Module;
@@ -31,7 +31,7 @@ export default function ModuleView({ module, userRole, autoOpenRecordId, onRecor
 
   const canModifyEquipment = () => {
     if (!isEquipment) return true;
-    return userRole === 'admin' || userRole === 'quality_manager';
+    return userRole === 'admin' || userRole === 'super_admin' || userRole === 'quality_manager';
   };
 
   const getColumnLabel = (col: string) => {
