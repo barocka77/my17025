@@ -771,7 +771,11 @@ export const generateFeedbackPDF = async (
     }
   }
 
-  {
+  const hasAnySignature = signatureGroups.some((g) =>
+    g.signatures.some((s) => s.signature_type !== 'unlock')
+  );
+
+  if (hasAnySignature) {
     const eNotice = 'Bu dokuman elektronik ortamda imzalanmistir. Imza kayitlari sistem veritabaninda dogrulanabilir.';
     doc.setFont(FONT_NAME, 'normal');
     doc.setFontSize(6.5);
