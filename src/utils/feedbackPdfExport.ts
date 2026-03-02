@@ -322,6 +322,45 @@ function drawSignatureSectionLabel(doc: jsPDF, label: string, y: number, margin:
   return y + 6;
 }
 
+function drawKeyIcon(doc: jsPDF, cx: number, cy: number, size: number, color: [number, number, number]) {
+  doc.setDrawColor(...color);
+  doc.setFillColor(...color);
+  const r = size * 0.28;
+  doc.circle(cx, cy - size * 0.15, r, 'S');
+  doc.setLineWidth(0.3);
+  doc.line(cx, cy - size * 0.15 + r, cx, cy + size * 0.35);
+  doc.line(cx, cy + size * 0.15, cx + size * 0.18, cy + size * 0.15);
+  doc.line(cx, cy + size * 0.28, cx + size * 0.14, cy + size * 0.28);
+}
+
+function drawPenIcon(doc: jsPDF, cx: number, cy: number, size: number, color: [number, number, number]) {
+  doc.setDrawColor(...color);
+  doc.setLineWidth(0.35);
+  const half = size * 0.45;
+  const bx1 = cx - half * 0.3;
+  const by1 = cy + half;
+  const tx = cx + half * 0.7;
+  const ty = cy - half * 0.5;
+  doc.line(bx1, by1, tx - half * 0.25, ty + half * 0.25);
+  doc.line(tx - half * 0.25, ty + half * 0.25, tx, ty);
+  doc.line(tx, ty, tx + half * 0.15, ty + half * 0.1);
+  doc.line(tx + half * 0.15, ty + half * 0.1, bx1 + half * 0.2, by1 - half * 0.15);
+  doc.line(bx1 + half * 0.2, by1 - half * 0.15, bx1, by1);
+
+  doc.setFillColor(...color);
+  doc.triangle(bx1, by1, bx1 - size * 0.08, by1 + size * 0.14, bx1 + size * 0.1, by1 + size * 0.04, 'F');
+
+  const waveStartX = cx + half * 0.2;
+  const waveY = cy + half * 0.6;
+  const points: [number, number][] = [];
+  for (let t = 0; t <= 1; t += 0.08) {
+    points.push([waveStartX + t * size * 0.5, waveY + Math.sin(t * Math.PI * 2) * size * 0.08]);
+  }
+  for (let j = 0; j < points.length - 1; j++) {
+    doc.line(points[j][0], points[j][1], points[j + 1][0], points[j + 1][1]);
+  }
+}
+
 function drawSignatureBoxes(
   doc: jsPDF,
   group: FeedbackSignatureGroup,
@@ -367,6 +406,17 @@ function drawSignatureBoxes(
     doc.setFontSize(6.5);
     doc.setTextColor(...TEXT_MUTED);
     doc.text('IMZA BILGISI', bx + 3, by + 4.5);
+
+    if (isSigned && sig) {
+      const iconX = bx + boxWidth - 8;
+      const iconY = by + 3.5;
+      const iconSize = 4;
+      if (sig.signature_type === 'auth') {
+        drawKeyIcon(doc, iconX, iconY, iconSize, [71, 85, 105]);
+      } else if (sig.signature_type === 'drawn') {
+        drawPenIcon(doc, iconX, iconY, iconSize, [71, 85, 105]);
+      }
+    }
 
     doc.setDrawColor(...BORDER_COLOR);
     doc.setLineWidth(0.1);
