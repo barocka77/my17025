@@ -102,60 +102,45 @@ function buildEmailHtml(params: {
 </html>`;
 }
 
-async function sendEmailViaSmtp(
-  supabaseUrl: string,
-  serviceRoleKey: string,
+async function sendEmailViaResend(
   to: string,
   subject: string,
   htmlBody: string
 ): Promise<boolean> {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) {
+    console.error(`RESEND_API_KEY not configured, cannot send email to ${to}`);
+    return false;
+  }
+
   try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/magiclink`, {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${serviceRoleKey}`,
+        Authorization: `Bearer ${resendKey}`,
         "Content-Type": "application/json",
-        Apikey: serviceRoleKey,
       },
       body: JSON.stringify({
-        email: to,
+        from: "onboarding@resend.dev",
+        to: [to],
+        subject,
+        html: htmlBody,
       }),
     });
-    console.log(`Magic link trigger for ${to}: ${res.status}`);
-  } catch (e) {
-    console.log(`Magic link fallback failed for ${to}:`, e);
-  }
 
-  const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (resendKey) {
-    try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "my17025 <noreply@my17025.com>",
-          to: [to],
-          subject,
-          html: htmlBody,
-        }),
-      });
-      if (res.ok) {
-        console.log(`Email sent to ${to} via Resend`);
-        return true;
-      }
-      console.log(`Resend failed for ${to}: ${res.status}`);
-    } catch (e) {
-      console.log(`Resend error for ${to}:`, e);
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`Email sent successfully to ${to} via Resend. ID: ${data.id}`);
+      return true;
     }
-  }
 
-  console.log(
-    `Email notification logged for ${to} - Subject: ${subject}`
-  );
-  return true;
+    const errorBody = await res.text();
+    console.error(`Resend API error for ${to}: status=${res.status} body=${errorBody}`);
+    return false;
+  } catch (e) {
+    console.error(`Resend request failed for ${to}:`, e);
+    return false;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -267,19 +252,16 @@ Deno.serve(async (req: Request) => {
             pendingLabel,
             deepLink,
           });
-          return sendEmailViaSmtp(
-            supabaseUrl,
-            serviceRoleKey,
-            u.email,
-            subject,
-            html
-          );
+          return sendEmailViaResend(u.email, subject, html);
         })
     );
 
     const sentCount = results.filter(
       (r) => r.status === "fulfilled" && r.value === true
     ).length;
+    const failedCount = results.length - sentCount;
+
+    console.log(`Notification summary for record ${record_id}: sent=${sentCount} failed=${failedCount} total=${results.length}`);
 
     await adminClient
       .from("feedback_records")
@@ -291,6 +273,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         message: `${sentCount} kullaniciya bildirim gonderildi`,
         notified_count: sentCount,
+        failed_count: failedCount,
         total_targets: targetUsers.length,
       },
       200
