@@ -9,6 +9,7 @@ import AdminPanel from './components/AdminPanel';
 import ActionTracking from './components/ActionTracking';
 import PersonalNotepad from './components/PersonalNotepad';
 import Login from './components/Login';
+import VerifySignature from './components/VerifySignature';
 import { Module } from './types/modules';
 import { sections } from './config/modules';
 import { Microscope, Menu, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -19,6 +20,7 @@ function App() {
   const { user, role, loading } = useAuth();
   const { isLocked, criticalItemsCount, loading: complianceLoading } = useCompliance();
   const [activeModule, setActiveModule] = useState<Module | null>(null);
+  const [isVerifyPage, setIsVerifyPage] = useState(() => window.location.hash === '#verify-signature');
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showActionTracking, setShowActionTracking] = useState(false);
   const [showNotepad, setShowNotepad] = useState(false);
@@ -222,6 +224,18 @@ function App() {
     };
   }, [activeModule, showAdminPanel, showActionTracking, showNotepad]);
 
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setIsVerifyPage(window.location.hash === '#verify-signature');
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  if (isVerifyPage) {
+    return <VerifySignature />;
+  }
 
   if (loading) {
     return (
