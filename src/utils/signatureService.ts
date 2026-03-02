@@ -71,14 +71,12 @@ export async function fetchRecordLockState(recordId: string): Promise<RecordLock
   };
 }
 
-const NOTIFICATION_STEP_MAP: Record<string, string> = {
-  feedback_izahat: 'customer_feedback',
-  customer_feedback: 'feedback_closure',
-};
-
-async function triggerSignatureNotification(moduleKey: string, recordId: string): Promise<void> {
-  const nextStep = NOTIFICATION_STEP_MAP[moduleKey];
-  if (!nextStep) return;
+export async function triggerNotificationForNextStep(params: {
+  recordId: string;
+  nextStep: string;
+  completedStep?: string;
+  targetPersonName?: string;
+}): Promise<void> {
   try {
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-signature-notification`;
     const { data: { session } } = await supabase.auth.getSession();
@@ -91,9 +89,10 @@ async function triggerSignatureNotification(moduleKey: string, recordId: string)
         'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
-        record_id: recordId,
-        completed_step: moduleKey,
-        next_step: nextStep,
+        record_id: params.recordId,
+        completed_step: params.completedStep || null,
+        next_step: params.nextStep,
+        target_person_name: params.targetPersonName || null,
       }),
     }).catch(() => {});
   } catch {
@@ -142,7 +141,6 @@ export async function saveSignature(params: {
     .single();
 
   if (error) throw error;
-  triggerSignatureNotification(moduleKey, recordId);
   return data as RecordSignature;
 }
 

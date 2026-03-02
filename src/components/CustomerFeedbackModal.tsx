@@ -3,7 +3,7 @@ import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Up
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
-import { fetchSignatures, fetchModuleRoles } from '../utils/signatureService';
+import { fetchSignatures, fetchModuleRoles, triggerNotificationForNextStep } from '../utils/signatureService';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXT = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -415,6 +415,19 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
             await supabase.from('feedback_actions').insert({ ...payload, feedback_id: recordId });
           }
         }
+      }
+
+      const izahatByChanged = formData.izahat_by && formData.izahat_by !== (editData?.izahat_by || '');
+      if (izahatByChanged && recordId) {
+        await supabase
+          .from('feedback_records')
+          .update({ last_notified_step: null })
+          .eq('id', recordId);
+        triggerNotificationForNextStep({
+          recordId,
+          nextStep: 'feedback_izahat',
+          targetPersonName: formData.izahat_by,
+        });
       }
 
       onSuccess();

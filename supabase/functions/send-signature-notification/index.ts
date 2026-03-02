@@ -171,9 +171,9 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const { record_id, completed_step, next_step } = await req.json();
+    const { record_id, completed_step, next_step, target_person_name } = await req.json();
 
-    if (!record_id || !completed_step || !next_step) {
+    if (!record_id || !next_step) {
       return jsonResponse({ error: "Eksik parametreler" }, 400);
     }
 
@@ -198,18 +198,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const targetRoles = NOTIFIABLE_ROLES[next_step] || [
-      "admin",
-      "quality_manager",
-      "super_admin",
-    ];
+    let targetUsers: { email: string; full_name: string | null }[] = [];
 
-    const { data: targetUsers } = await adminClient
-      .from("profiles")
-      .select("email, full_name, role")
-      .in("role", targetRoles);
+    if (next_step === "feedback_izahat" && target_person_name) {
+      const { data: personByName } = await adminClient
+        .from("profiles")
+        .select("email, full_name")
+        .eq("full_name", target_person_name)
+        .maybeSingle();
 
-    if (!targetUsers || targetUsers.length === 0) {
+      if (personByName?.email) {
+        targetUsers = [personByName];
+      }
+    } else {
+      const targetRoles = NOTIFIABLE_ROLES[next_step] || [
+        "admin",
+        "quality_manager",
+        "super_admin",
+      ];
+
+      const { data: roleUsers } = await adminClient
+        .from("profiles")
+        .select("email, full_name, role")
+        .in("role", targetRoles);
+
+      targetUsers = (roleUsers || []) as { email: string; full_name: string | null }[];
+    }
+
+    if (targetUsers.length === 0) {
       await adminClient
         .from("feedback_records")
         .update({ last_notified_step: next_step })
@@ -238,8 +254,8 @@ Deno.serve(async (req: Request) => {
 
     const results = await Promise.allSettled(
       targetUsers
-        .filter((u: { email: string | null }) => u.email)
-        .map((u: { email: string; full_name: string | null }) => {
+        .filter((u) => u.email)
+        .map((u) => {
           const name = u.full_name || u.email;
           const subject = `[Imza Bekliyor] Bildirim No: ${appNo}`;
           const html = buildEmailHtml({
