@@ -96,7 +96,8 @@ function App() {
 
   useEffect(() => {
     if (!complianceLoading && isLocked && user) {
-      console.log('[App] System locked, forcing redirect to Action Tracking');
+      const hasPendingRedirect = sessionStorage.getItem('pending_redirect_to');
+      if (hasPendingRedirect) return;
       setShowActionTracking(true);
       setActiveModule(null);
       setShowAdminPanel(false);
@@ -104,12 +105,15 @@ function App() {
     }
   }, [isLocked, complianceLoading, user]);
 
+  const redirectProcessedRef = useState(() => ({ current: false }))[0];
+
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading || redirectProcessedRef.current) return;
 
     const pendingRedirectTo = sessionStorage.getItem('pending_redirect_to');
     if (!pendingRedirectTo) return;
 
+    redirectProcessedRef.current = true;
     sessionStorage.removeItem('pending_redirect_to');
 
     const feedbackMatch = pendingRedirectTo.match(/^\/feedback\/([0-9a-f-]{36})$/i);

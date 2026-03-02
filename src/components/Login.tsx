@@ -6,7 +6,7 @@ interface LoginProps {
   redirectTo?: string | null;
 }
 
-export default function Login({ redirectTo }: LoginProps) {
+export default function Login({ redirectTo: redirectToProp }: LoginProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
   const [email, setEmail] = useState('');
@@ -16,6 +16,8 @@ export default function Login({ redirectTo }: LoginProps) {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+
+  const redirectTo = redirectToProp || new URLSearchParams(window.location.search).get('redirectTo');
 
   const validateCorporateEmail = (email: string): boolean => {
     const domain = email.split('@')[1];
