@@ -106,14 +106,27 @@ function App() {
 
   useEffect(() => {
     if (!user || loading) return;
-    const hash = window.location.hash;
+
     const pendingRedirect = sessionStorage.getItem('pending_feedback_redirect');
+    const pendingRedirectTo = sessionStorage.getItem('pending_redirect_to');
+    const hash = window.location.hash;
+    const pathname = window.location.pathname;
+
     const targetId = pendingRedirect || (() => {
-      const match = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
-      return match ? match[1] : null;
+      if (pendingRedirectTo) {
+        const rtMatch = pendingRedirectTo.match(/^\/feedback\/([0-9a-f-]{36})$/i);
+        if (rtMatch) return rtMatch[1];
+      }
+      const pathMatch = pathname.match(/^\/feedback\/([0-9a-f-]{36})$/i);
+      if (pathMatch) return pathMatch[1];
+      const hashMatch = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
+      return hashMatch ? hashMatch[1] : null;
     })();
+
     if (targetId) {
       sessionStorage.removeItem('pending_feedback_redirect');
+      sessionStorage.removeItem('pending_redirect_to');
+      window.history.replaceState(null, '', '/');
       const feedbackModule = sections
         .flatMap(section => section.modules)
         .find(m => m.id === 'customer_feedback');
@@ -250,9 +263,19 @@ function App() {
 
   if (!user) {
     const hash = window.location.hash;
-    const feedbackMatch = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
-    if (feedbackMatch) {
-      sessionStorage.setItem('pending_feedback_redirect', feedbackMatch[1]);
+    const pathname = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get('redirectTo');
+
+    const pathMatch = pathname.match(/^\/feedback\/([0-9a-f-]{36})$/i);
+    const hashMatch = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
+    const feedbackId = pathMatch?.[1] || hashMatch?.[1];
+
+    if (feedbackId) {
+      sessionStorage.setItem('pending_feedback_redirect', feedbackId);
+    }
+    if (redirectTo) {
+      sessionStorage.setItem('pending_redirect_to', redirectTo);
     }
     return <Login />;
   }

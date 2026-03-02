@@ -247,9 +247,10 @@ Deno.serve(async (req: Request) => {
         })
       : "-";
 
-    const siteUrl = Deno.env.get("SITE_URL") || "";
+    const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/+$/, "");
+    const feedbackPath = `/feedback/${record_id}`;
     const deepLink = siteUrl
-      ? `${siteUrl}#feedback/${record_id}`
+      ? `${siteUrl}${feedbackPath}?redirectTo=${encodeURIComponent(feedbackPath)}`
       : "";
 
     const results = await Promise.allSettled(
