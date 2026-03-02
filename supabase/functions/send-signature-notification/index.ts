@@ -57,7 +57,6 @@ function buildEmailHtml(params: {
           <!-- Body -->
           <tr>
             <td style="padding: 40px;">
-              <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #1e293b;">Sayin <strong>${recipientName}</strong>,</p>
               <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #1e293b;">Imzaniz Gerekiyor</h2>
               <p style="margin: 0 0 28px; font-size: 15px; line-height: 1.6; color: #475569;">Asagidaki geri bildirim icin imzaniz beklenmektedir.</p>
               <!-- Info Table -->
