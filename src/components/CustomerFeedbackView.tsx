@@ -93,8 +93,8 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
     if (autoOpenRecordId && feedbacks.length > 0) {
       const record = feedbacks.find(f => f.id === autoOpenRecordId);
       if (record) {
-        setViewData(record);
-        setIsDetailViewOpen(true);
+        setEditData({ ...record });
+        setIsModalOpen(true);
         if (onRecordOpened) {
           onRecordOpened();
         }
