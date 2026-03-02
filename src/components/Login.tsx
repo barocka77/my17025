@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { LogIn, UserPlus, AlertCircle, Shield, CheckCircle, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Login() {
+interface LoginProps {
+  redirectTo?: string | null;
+}
+
+export default function Login({ redirectTo }: LoginProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
   const [email, setEmail] = useState('');
@@ -56,6 +60,9 @@ export default function Login() {
         setPassword('');
         setConfirmPassword('');
       } else {
+        if (redirectTo) {
+          sessionStorage.setItem('pending_redirect_to', redirectTo);
+        }
         await signIn(email, password);
       }
     } catch (err: any) {

@@ -107,25 +107,14 @@ function App() {
   useEffect(() => {
     if (!user || loading) return;
 
-    const pendingRedirect = sessionStorage.getItem('pending_feedback_redirect');
     const pendingRedirectTo = sessionStorage.getItem('pending_redirect_to');
-    const hash = window.location.hash;
-    const pathname = window.location.pathname;
+    if (!pendingRedirectTo) return;
 
-    const targetId = pendingRedirect || (() => {
-      if (pendingRedirectTo) {
-        const rtMatch = pendingRedirectTo.match(/^\/feedback\/([0-9a-f-]{36})$/i);
-        if (rtMatch) return rtMatch[1];
-      }
-      const pathMatch = pathname.match(/^\/feedback\/([0-9a-f-]{36})$/i);
-      if (pathMatch) return pathMatch[1];
-      const hashMatch = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
-      return hashMatch ? hashMatch[1] : null;
-    })();
+    sessionStorage.removeItem('pending_redirect_to');
 
-    if (targetId) {
-      sessionStorage.removeItem('pending_feedback_redirect');
-      sessionStorage.removeItem('pending_redirect_to');
+    const feedbackMatch = pendingRedirectTo.match(/^\/feedback\/([0-9a-f-]{36})$/i);
+    if (feedbackMatch) {
+      const targetId = feedbackMatch[1];
       window.history.replaceState(null, '', '/');
       const feedbackModule = sections
         .flatMap(section => section.modules)
@@ -262,22 +251,14 @@ function App() {
   }
 
   if (!user) {
-    const hash = window.location.hash;
-    const pathname = window.location.pathname;
     const searchParams = new URLSearchParams(window.location.search);
     const redirectTo = searchParams.get('redirectTo');
+    const pathname = window.location.pathname;
 
     const pathMatch = pathname.match(/^\/feedback\/([0-9a-f-]{36})$/i);
-    const hashMatch = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
-    const feedbackId = pathMatch?.[1] || hashMatch?.[1];
+    const resolvedRedirect = redirectTo || (pathMatch ? `/feedback/${pathMatch[1]}` : null);
 
-    if (feedbackId) {
-      sessionStorage.setItem('pending_feedback_redirect', feedbackId);
-    }
-    if (redirectTo) {
-      sessionStorage.setItem('pending_redirect_to', redirectTo);
-    }
-    return <Login />;
+    return <Login redirectTo={resolvedRedirect} />;
   }
 
   return (
