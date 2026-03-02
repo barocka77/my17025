@@ -725,16 +725,43 @@ export const generateFeedbackPDF = async (
     const eNotice = 'Bu dokuman elektronik ortamda imzalanmistir. Imza kayitlari sistem veritabaninda dogrulanabilir.';
     doc.setFont(FONT_NAME, 'normal');
     doc.setFontSize(6.5);
-    const noticeLines = doc.splitTextToSize(eNotice, contentWidth - 8);
-    const noticeH = noticeLines.length * 3 + 6;
+    const textLeftOffset = 12;
+    const noticeLines = doc.splitTextToSize(eNotice, contentWidth - 8 - textLeftOffset);
+    const noticeH = Math.max(noticeLines.length * 3 + 6, 10);
     y = ensureSpace(doc, noticeH + 4, y);
 
     doc.setFillColor(241, 245, 249);
     doc.setDrawColor(...BORDER_COLOR);
     doc.setLineWidth(0.2);
     doc.roundedRect(margin + 1, y, contentWidth - 2, noticeH, 1.5, 1.5, 'FD');
+
+    const iconX = margin + 4;
+    const iconY = y + noticeH / 2 - 2;
+    doc.setDrawColor(100, 116, 139);
+    doc.setLineWidth(0.35);
+    doc.line(iconX, iconY + 4, iconX + 2.2, iconY);
+    doc.line(iconX + 2.2, iconY, iconX + 2.8, iconY + 0.6);
+    doc.line(iconX + 2.8, iconY + 0.6, iconX + 0.6, iconY + 4.6);
+    doc.line(iconX + 0.6, iconY + 4.6, iconX, iconY + 4);
+    doc.setFillColor(100, 116, 139);
+    doc.triangle(iconX, iconY + 4, iconX + 0.6, iconY + 4.6, iconX - 0.2, iconY + 5.2, 'F');
+
+    const penTipRight = iconX + 5;
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(100, 116, 139);
+    const waveY = iconY + 3.5;
+    const points: [number, number][] = [];
+    for (let t = 0; t <= 1; t += 0.05) {
+      const px = penTipRight + t * 4;
+      const py = waveY + Math.sin(t * Math.PI * 2) * 0.6;
+      points.push([px, py]);
+    }
+    for (let j = 0; j < points.length - 1; j++) {
+      doc.line(points[j][0], points[j][1], points[j + 1][0], points[j + 1][1]);
+    }
+
     doc.setTextColor(...TEXT_MUTED);
-    doc.text(noticeLines, margin + 4, y + 4);
+    doc.text(noticeLines, margin + 4 + textLeftOffset, y + 4);
     y += noticeH + 4;
   }
 
