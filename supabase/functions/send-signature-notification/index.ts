@@ -181,28 +181,21 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
-    const { data: existing } = await adminClient
-      .from("signature_notifications")
-      .select("id")
-      .eq("record_id", record_id)
-      .eq("step_key", completed_step)
-      .maybeSingle();
-
-    if (existing) {
-      return jsonResponse(
-        { success: true, message: "Bildirim zaten gonderilmis", skipped: true },
-        200
-      );
-    }
-
     const { data: record } = await adminClient
       .from("feedback_records")
-      .select("application_no, applicant_name, form_date")
+      .select("application_no, applicant_name, form_date, last_notified_step")
       .eq("id", record_id)
       .maybeSingle();
 
     if (!record) {
       return jsonResponse({ error: "Kayit bulunamadi" }, 404);
+    }
+
+    if (record.last_notified_step === next_step) {
+      return jsonResponse(
+        { success: true, message: "Bu adim icin bildirim zaten gonderilmis", skipped: true },
+        200
+      );
     }
 
     const targetRoles = NOTIFIABLE_ROLES[next_step] || [
@@ -217,10 +210,10 @@ Deno.serve(async (req: Request) => {
       .in("role", targetRoles);
 
     if (!targetUsers || targetUsers.length === 0) {
-      await adminClient.from("signature_notifications").insert({
-        record_id,
-        step_key: completed_step,
-      });
+      await adminClient
+        .from("feedback_records")
+        .update({ last_notified_step: next_step })
+        .eq("id", record_id);
       return jsonResponse(
         { success: true, message: "Bildirim gonderilecek kullanici yok" },
         200
@@ -271,10 +264,10 @@ Deno.serve(async (req: Request) => {
       (r) => r.status === "fulfilled" && r.value === true
     ).length;
 
-    await adminClient.from("signature_notifications").insert({
-      record_id,
-      step_key: completed_step,
-    });
+    await adminClient
+      .from("feedback_records")
+      .update({ last_notified_step: next_step })
+      .eq("id", record_id);
 
     return jsonResponse(
       {
