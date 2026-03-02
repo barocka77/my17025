@@ -134,30 +134,32 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
         fetchSignatures(`feedback_action_${a.id}`, a.id).then((sigs) => ({
           moduleKey: `feedback_action_${a.id}`,
           label: `Aksiyon: ${a.action_description?.substring(0, 40) || a.id}`,
-          signatures: sigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          signatures: sigs.map(mapSig),
           roles: actionRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         } as FeedbackSignatureGroup))
       );
       const actionSigGroups = await Promise.all(actionSigPromises);
 
+      const mapSig = (s: RecordSignature) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url, signature_id: s.id, signature_type: s.signature_type });
+
       const signatureGroups: FeedbackSignatureGroup[] = [
         {
           moduleKey: 'feedback_izahat',
           label: 'Izahat Sahibi Imzasi',
-          signatures: izahatSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          signatures: izahatSigs.map(mapSig),
           roles: izahatRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         },
         {
           moduleKey: 'customer_feedback',
           label: 'Karar Verici Imzasi',
-          signatures: feedbackSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          signatures: feedbackSigs.map(mapSig),
           roles: feedbackRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         },
         ...actionSigGroups,
         {
           moduleKey: 'feedback_closure',
           label: 'Kapatan Yetkili Imzasi',
-          signatures: closureSigs.map((s) => ({ signer_role: s.signer_role, signer_name: s.signer_name, signed_at: s.signed_at, signature_image_url: s.signature_image_url })),
+          signatures: closureSigs.map(mapSig),
           roles: closureRoles.map((r) => ({ role_name: r.role_name, role_order: r.role_order })),
         },
       ];

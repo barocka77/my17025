@@ -53,10 +53,19 @@ export interface FeedbackAction {
   completed_date: string | null;
 }
 
+export interface FeedbackSignatureEntry {
+  signer_role: string;
+  signer_name: string;
+  signed_at: string;
+  signature_image_url: string | null;
+  signature_id?: string;
+  signature_type?: string;
+}
+
 export interface FeedbackSignatureGroup {
   moduleKey: string;
   label: string;
-  signatures: { signer_role: string; signer_name: string; signed_at: string; signature_image_url: string | null }[];
+  signatures: FeedbackSignatureEntry[];
   roles: { role_name: string; role_order: number }[];
 }
 
@@ -77,6 +86,17 @@ const formatDate = (d: string | null | undefined): string => {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+  });
+};
+
+const formatDateTime = (d: string | null | undefined): string => {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 };
 
@@ -141,13 +161,14 @@ function estimateTextBlockHeight(doc: jsPDF, label: string, text: string, conten
 }
 
 function estimateSignatureGroupHeight(group: FeedbackSignatureGroup): number {
+  const sigs = group.signatures.filter(s => s.signature_type !== 'unlock');
   const roleNames = group.roles.length > 0
     ? group.roles.map((r) => r.role_name)
-    : group.signatures.map((s) => s.signer_role);
+    : sigs.map((s) => s.signer_role);
   if (roleNames.length === 0) return 0;
   const cols = Math.min(roleNames.length, 3);
   const totalRows = Math.ceil(roleNames.length / cols);
-  const boxHeight = 18;
+  const boxHeight = 28;
   return 6 + totalRows * (boxHeight + 4) + 2;
 }
 
@@ -308,14 +329,15 @@ function drawSignatureBoxes(
   margin: number,
   contentWidth: number
 ): number {
-  const sigMap = new Map(group.signatures.map((s) => [s.signer_role, s]));
+  const filteredSigs = group.signatures.filter(s => s.signature_type !== 'unlock');
+  const sigMap = new Map(filteredSigs.map((s) => [s.signer_role, s]));
   const roleNames = group.roles.length > 0
     ? group.roles.sort((a, b) => a.role_order - b.role_order).map((r) => r.role_name)
-    : group.signatures.map((s) => s.signer_role);
+    : filteredSigs.map((s) => s.signer_role);
 
   if (roleNames.length === 0) return y;
 
-  const boxHeight = 18;
+  const boxHeight = 28;
   const boxGap = 4;
   const cols = Math.min(roleNames.length, 3);
   const boxWidth = (contentWidth - boxGap * (cols - 1)) / cols;
@@ -342,18 +364,51 @@ function drawSignatureBoxes(
     doc.roundedRect(bx, by, boxWidth, boxHeight, 1.5, 1.5, 'FD');
 
     doc.setFont(FONT_NAME, 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor(...TEXT_MUTED);
-    doc.text(role, bx + 3, by + 5);
-
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(...TEXT_DARK);
-    doc.text(sig?.signer_name || '', bx + 3, by + 10.5);
-
     doc.setFontSize(6.5);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text(sig ? formatDate(sig.signed_at) : '', bx + 3, by + 15);
+    doc.text('IMZA BILGISI', bx + 3, by + 4.5);
+
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.1);
+    doc.line(bx + 2, by + 6, bx + boxWidth - 2, by + 6);
+
+    const labelX = bx + 3;
+    const valueX = bx + 24;
+    let lineY = by + 10;
+
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('Rol:', labelX, lineY);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(role, valueX, lineY);
+
+    lineY += 4;
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('Ad Soyad:', labelX, lineY);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(sig?.signer_name || '-', valueX, lineY);
+
+    lineY += 4;
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('Imza Tarihi:', labelX, lineY);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(sig ? formatDateTime(sig.signed_at) : '-', valueX, lineY);
+
+    lineY += 4;
+    doc.setFont(FONT_NAME, 'bold');
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('Signature ID:', labelX, lineY);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(5.5);
+    doc.setTextColor(...TEXT_MUTED);
+    const sigId = sig?.signature_id ? sig.signature_id.substring(0, 18) + '...' : '-';
+    doc.text(sigId, valueX, lineY);
   });
 
   const totalRows = Math.ceil(roleNames.length / cols);
@@ -664,6 +719,23 @@ export const generateFeedbackPDF = async (
       y = drawSignatureSectionLabel(doc, 'Kapatan Yetkili Imzasi', y, margin);
       y = drawSignatureBoxes(doc, closureSigGroup, y, margin, contentWidth);
     }
+  }
+
+  {
+    const eNotice = 'Bu dokuman elektronik ortamda imzalanmistir. Imza kayitlari sistem veritabaninda dogrulanabilir.';
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(6.5);
+    const noticeLines = doc.splitTextToSize(eNotice, contentWidth - 8);
+    const noticeH = noticeLines.length * 3 + 6;
+    y = ensureSpace(doc, noticeH + 4, y);
+
+    doc.setFillColor(241, 245, 249);
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(margin + 1, y, contentWidth - 2, noticeH, 1.5, 1.5, 'FD');
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(noticeLines, margin + 4, y + 4);
+    y += noticeH + 4;
   }
 
   addFooter(doc, docCode, revNo, revDate);
