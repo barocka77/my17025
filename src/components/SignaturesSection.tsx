@@ -24,9 +24,10 @@ interface SignaturesSectionProps {
   onSignatureChange?: () => void;
   title?: string;
   signOnly?: boolean;
+  disabled?: boolean;
 }
 
-export default function SignaturesSection({ moduleKey, recordId, onLockChange, onSignatureChange, title, signOnly = false }: SignaturesSectionProps) {
+export default function SignaturesSection({ moduleKey, recordId, onLockChange, onSignatureChange, title, signOnly = false, disabled = false }: SignaturesSectionProps) {
   const { user, role } = useAuth();
   const [signatures, setSignatures] = useState<RecordSignature[]>([]);
   const [roles, setRoles] = useState<ModuleSignatureRole[]>([]);
@@ -195,7 +196,7 @@ export default function SignaturesSection({ moduleKey, recordId, onLockChange, o
               Kilidi Ac
             </button>
           )}
-          {!locked && (
+          {!locked && !disabled && (
             <div className="flex items-center gap-2">
               <button
                 type="button"

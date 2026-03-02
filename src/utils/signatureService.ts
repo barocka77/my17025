@@ -71,6 +71,36 @@ export async function fetchRecordLockState(recordId: string): Promise<RecordLock
   };
 }
 
+const NOTIFICATION_STEP_MAP: Record<string, string> = {
+  feedback_izahat: 'customer_feedback',
+  customer_feedback: 'feedback_closure',
+};
+
+async function triggerSignatureNotification(moduleKey: string, recordId: string): Promise<void> {
+  const nextStep = NOTIFICATION_STEP_MAP[moduleKey];
+  if (!nextStep) return;
+  try {
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-signature-notification`;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        record_id: recordId,
+        completed_step: moduleKey,
+        next_step: nextStep,
+      }),
+    }).catch(() => {});
+  } catch {
+    // fire-and-forget
+  }
+}
+
 export async function saveSignature(params: {
   moduleKey: string;
   recordId: string;
@@ -112,6 +142,7 @@ export async function saveSignature(params: {
     .single();
 
   if (error) throw error;
+  triggerSignatureNotification(moduleKey, recordId);
   return data as RecordSignature;
 }
 

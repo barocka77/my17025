@@ -31,6 +31,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
   const [showClosePassword, setShowClosePassword] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
+  const [hasIzahatSig, setHasIzahatSig] = useState(false);
   const [hasSorumlulukSig, setHasSorumlulukSig] = useState(false);
   const [hasClosureSig, setHasClosureSig] = useState(false);
   const [signatureHistory, setSignatureHistory] = useState<RecordSignature[]>([]);
@@ -41,13 +42,15 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
 
   const checkSignatureStates = useCallback(async () => {
     if (!data?.id) return;
-    const [sigs, roles, closureSigs, history] = await Promise.all([
+    const [sigs, roles, closureSigs, izahatSigs, history] = await Promise.all([
       fetchSignatures('customer_feedback', data.id),
       fetchModuleRoles('customer_feedback'),
       fetchSignatures('feedback_closure', data.id),
+      fetchSignatures('feedback_izahat', data.id),
       fetchSignatureHistory(data.id),
     ]);
     const finalRoleNames = roles.filter(r => r.is_final_approval).map(r => r.role_name);
+    setHasIzahatSig(izahatSigs.length > 0);
     setHasSorumlulukSig(sigs.some(s => finalRoleNames.includes(s.signer_role)));
     setHasClosureSig(closureSigs.length > 0);
     setSignatureHistory(history);
@@ -486,12 +489,22 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                 </dl>
                 {data.id && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
+                    {!hasIzahatSig && (data.izahat_text || data.izahat_by) && (
+                      <div className="flex items-start gap-3 p-4 mb-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-800">Sorumluluk Karari imzasi henuz aktif degil</p>
+                          <p className="text-xs text-amber-700 mt-1">Oncelikle "Izahat Sahibi Imzasi" tamamlanmalidir.</p>
+                        </div>
+                      </div>
+                    )}
                     <SignaturesSection
                       moduleKey="customer_feedback"
                       recordId={data.id}
                       title="Karar Verici İmzası"
                       onLockChange={handleLockChange}
                       onSignatureChange={checkSignatureStates}
+                      disabled={!hasIzahatSig && !!(data.izahat_text || data.izahat_by)}
                     />
                   </div>
                 )}
@@ -551,6 +564,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                         recordId={data.id}
                         title="İzahat İmzaları"
                         onLockChange={() => {}}
+                        onSignatureChange={checkSignatureStates}
                         signOnly
                       />
                     </div>

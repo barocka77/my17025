@@ -102,6 +102,30 @@ function App() {
     }
   }, [isLocked, complianceLoading, user]);
 
+  useEffect(() => {
+    if (!user || loading) return;
+    const hash = window.location.hash;
+    const pendingRedirect = sessionStorage.getItem('pending_feedback_redirect');
+    const targetId = pendingRedirect || (() => {
+      const match = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
+      return match ? match[1] : null;
+    })();
+    if (targetId) {
+      sessionStorage.removeItem('pending_feedback_redirect');
+      const feedbackModule = sections
+        .flatMap(section => section.modules)
+        .find(m => m.id === 'customer_feedback');
+      if (feedbackModule) {
+        setAutoOpenRecordId(targetId);
+        setActiveModule(feedbackModule);
+        setShowAdminPanel(false);
+        setShowActionTracking(false);
+        setShowNotepad(false);
+        setSidebarCollapsed(true);
+      }
+    }
+  }, [user, loading]);
+
   const handleViewActionItem = (source: 'feedback' | 'equipment', id: string) => {
     if (source === 'feedback') {
       const feedbackModule = sections
@@ -211,6 +235,11 @@ function App() {
   }
 
   if (!user) {
+    const hash = window.location.hash;
+    const feedbackMatch = hash.match(/^#feedback\/([0-9a-f-]{36})$/i);
+    if (feedbackMatch) {
+      sessionStorage.setItem('pending_feedback_redirect', feedbackMatch[1]);
+    }
     return <Login />;
   }
 

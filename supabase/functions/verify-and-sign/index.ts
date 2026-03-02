@@ -119,6 +119,38 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: insertError.message }, 400);
     }
 
+    const notificationModules = [
+      "feedback_izahat",
+      "customer_feedback",
+      "feedback_closure",
+    ];
+    if (notificationModules.includes(module_key)) {
+      const nextStepMap: Record<string, string> = {
+        feedback_izahat: "customer_feedback",
+        customer_feedback: "feedback_closure",
+      };
+      const nextStep = nextStepMap[module_key];
+      if (nextStep) {
+        EdgeRuntime.waitUntil(
+          fetch(`${supabaseUrl}/functions/v1/send-signature-notification`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              Apikey: serviceRoleKey,
+            },
+            body: JSON.stringify({
+              record_id,
+              completed_step: module_key,
+              next_step: nextStep,
+            }),
+          }).catch((e: unknown) =>
+            console.error("Notification dispatch failed:", e)
+          )
+        );
+      }
+    }
+
     return jsonResponse(
       {
         success: true,
