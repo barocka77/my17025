@@ -625,7 +625,7 @@ export const generateFeedbackPDF = async (
     const izahatSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_izahat');
     const izahatSectionHeight = 9
       + estimateTableHeight(izahatRows.length) + 3
-      + estimateTextBlockHeight(doc, 'Bildirime Sebep Taraf Izahati', data.izahat_text || '-', contentWidth)
+      + estimateTextBlockHeight(doc, 'Bildirim Muhatabi Izahati', data.izahat_text || '-', contentWidth)
       + (izahatSigGroup ? estimateSignatureGroupHeight(izahatSigGroup) : 0);
     y = ensureSectionFits(doc, izahatSectionHeight, y);
 
@@ -633,7 +633,7 @@ export const generateFeedbackPDF = async (
 
     autoTable(doc, { ...fwStyles, startY: y, body: izahatRows });
     y = (doc as any).lastAutoTable.finalY + 3;
-    y = drawTextBlock(doc, 'Bildirime Sebep Taraf Izahati', data.izahat_text || '-', y, margin, contentWidth);
+    y = drawTextBlock(doc, 'Bildirim Muhatabi Izahati', data.izahat_text || '-', y, margin, contentWidth);
 
     if (izahatSigGroup) {
       y = drawSignatureSectionLabel(doc, 'Izahat Sahibi Imzasi', y, margin);

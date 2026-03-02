@@ -551,7 +551,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
                       <dd className="text-sm text-gray-900 font-medium">{data.izahat_by || '-'}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Bildirime Sebep Taraf İzahatı</dt>
+                      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Bildirim Muhatabı İzahatı</dt>
                       <dd className="text-sm text-gray-900 leading-relaxed bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">
                         {data.izahat_text || '-'}
                       </dd>

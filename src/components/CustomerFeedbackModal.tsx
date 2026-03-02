@@ -649,7 +649,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Taraf İzahatı</label>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirim Muhatabı İzahatı</label>
                   <textarea
                     value={formData.izahat_text}
                     onChange={(e) => setFormData({ ...formData, izahat_text: e.target.value })}
