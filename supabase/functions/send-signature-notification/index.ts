@@ -38,45 +38,66 @@ function buildEmailHtml(params: {
     params;
   return `<!DOCTYPE html>
 <html lang="tr">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; padding: 32px 16px; margin: 0;">
-  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
-    <div style="background: linear-gradient(135deg, #334155, #475569); padding: 24px 28px;">
-      <h1 style="color: #ffffff; font-size: 18px; margin: 0;">my17025 - Imza Bildirimi</h1>
-      <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0;">Laboratuvar Bilgi Yonetim Sistemi</p>
-    </div>
-    <div style="padding: 28px;">
-      <p style="color: #334155; font-size: 14px; margin: 0 0 20px;">Sayin ${recipientName},</p>
-      <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px;">
-        Asagidaki geri bildirim kaydi icin imzaniz beklenmektedir:
-      </p>
-      <table style="width: 100%; border-collapse: collapse; margin: 0 0 24px;">
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 10px 12px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; width: 140px;">Bildirim No</td>
-          <td style="padding: 10px 12px; font-size: 14px; color: #1e293b; font-weight: 600;">${appNo}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 10px 12px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Musteri</td>
-          <td style="padding: 10px 12px; font-size: 14px; color: #1e293b;">${customer}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 10px 12px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Bildirim Tarihi</td>
-          <td style="padding: 10px 12px; font-size: 14px; color: #1e293b;">${formDate}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 12px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Bekleyen Imza</td>
-          <td style="padding: 10px 12px; font-size: 14px; color: #b45309; font-weight: 600;">${pendingLabel}</td>
-        </tr>
-      </table>
-      ${deepLink ? `<a href="${deepLink}" style="display: inline-block; background: linear-gradient(135deg, #334155, #475569); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">Kaydi Goruntule</a>` : ""}
-      <p style="color: #94a3b8; font-size: 12px; margin: 24px 0 0; line-height: 1.5;">
-        Bu otomatik bir bildirimdir. Lutfen yanit vermeyiniz.
-      </p>
-    </div>
-    <div style="background: #f8fafc; padding: 16px 28px; border-top: 1px solid #e2e8f0;">
-      <p style="color: #94a3b8; font-size: 11px; margin: 0; text-align: center;">my17025 Laboratuvar Bilgi Yonetim Sistemi</p>
-    </div>
-  </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imza Bildirimi</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #f4f4f5;">
+    <tr>
+      <td style="padding: 40px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #1e293b; padding: 32px 40px; text-align: center;">
+              <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px;">my17025</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #1e293b;">Imzaniz Gerekiyor</h2>
+              <p style="margin: 0 0 28px; font-size: 15px; line-height: 1.6; color: #475569;">Asagidaki geri bildirim icin imzaniz beklenmektedir.</p>
+              <!-- Info Table -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 32px;">
+                <tr>
+                  <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 600; color: #64748b; width: 140px;">Bildirim No</td>
+                  <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-size: 15px; font-weight: 600; color: #1e293b;">${appNo}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 600; color: #64748b;">Musteri</td>
+                  <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-size: 15px; color: #1e293b;">${customer}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 600; color: #64748b;">Bildirim Tarihi</td>
+                  <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-size: 15px; color: #1e293b;">${formDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 14px 20px; font-size: 13px; font-weight: 600; color: #64748b;">Bekleyen Adim</td>
+                  <td style="padding: 14px 20px; font-size: 15px; font-weight: 600; color: #b45309;">${pendingLabel}</td>
+                </tr>
+              </table>
+              <!-- CTA Button -->
+              ${deepLink ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 32px;">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="${deepLink}" target="_blank" style="display: inline-block; background-color: #1e293b; color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">Imzalamak Icin Tiklayin</a>
+                  </td>
+                </tr>
+              </table>` : ""}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #94a3b8;">Bu e-posta my17025 sistemi tarafindan otomatik olarak gonderilmistir.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
@@ -227,7 +248,7 @@ Deno.serve(async (req: Request) => {
         .filter((u: { email: string | null }) => u.email)
         .map((u: { email: string; full_name: string | null }) => {
           const name = u.full_name || u.email;
-          const subject = `[my17025] Imza Bekliyor - ${appNo}`;
+          const subject = `[Imza Bekliyor] Bildirim No: ${appNo}`;
           const html = buildEmailHtml({
             recipientName: name,
             appNo,
