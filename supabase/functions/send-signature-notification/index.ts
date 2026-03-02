@@ -143,6 +143,33 @@ async function sendEmailViaResend(
   }
 }
 
+function resolveTargetUserId(
+  targetUsers: { id?: string; email: string; full_name: string | null }[]
+): string | null {
+  if (targetUsers.length === 1 && targetUsers[0].id) {
+    return targetUsers[0].id;
+  }
+  return null;
+}
+
+function shouldSkipNotification(
+  record: {
+    last_notified_step: string | null;
+    last_notified_user_id: string | null;
+    is_locked: boolean;
+  },
+  nextStep: string,
+  targetUserId: string | null
+): boolean {
+  if (!record.last_notified_step) return false;
+  if (!record.last_notified_user_id) return false;
+  if (record.last_notified_step !== nextStep) return false;
+  if (targetUserId && record.last_notified_user_id !== targetUserId) return false;
+  if (!targetUserId) return false;
+  if (record.is_locked) return false;
+  return true;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -168,7 +195,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: record } = await adminClient
       .from("feedback_records")
-      .select("application_no, applicant_name, form_date, last_notified_step")
+      .select("application_no, applicant_name, form_date, last_notified_step, last_notified_user_id, is_locked")
       .eq("id", record_id)
       .maybeSingle();
 
@@ -176,19 +203,12 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Kayit bulunamadi" }, 404);
     }
 
-    if (record.last_notified_step === next_step) {
-      return jsonResponse(
-        { success: true, message: "Bu adim icin bildirim zaten gonderilmis", skipped: true },
-        200
-      );
-    }
-
-    let targetUsers: { email: string; full_name: string | null }[] = [];
+    let targetUsers: { id?: string; email: string; full_name: string | null }[] = [];
 
     if (next_step === "feedback_izahat" && target_person_name) {
       const { data: personByName } = await adminClient
         .from("profiles")
-        .select("email, full_name")
+        .select("id, email, full_name")
         .eq("full_name", target_person_name)
         .maybeSingle();
 
@@ -204,19 +224,31 @@ Deno.serve(async (req: Request) => {
 
       const { data: roleUsers } = await adminClient
         .from("profiles")
-        .select("email, full_name, role")
+        .select("id, email, full_name, role")
         .in("role", targetRoles);
 
-      targetUsers = (roleUsers || []) as { email: string; full_name: string | null }[];
+      targetUsers = (roleUsers || []) as { id?: string; email: string; full_name: string | null }[];
     }
 
     if (targetUsers.length === 0) {
       await adminClient
         .from("feedback_records")
-        .update({ last_notified_step: next_step })
+        .update({ last_notified_step: next_step, last_notified_user_id: null })
         .eq("id", record_id);
       return jsonResponse(
         { success: true, message: "Bildirim gonderilecek kullanici yok" },
+        200
+      );
+    }
+
+    const targetUserId = resolveTargetUserId(targetUsers);
+
+    if (shouldSkipNotification(record, next_step, targetUserId)) {
+      console.log(
+        `Dedup: skipping notification for record=${record_id} step=${next_step} user=${targetUserId}`
+      );
+      return jsonResponse(
+        { success: true, message: "Bu adim ve kullanici icin bildirim zaten gonderilmis", skipped: true },
         200
       );
     }
@@ -263,10 +295,15 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Notification summary for record ${record_id}: sent=${sentCount} failed=${failedCount} total=${results.length}`);
 
-    await adminClient
-      .from("feedback_records")
-      .update({ last_notified_step: next_step })
-      .eq("id", record_id);
+    if (sentCount > 0) {
+      await adminClient
+        .from("feedback_records")
+        .update({
+          last_notified_step: next_step,
+          last_notified_user_id: targetUserId,
+        })
+        .eq("id", record_id);
+    }
 
     return jsonResponse(
       {
