@@ -187,12 +187,20 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
     setUploadError(null);
   }, [editData, isOpen]);
 
-  const generateApplicationNo = () => {
+  const generateApplicationNo = async () => {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
-    setFormData(prev => ({ ...prev, application_no: `GB.${yy}.${mm}.${dd}` }));
+    const prefix = `GB.${yy}.${mm}.${dd}`;
+
+    const { count } = await supabase
+      .from('feedback_records')
+      .select('id', { count: 'exact', head: true })
+      .like('application_no', `${prefix}%`);
+
+    const seq = String((count ?? 0) + 1).padStart(2, '0');
+    setFormData(prev => ({ ...prev, application_no: `${prefix}.${seq}` }));
   };
 
   const calculateRiskLevel = (probability: string, severity: string): string => {
