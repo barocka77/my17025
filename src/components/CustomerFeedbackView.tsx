@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Eye, AlertTriangle, Lightbulb, MessageSquare, Flag, Clock, CheckCircle2, PlayCircle, Filter, X, RotateCcw, Lock } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Eye, AlertTriangle, Lightbulb, MessageSquare, Flag, Clock, CheckCircle2, PlayCircle, Filter, X, RotateCcw, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerFeedbackModal from './CustomerFeedbackModal';
