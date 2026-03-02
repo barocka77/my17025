@@ -95,28 +95,14 @@ function App() {
   };
 
   useEffect(() => {
-    if (!complianceLoading && isLocked && user) {
-      const hasPendingRedirect = sessionStorage.getItem('pending_redirect_to');
-      if (hasPendingRedirect) return;
-      setShowActionTracking(true);
-      setActiveModule(null);
-      setShowAdminPanel(false);
-      setShowNotepad(false);
-    }
-  }, [isLocked, complianceLoading, user]);
+    if (!user || loading) return;
 
-  const redirectProcessedRef = useState(() => ({ current: false }))[0];
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectParam = searchParams.get('redirectTo');
+    const pathname = window.location.pathname;
+    const target = redirectParam || pathname;
 
-  useEffect(() => {
-    if (!user || loading || redirectProcessedRef.current) return;
-
-    const pendingRedirectTo = sessionStorage.getItem('pending_redirect_to');
-    if (!pendingRedirectTo) return;
-
-    redirectProcessedRef.current = true;
-    sessionStorage.removeItem('pending_redirect_to');
-
-    const feedbackMatch = pendingRedirectTo.match(/^\/feedback\/([0-9a-f-]{36})$/i);
+    const feedbackMatch = target.match(/^\/feedback\/([0-9a-f-]{36})$/i);
     if (feedbackMatch) {
       const targetId = feedbackMatch[1];
       window.history.replaceState(null, '', '/');
@@ -130,9 +116,19 @@ function App() {
         setShowActionTracking(false);
         setShowNotepad(false);
         setSidebarCollapsed(true);
+        return;
       }
     }
   }, [user, loading]);
+
+  useEffect(() => {
+    if (!complianceLoading && isLocked && user) {
+      setShowActionTracking(true);
+      setActiveModule(null);
+      setShowAdminPanel(false);
+      setShowNotepad(false);
+    }
+  }, [isLocked, complianceLoading, user]);
 
   const handleViewActionItem = (source: 'feedback' | 'equipment', id: string) => {
     if (source === 'feedback') {

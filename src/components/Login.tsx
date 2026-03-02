@@ -62,10 +62,11 @@ export default function Login({ redirectTo: redirectToProp }: LoginProps) {
         setPassword('');
         setConfirmPassword('');
       } else {
-        if (redirectTo) {
-          sessionStorage.setItem('pending_redirect_to', redirectTo);
-        }
         await signIn(email, password);
+        if (redirectTo) {
+          window.location.replace(redirectTo);
+          return;
+        }
       }
     } catch (err: any) {
       console.error('Auth error:', err);
