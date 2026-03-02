@@ -621,7 +621,7 @@ export const generateFeedbackPDF = async (
 
   // 3. IZAHAT
   {
-    const izahatRows = [['Bildirime Sebep Olan Taraf', data.izahat_by || '-']];
+    const izahatRows = [['Bildirimin Muhatabi', data.izahat_by || '-']];
     const izahatSigGroup = signatureGroups.find((g) => g.moduleKey === 'feedback_izahat');
     const izahatSectionHeight = 9
       + estimateTableHeight(izahatRows.length) + 3

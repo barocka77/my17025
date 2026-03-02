@@ -633,7 +633,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirime Sebep Olan Taraf (Personel/Tedarikçi/Taşeron vb.)</label>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirimin Muhatabı (Personel/Tedarikçi/Taşeron vb.)</label>
                   <div className="relative">
                     <select
                       value={formData.izahat_by}
