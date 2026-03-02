@@ -192,7 +192,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
-    setFormData(prev => ({ ...prev, application_no: `${yy}.${mm}.${dd}` }));
+    setFormData(prev => ({ ...prev, application_no: `GB.${yy}.${mm}.${dd}` }));
   };
 
   const calculateRiskLevel = (probability: string, severity: string): string => {
