@@ -361,6 +361,27 @@ function drawPenIcon(doc: jsPDF, cx: number, cy: number, size: number, color: [n
   }
 }
 
+function drawNoticeSignatureIcon(doc: jsPDF, iconX: number, iconY: number) {
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.3);
+  doc.line(iconX, iconY + 3.2, iconX + 1.76, iconY);
+  doc.line(iconX + 1.76, iconY, iconX + 2.24, iconY + 0.48);
+  doc.line(iconX + 2.24, iconY + 0.48, iconX + 0.48, iconY + 3.68);
+  doc.line(iconX + 0.48, iconY + 3.68, iconX, iconY + 3.2);
+  doc.setFillColor(100, 116, 139);
+  doc.triangle(iconX, iconY + 3.2, iconX + 0.48, iconY + 3.68, iconX - 0.16, iconY + 4.16, 'F');
+  const waveStart = iconX + 4;
+  const waveY = iconY + 2.8;
+  doc.setLineWidth(0.25);
+  const pts: [number, number][] = [];
+  for (let t = 0; t <= 1; t += 0.05) {
+    pts.push([waveStart + t * 3.2, waveY + Math.sin(t * Math.PI * 2) * 0.48]);
+  }
+  for (let j = 0; j < pts.length - 1; j++) {
+    doc.line(pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1]);
+  }
+}
+
 function drawSignatureBoxes(
   doc: jsPDF,
   group: FeedbackSignatureGroup,
@@ -416,6 +437,7 @@ function drawSignatureBoxes(
       } else if (sig.signature_type === 'drawn') {
         drawPenIcon(doc, iconX, iconY, iconSize, [71, 85, 105]);
       }
+      drawNoticeSignatureIcon(doc, bx + 3, by + boxHeight - 6);
     }
 
     doc.setDrawColor(...BORDER_COLOR);
