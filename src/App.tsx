@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import ModuleView from './components/ModuleView';
 import CustomerFeedbackView from './components/CustomerFeedbackView';
 import CustomerSurveyView from './components/CustomerSurveyView';
+import PublicSurveyPage from './components/PublicSurveyPage';
 import PersonnelView from './components/PersonnelView';
 import DocumentMasterListView from './components/DocumentMasterListView';
 import NonconformitiesView from './components/NonconformitiesView';
@@ -24,6 +25,10 @@ function App() {
   const { isLocked, criticalItemsCount, loading: complianceLoading } = useCompliance();
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [isVerifyPage, setIsVerifyPage] = useState(() => window.location.hash === '#verify-signature');
+  const [surveyToken, setSurveyToken] = useState<string | null>(() => {
+    const m = window.location.hash.match(/^#survey\/([0-9a-f-]{36})$/i);
+    return m ? m[1] : null;
+  });
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showActionTracking, setShowActionTracking] = useState(false);
   const [showNotepad, setShowNotepad] = useState(false);
@@ -233,6 +238,8 @@ function App() {
   useEffect(() => {
     const onHashChange = () => {
       setIsVerifyPage(window.location.hash === '#verify-signature');
+      const m = window.location.hash.match(/^#survey\/([0-9a-f-]{36})$/i);
+      setSurveyToken(m ? m[1] : null);
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -240,6 +247,10 @@ function App() {
 
   if (isVerifyPage) {
     return <VerifySignature />;
+  }
+
+  if (surveyToken) {
+    return <PublicSurveyPage token={surveyToken} />;
   }
 
   if (loading) {
