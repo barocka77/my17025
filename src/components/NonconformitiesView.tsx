@@ -457,14 +457,18 @@ export default function NonconformitiesView() {
                       const p = profiles.find(pr => pr.id === id);
                       if (!p) return null;
                       return (
-                        <span key={id} className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-medium px-2 py-1 rounded-md">
+                        <span key={id} className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-medium px-2 py-1 rounded-md group">
                           {p.full_name}
                           <button
                             type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, analysis_team: prev.analysis_team.filter(i => i !== id) }))}
-                            className="text-slate-400 hover:text-red-500 transition-colors ml-0.5"
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setFormData(prev => ({ ...prev, analysis_team: prev.analysis_team.filter(i => i !== id) }));
+                            }}
+                            className="ml-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-transparent hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </span>
                       );
