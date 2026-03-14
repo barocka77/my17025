@@ -60,6 +60,10 @@ const EMPTY_FORM = {
   calibration_impact: 'none',
   identified_by: '',
   analysis_team: [] as string[],
+  impact_inappropriate_calibration: false,
+  impact_requires_stoppage: false,
+  impact_recurrence_possible: false,
+  impact_requires_extended_analysis: false,
 };
 
 interface NcFormData {
@@ -71,6 +75,10 @@ interface NcFormData {
   calibration_impact: string;
   identified_by: string;
   analysis_team: string[];
+  impact_inappropriate_calibration: boolean;
+  impact_requires_stoppage: boolean;
+  impact_recurrence_possible: boolean;
+  impact_requires_extended_analysis: boolean;
 }
 
 
@@ -151,6 +159,10 @@ export default function NonconformitiesView() {
       calibration_impact: item.calibration_impact || 'none',
       identified_by: item.identified_by || '',
       analysis_team: teamIds,
+      impact_inappropriate_calibration: item.impact_inappropriate_calibration ?? false,
+      impact_requires_stoppage: item.impact_requires_stoppage ?? false,
+      impact_recurrence_possible: item.impact_recurrence_possible ?? false,
+      impact_requires_extended_analysis: item.impact_requires_extended_analysis ?? false,
     });
     setModalOpen(true);
   };
@@ -490,6 +502,36 @@ export default function NonconformitiesView() {
                 )}
               </div>
 
+              {/* Impact Analysis */}
+              <div className="border-t border-slate-200 pt-4">
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-3 uppercase tracking-wide">
+                  Uygunsuzluğun Etkisi
+                </label>
+                <div className="space-y-3">
+                  <ImpactToggle
+                    label="Uygunsuzluğun içeriği UYGUN OLMAYAN KALİBRASYON İŞİ – mahiyetinde mi?"
+                    value={formData.impact_inappropriate_calibration}
+                    onChange={v => setFormData(prev => ({ ...prev, impact_inappropriate_calibration: v }))}
+                  />
+                  <ImpactToggle
+                    label="Uygunsuzluk herhangi bir kalibrasyonun durdurulmasını, tekrarlanmasını veya raporların bekletilmesini gerektiriyor mu?"
+                    value={formData.impact_requires_stoppage}
+                    onChange={v => setFormData(prev => ({ ...prev, impact_requires_stoppage: v }))}
+                    note="Evet ise; Kalibrasyon Durdurma Formu doldurulması gerekiyor."
+                  />
+                  <ImpactToggle
+                    label="Uygunsuzluğun ileride aynı yerde veya başka yerlerde tekrarlanma ihtimali var mı?"
+                    value={formData.impact_recurrence_possible}
+                    onChange={v => setFormData(prev => ({ ...prev, impact_recurrence_possible: v }))}
+                  />
+                  <ImpactToggle
+                    label="Uygunsuzluğun etkisi kök neden analiz ve düzeltici faaliyet çalışmasının genişletilmesini gerektiriyor mu?"
+                    value={formData.impact_requires_extended_analysis}
+                    onChange={v => setFormData(prev => ({ ...prev, impact_requires_extended_analysis: v }))}
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
@@ -519,6 +561,46 @@ export default function NonconformitiesView() {
           onRefresh={fetchData}
         />
       )}
+    </div>
+  );
+}
+
+function ImpactToggle({ label, value, onChange, note }: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  note?: string;
+}) {
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+      <p className="text-[11px] text-slate-700 leading-snug mb-2">{label}</p>
+      {note && value && (
+        <p className="text-[10px] text-amber-700 font-semibold mb-2 bg-amber-50 border border-amber-200 px-2 py-1 rounded">{note}</p>
+      )}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold border transition-all ${
+            !value
+              ? 'bg-slate-700 text-white border-slate-700'
+              : 'bg-white text-slate-500 border-slate-300 hover:border-slate-400'
+          }`}
+        >
+          Hayır
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(true)}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold border transition-all ${
+            value
+              ? 'bg-red-600 text-white border-red-600'
+              : 'bg-white text-slate-500 border-slate-300 hover:border-slate-400'
+          }`}
+        >
+          Evet
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
-  AlertCircle, CheckCircle2, Clock, Trash2, Users,
+  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -261,7 +261,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
           <div className="flex items-center gap-2.5">
             <AlertTriangle className="w-5 h-5 text-amber-300" />
             <div>
-              <div className="text-xs text-slate-300 font-medium">Uygunsuzluk Detayı</div>
+              <div className="text-xs text-slate-300 font-medium">Uygunsuzluk Analizi</div>
               <div className="text-base font-bold leading-tight">{loading ? '...' : (nc?.nc_number || '-')}</div>
             </div>
           </div>
@@ -342,6 +342,33 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                   </div>
                 </div>
               )}
+
+              {/* Impact Analysis Section */}
+              <div className="col-span-2 mt-1">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Activity className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Uygunsuzluğun Etkisi</span>
+                </div>
+                <div className="space-y-2.5">
+                  <ImpactRow
+                    label="Uygunsuzluğun içeriği UYGUN OLMAYAN KALİBRASYON İŞİ – mahiyetinde mi?"
+                    value={nc.impact_inappropriate_calibration ?? false}
+                  />
+                  <ImpactRow
+                    label="Uygunsuzluk herhangi bir kalibrasyonun durdurulmasını, tekrarlanmasını veya raporların bekletilmesini gerektiriyor mu?"
+                    value={nc.impact_requires_stoppage ?? false}
+                    note={nc.impact_requires_stoppage ? 'Evet ise; Kalibrasyon Durdurma Formu doldurulması gerekiyor.' : undefined}
+                  />
+                  <ImpactRow
+                    label="Uygunsuzluğun ileride aynı yerde veya başka yerlerde tekrarlanma ihtimali var mı?"
+                    value={nc.impact_recurrence_possible ?? false}
+                  />
+                  <ImpactRow
+                    label="Uygunsuzluğun etkisi kök neden analiz ve düzeltici faaliyet çalışmasının genişletilmesini gerektiriyor mu?"
+                    value={nc.impact_requires_extended_analysis ?? false}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -621,6 +648,33 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div>
       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">{label}</span>
       <span className="text-[12px] text-slate-800 font-medium">{value}</span>
+    </div>
+  );
+}
+
+function ImpactRow({ label, value, note }: { label: string; value: boolean; note?: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+      <div className="flex-1">
+        <p className="text-[11px] text-slate-700 leading-snug">{label}</p>
+        {note && value && (
+          <p className="text-[10px] text-amber-700 font-semibold mt-0.5 bg-amber-50 px-1.5 py-0.5 rounded inline-block">{note}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${!value ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+          Hayır
+          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[8px] font-black ${!value ? 'bg-slate-700 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-300'}`}>
+            {!value ? '✓' : ''}
+          </span>
+        </span>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${value ? 'bg-red-100 text-red-700 border-red-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+          Evet
+          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[8px] font-black ${value ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-slate-300 text-slate-300'}`}>
+            {value ? '✓' : ''}
+          </span>
+        </span>
+      </div>
     </div>
   );
 }
