@@ -99,12 +99,27 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [caDate, setCaDate] = useState('');
   const [caSaving, setCaSaving] = useState(false);
   const [caError, setCaError] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<{ id: string; full_name: string }[]>([]);
 
   useEffect(() => {
     fetchNc();
     fetchRca();
     fetchCa();
+    fetchProfiles();
   }, [ncId]);
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name', { ascending: true });
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchNc = async () => {
     setLoading(true);
@@ -521,14 +536,17 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Sorumlu Kişi</label>
-                <input
-                  type="text"
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Sorumlu Personel</label>
+                <select
                   value={caResponsible}
                   onChange={e => setCaResponsible(e.target.value)}
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                  placeholder="Sorumlu kişinin adını girin"
-                />
+                >
+                  <option value="">-- Seçiniz --</option>
+                  {profiles.map(p => (
+                    <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Planlanan Tamamlanma Tarihi</label>
