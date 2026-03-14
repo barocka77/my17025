@@ -8,7 +8,11 @@ type Tab = 'nonconformities' | 'corrective_actions';
 const SEVERITY_OPTIONS = ['Düşük', 'Orta', 'Yüksek', 'Kritik'];
 const NC_STATUS_OPTIONS = ['Açık', 'İşlemde', 'Kapalı'];
 const RECURRENCE_OPTIONS = ['Düşük', 'Orta', 'Yüksek'];
-const CALIBRATION_IMPACT_OPTIONS = ['Var', 'Yok', 'Belirsiz'];
+const CALIBRATION_IMPACT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'none', label: 'Etkisi Yok' },
+  { value: 'potential', label: 'Etkileme İhtimali' },
+  { value: 'confirmed', label: 'Etkiledi' },
+];
 const CA_STATUS_OPTIONS = ['Planlandı', 'İşlemde', 'Tamamlandı'];
 
 const severityConfig: Record<string, { label: string; className: string }> = {
@@ -70,7 +74,7 @@ export default function NcAndCapaView() {
     description: '',
     severity: 'Orta',
     recurrence_risk: 'Orta',
-    calibration_impact: 'Belirsiz',
+    calibration_impact: 'none',
   });
   const [ncSaving, setNcSaving] = useState(false);
   const [ncError, setNcError] = useState<string | null>(null);
@@ -131,7 +135,7 @@ export default function NcAndCapaView() {
       const { error } = await supabase.from('nonconformities').insert([ncFormData]);
       if (error) throw error;
       setNcModalOpen(false);
-      setNcFormData({ detection_date: '', source: '', description: '', severity: 'Orta', recurrence_risk: 'Orta', calibration_impact: 'Belirsiz' });
+      setNcFormData({ detection_date: '', source: '', description: '', severity: 'Orta', recurrence_risk: 'Orta', calibration_impact: 'none' });
       fetchNc();
     } catch (err: any) {
       setNcError(err.message || 'Kayıt sırasında bir hata oluştu');
@@ -354,7 +358,7 @@ export default function NcAndCapaView() {
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 >
                   {CALIBRATION_IMPACT_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
