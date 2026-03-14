@@ -103,6 +103,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
   const [impactSaving, setImpactSaving] = useState<string | null>(null);
   const [dfFormOpen, setDfFormOpen] = useState(false);
+  const [selectedCA, setSelectedCA] = useState<any>(null);
 
   const [correctionAction, setCorrectionAction] = useState('');
   const [correctionResponsible, setCorrectionResponsible] = useState('');
@@ -159,11 +160,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       if (error) throw error;
       setNc((prev: any) => ({ ...prev, [field]: value }));
       onRefresh();
-      if (field === 'impact_requires_extended_analysis' && value === true) {
-        if (caList.length === 0) {
-          setDfFormOpen(true);
-        }
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -434,8 +430,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     value={nc.impact_requires_extended_analysis ?? false}
                     saving={impactSaving === 'impact_requires_extended_analysis'}
                     onToggle={handleImpactToggle}
-                    note={nc.impact_requires_extended_analysis ? (caList.length > 0 ? 'Evet — Bu uygunsuzluk için zaten bir DF kaydı mevcut.' : 'Evet — Düzeltici Faaliyet Formu açmak için tıklayın.') : undefined}
-                    onNoteClick={nc.impact_requires_extended_analysis ? () => { if (caList.length === 0) setDfFormOpen(true); } : undefined}
+                    note={nc.impact_requires_extended_analysis && caList.length > 0 ? 'Evet — Bu uygunsuzluk için zaten bir DF kaydı mevcut.' : undefined}
                   />
                 </div>
               </div>
@@ -555,7 +550,19 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         {/* Tabs */}
         <div className="flex-shrink-0 flex border-b border-gray-200 bg-white">
           <TabButton active={activeTab === 'rca'} onClick={() => setActiveTab('rca')} icon={<AlertTriangle className="w-3.5 h-3.5" />} label="Kök Neden Analizi" count={rcaList.length} />
-          <TabButton active={activeTab === 'ca'} onClick={() => setActiveTab('ca')} icon={<ClipboardCheck className="w-3.5 h-3.5" />} label="Düzeltici Faaliyetler" count={caList.length} />
+          <TabButton
+            active={activeTab === 'ca'}
+            onClick={() => {
+              setActiveTab('ca');
+              if (nc) {
+                setSelectedCA(caList.length > 0 ? caList[0] : null);
+                setDfFormOpen(true);
+              }
+            }}
+            icon={<ClipboardCheck className="w-3.5 h-3.5" />}
+            label="Düzeltici Faaliyetler"
+            count={caList.length}
+          />
           <TabButton active={activeTab === 'signatures'} onClick={() => setActiveTab('signatures')} icon={<ShieldCheck className="w-3.5 h-3.5" />} label="İmza ve Onay" />
         </div>
 
@@ -625,7 +632,14 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     const isOverdue = item.planned_completion_date && item.status !== 'Tamamlandı'
                       && new Date(item.planned_completion_date) < new Date();
                     return (
-                      <div key={item.id} className={`bg-white border rounded-lg p-3 hover:border-slate-300 transition-colors ${isOverdue ? 'border-red-200 bg-red-50/30' : 'border-gray-200'}`}>
+                      <div
+                        key={item.id}
+                        className={`bg-white border rounded-lg p-3 transition-colors cursor-pointer hover:border-blue-300 hover:bg-blue-50/20 ${isOverdue ? 'border-red-200 bg-red-50/30' : 'border-gray-200'}`}
+                        onClick={() => {
+                          setSelectedCA(item);
+                          setDfFormOpen(true);
+                        }}
+                      >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[11px] font-bold text-slate-700">{item.ca_number || '-'}</span>
@@ -636,7 +650,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {isManager && (
                               <button
-                                onClick={() => handleCaDelete(item.id)}
+                                onClick={e => { e.stopPropagation(); handleCaDelete(item.id); }}
                                 className="text-red-400 hover:text-red-600 p-1 rounded transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -741,9 +755,11 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       {dfFormOpen && nc && (
         <CorrectiveActionFormModal
           nc={nc}
-          onClose={() => setDfFormOpen(false)}
+          existingCA={selectedCA}
+          onClose={() => { setDfFormOpen(false); setSelectedCA(null); }}
           onSaved={() => {
             setDfFormOpen(false);
+            setSelectedCA(null);
             fetchCa();
             onRefresh();
             setActiveTab('ca');

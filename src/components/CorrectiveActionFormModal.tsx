@@ -13,8 +13,23 @@ interface NonconformityData {
   calibration_impact: string;
 }
 
+interface ExistingCA {
+  id: string;
+  ca_number?: string;
+  action_description?: string;
+  responsible_user?: string;
+  planned_completion_date?: string;
+  df_customer_affected?: boolean;
+  df_customer_notified?: boolean;
+  df_report_recall?: boolean;
+  action_fulfilled?: boolean;
+  fulfillment_date?: string;
+  status?: string;
+}
+
 interface Props {
   nc: NonconformityData;
+  existingCA?: ExistingCA | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -65,15 +80,16 @@ function CheckboxRow({ label, value, onChange }: { label: string; value: boolean
   );
 }
 
-export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Props) {
-  const [actionDecision, setActionDecision] = useState('');
-  const [plannedDate, setPlannedDate] = useState('');
-  const [responsibleName, setResponsibleName] = useState('');
-  const [customerAffected, setCustomerAffected] = useState(false);
-  const [customerNotified, setCustomerNotified] = useState(false);
-  const [reportRecall, setReportRecall] = useState(false);
-  const [actionFulfilled, setActionFulfilled] = useState(false);
-  const [fulfillmentDate, setFulfillmentDate] = useState('');
+export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onSaved }: Props) {
+  const isEdit = !!existingCA;
+  const [actionDecision, setActionDecision] = useState(existingCA?.action_description || '');
+  const [plannedDate, setPlannedDate] = useState(existingCA?.planned_completion_date || '');
+  const [responsibleName, setResponsibleName] = useState(existingCA?.responsible_user || '');
+  const [customerAffected, setCustomerAffected] = useState(existingCA?.df_customer_affected ?? false);
+  const [customerNotified, setCustomerNotified] = useState(existingCA?.df_customer_notified ?? false);
+  const [reportRecall, setReportRecall] = useState(existingCA?.df_report_recall ?? false);
+  const [actionFulfilled, setActionFulfilled] = useState(existingCA?.action_fulfilled ?? false);
+  const [fulfillmentDate, setFulfillmentDate] = useState(existingCA?.fulfillment_date || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
@@ -94,20 +110,28 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
     setError(null);
     try {
       const payload: any = {
-        nonconformity_id: nc.id,
         action_description: actionDecision,
         responsible_user: responsibleName || null,
-        status: 'open',
         df_customer_affected: customerAffected,
         df_customer_notified: customerNotified,
         df_report_recall: reportRecall,
         action_fulfilled: actionFulfilled,
+        planned_completion_date: plannedDate || null,
+        fulfillment_date: fulfillmentDate || null,
       };
-      if (plannedDate) payload.planned_completion_date = plannedDate;
-      if (fulfillmentDate) payload.fulfillment_date = fulfillmentDate;
 
-      const { error: insertError } = await supabase.from('corrective_actions').insert([payload]);
-      if (insertError) throw insertError;
+      if (isEdit && existingCA) {
+        const { error: updateError } = await supabase
+          .from('corrective_actions')
+          .update(payload)
+          .eq('id', existingCA.id);
+        if (updateError) throw updateError;
+      } else {
+        payload.nonconformity_id = nc.id;
+        payload.status = 'open';
+        const { error: insertError } = await supabase.from('corrective_actions').insert([payload]);
+        if (insertError) throw insertError;
+      }
       onSaved();
     } catch (err: any) {
       setError(err.message || 'Kayıt sırasında bir hata oluştu.');
@@ -124,8 +148,12 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
           <div className="flex items-center gap-2.5">
             <FileText className="w-5 h-5 text-blue-200" />
             <div>
-              <div className="text-xs text-blue-200 font-medium">DÜZELTİCİ FAALİYET FORMU</div>
-              <div className="text-sm font-bold leading-tight">{nc.nc_number}</div>
+              <div className="text-xs text-blue-200 font-medium">
+                {isEdit ? 'DÜZELTİCİ FAALİYET DÜZENLE' : 'DÜZELTİCİ FAALİYET FORMU'}
+              </div>
+              <div className="text-sm font-bold leading-tight">
+                {isEdit && existingCA?.ca_number ? existingCA.ca_number : nc.nc_number}
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg transition-colors">
@@ -316,7 +344,7 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
                 className="flex-1 flex items-center justify-center gap-2 bg-blue-700 text-white px-4 py-2.5 rounded-xl hover:bg-blue-800 transition-all font-semibold text-sm disabled:opacity-60 shadow-sm"
               >
                 <Save className="w-4 h-4" />
-                {saving ? 'Kaydediliyor...' : 'Düzeltici Faaliyet Kaydını Oluştur'}
+                {saving ? 'Kaydediliyor...' : isEdit ? 'Değişiklikleri Kaydet' : 'Düzeltici Faaliyet Kaydını Oluştur'}
               </button>
               <button
                 type="button"
