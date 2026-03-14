@@ -119,12 +119,9 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
 
   const fetchProfiles = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, job_title')
-        .order('full_name', { ascending: true });
+      const { data, error } = await supabase.rpc('get_personnel_list');
       if (error) throw error;
-      setProfiles(data || []);
+      setProfiles((data || []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title })));
     } catch (err) {
       console.error(err);
     }

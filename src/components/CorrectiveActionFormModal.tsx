@@ -77,11 +77,9 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
 
   useEffect(() => {
-    supabase
-      .from('profiles')
-      .select('id, full_name, job_title')
-      .order('full_name', { ascending: true })
-      .then(({ data }) => setProfiles(data || []));
+    supabase.rpc('get_personnel_list').then(({ data }) => {
+      setProfiles((data || []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title })));
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
