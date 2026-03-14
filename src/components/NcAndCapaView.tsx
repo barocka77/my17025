@@ -5,9 +5,17 @@ import { useAuth } from '../contexts/AuthContext';
 
 type Tab = 'nonconformities' | 'corrective_actions';
 
-const SEVERITY_OPTIONS = ['Düşük', 'Orta', 'Yüksek', 'Kritik'];
+const SEVERITY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'minor', label: 'Düşük' },
+  { value: 'major', label: 'Orta' },
+  { value: 'critical', label: 'Kritik' },
+];
 const NC_STATUS_OPTIONS = ['Açık', 'İşlemde', 'Kapalı'];
-const RECURRENCE_OPTIONS = ['Düşük', 'Orta', 'Yüksek'];
+const RECURRENCE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'low', label: 'Düşük' },
+  { value: 'medium', label: 'Orta' },
+  { value: 'high', label: 'Yüksek' },
+];
 const CALIBRATION_IMPACT_OPTIONS: { value: string; label: string }[] = [
   { value: 'none', label: 'Etkisi Yok' },
   { value: 'potential', label: 'Etkileme İhtimali' },
@@ -16,10 +24,9 @@ const CALIBRATION_IMPACT_OPTIONS: { value: string; label: string }[] = [
 const CA_STATUS_OPTIONS = ['Planlandı', 'İşlemde', 'Tamamlandı'];
 
 const severityConfig: Record<string, { label: string; className: string }> = {
-  Düşük: { label: 'Düşük', className: 'bg-green-100 text-green-800 border-green-200' },
-  Orta: { label: 'Orta', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  Yüksek: { label: 'Yüksek', className: 'bg-orange-100 text-orange-800 border-orange-200' },
-  Kritik: { label: 'Kritik', className: 'bg-red-100 text-red-800 border-red-200' },
+  minor: { label: 'Düşük', className: 'bg-green-100 text-green-800 border-green-200' },
+  major: { label: 'Orta', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  critical: { label: 'Kritik', className: 'bg-red-100 text-red-800 border-red-200' },
 };
 
 const ncStatusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
@@ -72,8 +79,8 @@ export default function NcAndCapaView() {
     detection_date: '',
     source: '',
     description: '',
-    severity: 'Orta',
-    recurrence_risk: 'Orta',
+    severity: 'major',
+    recurrence_risk: 'medium',
     calibration_impact: 'none',
   });
   const [ncSaving, setNcSaving] = useState(false);
@@ -135,7 +142,7 @@ export default function NcAndCapaView() {
       const { error } = await supabase.from('nonconformities').insert([ncFormData]);
       if (error) throw error;
       setNcModalOpen(false);
-      setNcFormData({ detection_date: '', source: '', description: '', severity: 'Orta', recurrence_risk: 'Orta', calibration_impact: 'none' });
+      setNcFormData({ detection_date: '', source: '', description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none' });
       fetchNc();
     } catch (err: any) {
       setNcError(err.message || 'Kayıt sırasında bir hata oluştu');
@@ -328,7 +335,7 @@ export default function NcAndCapaView() {
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 >
                   {SEVERITY_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -343,7 +350,7 @@ export default function NcAndCapaView() {
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 >
                   {RECURRENCE_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
