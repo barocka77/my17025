@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, FileText, Save, CheckSquare, Square } from 'lucide-react';
+import { X, FileText, Save, CheckSquare, Square, AlertTriangle, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface NonconformityData {
@@ -108,6 +108,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [noRecurrenceDate, setNoRecurrenceDate] = useState(existingCA?.no_recurrence_date || '');
   const [recurrenceObserved, setRecurrenceObserved] = useState(existingCA?.recurrence_observed ?? false);
   const [recurrenceDate, setRecurrenceDate] = useState(existingCA?.recurrence_date || '');
+  const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
@@ -159,6 +160,41 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
         const { error: insertError } = await supabase.from('corrective_actions').insert([payload]);
         if (insertError) throw insertError;
       }
+
+      if (recurrenceObserved) {
+        const { data: existing } = await supabase
+          .from('nonconformities')
+          .select('id, nc_number')
+          .eq('parent_nc_id', nc.id)
+          .maybeSingle();
+
+        if (!existing) {
+          const followUpPayload: any = {
+            detection_date: recurrenceDate || new Date().toISOString().split('T')[0],
+            source: nc.source,
+            description: nc.description,
+            severity: nc.severity,
+            recurrence_risk: nc.recurrence_risk,
+            calibration_impact: nc.calibration_impact,
+            parent_nc_id: nc.id,
+            status: 'open',
+          };
+          const { data: newNc, error: ncErr } = await supabase
+            .from('nonconformities')
+            .insert([followUpPayload])
+            .select('nc_number')
+            .single();
+          if (ncErr) throw ncErr;
+          setFollowUpNcNumber(newNc.nc_number);
+          setSaving(false);
+          return;
+        } else {
+          setFollowUpNcNumber(existing.nc_number);
+          setSaving(false);
+          return;
+        }
+      }
+
       onSaved();
     } catch (err: any) {
       setError(err.message || 'Kayıt sırasında bir hata oluştu.');
@@ -166,6 +202,50 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
       setSaving(false);
     }
   };
+
+  if (followUpNcNumber) {
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-5 flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-red-200 flex-shrink-0" />
+            <div>
+              <div className="text-xs text-red-200 font-semibold uppercase tracking-wide">Otomatik Kayıt Oluşturuldu</div>
+              <div className="text-base font-bold leading-tight mt-0.5">Tekrar Eden Uygunsuzluk</div>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Düzeltici faaliyet sonrasında uygunsuzluğun tekrar ettiği işaretlendiğinden, mevcut kayıtla aynı içerikte yeni bir uygunsuzluk kaydı otomatik olarak oluşturulmuştur.
+            </p>
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <div className="text-center">
+                <div className="text-[10px] text-slate-500 font-semibold uppercase">Kaynak NC</div>
+                <div className="text-sm font-bold text-slate-700 mt-0.5">{nc.nc_number}</div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <div className="text-center">
+                <div className="text-[10px] text-red-500 font-semibold uppercase">Yeni NC (Takip)</div>
+                <div className="text-sm font-bold text-red-700 mt-0.5">{followUpNcNumber}</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400 italic">
+              Yeni kayıt, uygunsuzluklar listesinde görüntülenebilir ve düzeltici faaliyet süreci başlatılabilir.
+            </p>
+          </div>
+          <div className="px-6 pb-6">
+            <button
+              type="button"
+              onClick={onSaved}
+              className="w-full flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl hover:bg-red-700 transition-all font-semibold text-sm shadow-sm"
+            >
+              Tamam, Kapat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
