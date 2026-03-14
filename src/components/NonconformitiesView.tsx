@@ -80,7 +80,7 @@ export default function NonconformitiesView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null; role: string | null }[]>([]);
+  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null; role: string | null; department: string | null }[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -89,12 +89,9 @@ export default function NonconformitiesView() {
 
   const fetchProfiles = async () => {
     try {
-      const { data: rows, error: err } = await supabase
-        .from('profiles')
-        .select('id, full_name, job_title, role')
-        .order('full_name', { ascending: true });
+      const { data: rows, error: err } = await supabase.rpc('get_personnel_list');
       if (err) throw err;
-      setProfiles(rows || []);
+      setProfiles((rows || []) as { id: string; full_name: string; job_title: string | null; role: string | null; department: string | null }[]);
     } catch (err) {
       console.error('Profiles fetch error:', err);
     }
@@ -402,9 +399,9 @@ export default function NonconformitiesView() {
                           />
                           <div className="flex-1 min-w-0">
                             <span className={`text-[11px] font-medium block truncate ${selected ? 'text-slate-900' : 'text-slate-700'}`}>{p.full_name}</span>
-                            {(p.job_title || p.role) && (
+                            {(p.job_title || p.department) && (
                               <span className="text-[10px] text-slate-400 block truncate">
-                                {p.job_title || p.role}
+                                {[p.job_title, p.department].filter(Boolean).join(' · ')}
                               </span>
                             )}
                           </div>
