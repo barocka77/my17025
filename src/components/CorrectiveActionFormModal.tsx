@@ -72,6 +72,8 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
   const [customerAffected, setCustomerAffected] = useState(false);
   const [customerNotified, setCustomerNotified] = useState(false);
   const [reportRecall, setReportRecall] = useState(false);
+  const [actionFulfilled, setActionFulfilled] = useState(false);
+  const [fulfillmentDate, setFulfillmentDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
@@ -99,8 +101,10 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
         df_customer_affected: customerAffected,
         df_customer_notified: customerNotified,
         df_report_recall: reportRecall,
+        action_fulfilled: actionFulfilled,
       };
       if (plannedDate) payload.planned_completion_date = plannedDate;
+      if (fulfillmentDate) payload.fulfillment_date = fulfillmentDate;
 
       const { error: insertError } = await supabase.from('corrective_actions').insert([payload]);
       if (insertError) throw insertError;
@@ -267,6 +271,33 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
                     <div>
                       <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Etkinlik Değerlendirme Tarihi</span>
                       <p className="text-[12px] text-slate-400 mt-0.5">—</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setActionFulfilled(v => !v)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
+                            actionFulfilled
+                              ? 'bg-green-600 text-white border-green-600'
+                              : 'bg-white text-slate-400 border-slate-300 hover:border-green-400 hover:text-green-600'
+                          }`}
+                        >
+                          {actionFulfilled ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                          İLGİLİ FAALİYET YERİNE GETİRİLMİŞTİR
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">TARİH:</span>
+                        <input
+                          type="date"
+                          value={fulfillmentDate}
+                          onChange={e => setFulfillmentDate(e.target.value)}
+                          className="px-2 py-1 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-slate-100">
