@@ -282,6 +282,14 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
               <div className="col-span-2">
                 <InfoRow label="Açıklama" value={nc.description || '-'} />
               </div>
+              {nc.identified_by && (
+                <div className="col-span-2">
+                  <InfoRow
+                    label="Uygunsuzluğu Tanımlayan"
+                    value={profiles.find(p => p.id === nc.identified_by)?.full_name || '-'}
+                  />
+                </div>
+              )}
               <div className="flex items-center gap-4 flex-wrap col-span-2">
                 <div>
                   <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Şiddet</span>
