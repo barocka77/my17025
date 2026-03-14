@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import ModuleView from './components/ModuleView';
 import CustomerFeedbackView from './components/CustomerFeedbackView';
 import InternalAuditsView from './components/internal-audits/InternalAuditsView';
+import ManagementReviewsView from './components/management-reviews/ManagementReviewsView';
 import CustomerSurveyView from './components/CustomerSurveyView';
 import PublicSurveyPage from './components/PublicSurveyPage';
 import PersonnelView from './components/PersonnelView';
@@ -353,6 +354,8 @@ function App() {
             <CustomerFeedbackView autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
           ) : activeModule.id === 'internal_audits' ? (
             <InternalAuditsView />
+          ) : activeModule.id === 'management_reviews' ? (
+            <ManagementReviewsView />
           ) : activeModule.id === 'customer_surveys' ? (
             <CustomerSurveyView />
           ) : activeModule.id === 'personnel' ? (
