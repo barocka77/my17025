@@ -148,6 +148,10 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
         recurrence_date: recurrenceDate || null,
       };
 
+      if (noRecurrenceObserved) {
+        payload.status = 'Kapalı';
+      }
+
       if (isEdit && existingCA) {
         const { error: updateError } = await supabase
           .from('corrective_actions')
@@ -447,7 +451,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                           type="text"
                           value={rootCauseProcesses}
                           onChange={e => setRootCauseProcesses(e.target.value)}
-                          placeholder="Etkilenen proses adı..."
+                          placeholder="Uygunsuzluğun yaşandığı proses adı..."
                           className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                         />
                       ) : (
@@ -484,7 +488,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                         }`}
                       >
                         {noRecurrenceObserved ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
-                        FAALİYETTEN SONRA UYGUNSUZLUK GÖRÜLMEM&İŞTİR
+                        FAALİYETTEN SONRA UYGUNSUZLUK GÖRÜLMEMİŞTİR
                       </button>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${noRecurrenceObserved ? 'text-slate-600' : 'text-slate-400'}`}>TARİH:</span>

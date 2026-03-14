@@ -51,6 +51,7 @@ const CA_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   Planlandı: { label: 'Planlandı', className: 'bg-gray-100 text-gray-700 border-gray-200' },
   İşlemde: { label: 'İşlemde', className: 'bg-blue-100 text-blue-800 border-blue-200' },
   Tamamlandı: { label: 'Tamamlandı', className: 'bg-green-100 text-green-800 border-green-200' },
+  Kapalı: { label: 'Kapalı', className: 'bg-slate-200 text-slate-700 border-slate-300' },
 };
 
 const RCA_CATEGORY_OPTIONS = [
@@ -113,6 +114,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [correctionDeadline, setCorrectionDeadline] = useState('');
   const [correctionSaving, setCorrectionSaving] = useState(false);
   const [correctionEditMode, setCorrectionEditMode] = useState(false);
+  const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNc();
@@ -220,6 +222,18 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         .order('created_at', { ascending: true });
       if (error) throw error;
       setCaList(data || []);
+
+      const hasRecurrence = (data || []).some((ca: any) => ca.recurrence_observed);
+      if (hasRecurrence) {
+        const { data: followUp } = await supabase
+          .from('nonconformities')
+          .select('nc_number')
+          .eq('parent_nc_id', ncId)
+          .maybeSingle();
+        setFollowUpNcNumber(followUp?.nc_number || null);
+      } else {
+        setFollowUpNcNumber(null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -632,7 +646,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                 <div className="space-y-2">
                   {caList.map(item => {
                     const caSt = CA_STATUS_CONFIG[item.status] || { label: item.status, className: 'bg-gray-100 text-gray-700 border-gray-200' };
-                    const isOverdue = item.planned_completion_date && item.status !== 'Tamamlandı'
+                    const isOverdue = item.planned_completion_date && item.status !== 'Tamamlandı' && item.status !== 'Kapalı'
                       && new Date(item.planned_completion_date) < new Date();
                     return (
                       <div
@@ -649,6 +663,11 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${caSt.className}`}>
                               {caSt.label}
                             </span>
+                            {item.recurrence_observed && followUpNcNumber && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-red-50 text-red-700 border-red-200">
+                                Takip: {followUpNcNumber}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {isManager && (
