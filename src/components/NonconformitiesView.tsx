@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import NonconformityDetailDrawer from './NonconformityDetailDrawer';
 
 const SEVERITY_OPTIONS: { value: string; label: string }[] = [
   { value: 'minor', label: 'Düşük' },
@@ -74,6 +75,7 @@ export default function NonconformitiesView() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -173,7 +175,7 @@ export default function NonconformitiesView() {
                     const sev = severityConfig[item.severity] || { label: item.severity, className: 'bg-gray-100 text-gray-800 border-gray-200' };
                     const st = ncStatusConfig[item.status] || { label: item.status, className: 'bg-gray-100 text-gray-800 border-gray-200', icon: null };
                     return (
-                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={item.id} onClick={() => setSelectedNcId(item.id)} className="hover:bg-slate-50 transition-colors cursor-pointer">
                         <td className="px-3 py-2 text-[11px] font-medium text-slate-700 whitespace-nowrap">
                           {item.nc_number || '-'}
                         </td>
@@ -199,7 +201,7 @@ export default function NonconformitiesView() {
                         {isManager && (
                           <td className="px-3 py-2 text-right whitespace-nowrap">
                             <button
-                              onClick={() => handleDelete(item.id)}
+                              onClick={e => { e.stopPropagation(); handleDelete(item.id); }}
                               className="inline-flex items-center gap-0.5 text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
                             >
                               Sil
@@ -349,6 +351,14 @@ export default function NonconformitiesView() {
             </form>
           </div>
         </div>
+      )}
+
+      {selectedNcId && (
+        <NonconformityDetailDrawer
+          ncId={selectedNcId}
+          onClose={() => setSelectedNcId(null)}
+          onRefresh={fetchData}
+        />
       )}
     </div>
   );
