@@ -5,7 +5,8 @@ import CustomerFeedbackView from './components/CustomerFeedbackView';
 import CustomerSurveyView from './components/CustomerSurveyView';
 import PersonnelView from './components/PersonnelView';
 import DocumentMasterListView from './components/DocumentMasterListView';
-import NcAndCapaView from './components/NcAndCapaView';
+import NonconformitiesView from './components/NonconformitiesView';
+import CorrectiveActionsView from './components/CorrectiveActionsView';
 import AdminPanel from './components/AdminPanel';
 import ActionTracking from './components/ActionTracking';
 import PersonalNotepad from './components/PersonalNotepad';
@@ -343,8 +344,10 @@ function App() {
             <PersonnelView />
           ) : activeModule.id === 'document_master_list' ? (
             <DocumentMasterListView />
-          ) : activeModule.id === 'nc_and_capa' ? (
-            <NcAndCapaView />
+          ) : activeModule.id === 'nonconformities' ? (
+            <NonconformitiesView />
+          ) : activeModule.id === 'corrective_actions' ? (
+            <CorrectiveActionsView />
           ) : activeModule.id === 'equipment_hardware' ? (
             <ModuleView module={activeModule} userRole={role} autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
           ) : (

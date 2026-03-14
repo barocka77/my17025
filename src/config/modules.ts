@@ -1,32 +1,4 @@
-import {
-  Microscope,
-  FileText,
-  FileEdit,
-  Scale,
-  ClipboardList,
-  FileCheck,
-  TestTube,
-  ShoppingCart,
-  Shield,
-  AlertTriangle,
-  ClipboardCheck,
-  MessageCircle,
-  Presentation,
-  XCircle,
-  TrendingUp,
-  Users,
-  Truck,
-  Thermometer,
-  Wrench,
-  FolderOpen,
-  Building2,
-  Target,
-  Files,
-  Archive,
-  Database,
-  BarChart3,
-  ListOrdered,
-} from 'lucide-react';
+import { Microscope, FileText, File as FileEdit, Scale, ClipboardList, FileCheck, TestTube, ShoppingCart, Shield, AlertTriangle, ClipboardCheck, MessageCircle, Presentation, XCircle, TrendingUp, Users, Truck, Thermometer, Wrench, FolderOpen, Building2, Target, Files, Archive, Database, BarChart3, ListOrdered } from 'lucide-react';
 import { Section } from '../types/modules';
 
 export const sections: Section[] = [
@@ -117,10 +89,16 @@ export const sections: Section[] = [
         icon: Presentation,
       },
       {
-        id: 'nc_and_capa',
-        name: 'Uygunsuzluklar & Düzeltici Faaliyetler',
-        table: 'nc_and_capa',
+        id: 'nonconformities',
+        name: 'Uygunsuzluklar',
+        table: 'nonconformities',
         icon: XCircle,
+      },
+      {
+        id: 'corrective_actions',
+        name: 'Düzeltici Faaliyetler',
+        table: 'corrective_actions',
+        icon: ClipboardCheck,
       },
       {
         id: 'process_performance',
