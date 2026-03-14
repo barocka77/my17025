@@ -30,6 +30,10 @@ interface ExistingCA {
   monitoring_period?: string;
   closure_date?: string;
   effectiveness_evaluation_date?: string;
+  no_recurrence_observed?: boolean;
+  no_recurrence_date?: string;
+  recurrence_observed?: boolean;
+  recurrence_date?: string;
 }
 
 interface Props {
@@ -100,6 +104,10 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [monitoringPeriod, setMonitoringPeriod] = useState(existingCA?.monitoring_period || '');
   const [closureDate, setClosureDate] = useState(existingCA?.closure_date || '');
   const [effectivenessEvaluationDate, setEffectivenessEvaluationDate] = useState(existingCA?.effectiveness_evaluation_date || '');
+  const [noRecurrenceObserved, setNoRecurrenceObserved] = useState(existingCA?.no_recurrence_observed ?? false);
+  const [noRecurrenceDate, setNoRecurrenceDate] = useState(existingCA?.no_recurrence_date || '');
+  const [recurrenceObserved, setRecurrenceObserved] = useState(existingCA?.recurrence_observed ?? false);
+  const [recurrenceDate, setRecurrenceDate] = useState(existingCA?.recurrence_date || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
@@ -133,6 +141,10 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
         monitoring_period: monitoringPeriod || null,
         closure_date: closureDate || null,
         effectiveness_evaluation_date: effectivenessEvaluationDate || null,
+        no_recurrence_observed: noRecurrenceObserved,
+        no_recurrence_date: noRecurrenceDate || null,
+        recurrence_observed: recurrenceObserved,
+        recurrence_date: recurrenceDate || null,
       };
 
       if (isEdit && existingCA) {
@@ -407,6 +419,65 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                       ) : (
                         <p className="text-[12px] text-slate-300 mt-0.5">—</p>
                       )}
+                    </div>
+                  </div>
+                  {/* Recurrence observation */}
+                  <div className={`mt-4 pt-4 border-t border-slate-200 space-y-2 transition-all ${!actionFulfilled ? 'opacity-40 pointer-events-none' : ''}`}>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setNoRecurrenceObserved(v => !v)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
+                          noRecurrenceObserved
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-white text-slate-500 border-slate-300 hover:border-green-400 hover:text-green-600'
+                        }`}
+                      >
+                        {noRecurrenceObserved ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                        FAALİYETTEN SONRA UYGUNSUZLUK GÖRÜLMEM&İŞTİR
+                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${noRecurrenceObserved ? 'text-slate-600' : 'text-slate-400'}`}>TARİH:</span>
+                        <input
+                          type="date"
+                          value={noRecurrenceDate}
+                          onChange={e => setNoRecurrenceDate(e.target.value)}
+                          disabled={!noRecurrenceObserved}
+                          className={`px-2 py-1 text-[11px] border rounded-lg transition-all ${
+                            noRecurrenceObserved
+                              ? 'border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setRecurrenceObserved(v => !v)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
+                          recurrenceObserved
+                            ? 'bg-red-600 text-white border-red-600'
+                            : 'bg-white text-slate-500 border-slate-300 hover:border-red-400 hover:text-red-600'
+                        }`}
+                      >
+                        {recurrenceObserved ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                        DÜZELTİCİ FAALİYET SONRASI UYGUNSUZLUK TEKRAR ETMEKTEDİR
+                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${recurrenceObserved ? 'text-slate-600' : 'text-slate-400'}`}>TARİH:</span>
+                        <input
+                          type="date"
+                          value={recurrenceDate}
+                          onChange={e => setRecurrenceDate(e.target.value)}
+                          disabled={!recurrenceObserved}
+                          className={`px-2 py-1 text-[11px] border rounded-lg transition-all ${
+                            recurrenceObserved
+                              ? 'border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-transparent'
+                              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                          }`}
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-slate-100">
