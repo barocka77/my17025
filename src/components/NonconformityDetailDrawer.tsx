@@ -609,16 +609,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
           {/* CA Tab */}
           {activeTab === 'ca' && (
             <div className="p-4 space-y-3">
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setCaModalOpen(true)}
-                  className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Düzeltici Faaliyet Aç
-                </button>
-              </div>
-
               {caLoading ? (
                 <div className="flex items-center justify-center h-24">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
