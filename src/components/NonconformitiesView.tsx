@@ -175,14 +175,27 @@ export default function NonconformitiesView() {
           .eq('id', editingId);
         if (updateErr) throw updateErr;
 
-        const { error: delErr } = await supabase
+        const { data: existingRows, error: fetchErr } = await supabase
           .from('nonconformity_analysis_team')
-          .delete()
+          .select('id, user_id')
           .eq('nonconformity_id', editingId);
-        if (delErr) throw delErr;
+        if (fetchErr) throw fetchErr;
 
-        if (analysis_team.length > 0) {
-          const teamRows = analysis_team.map(userId => ({
+        const existingIds = (existingRows || []).map((r: any) => r.user_id as string);
+        const toDelete = (existingRows || []).filter((r: any) => !analysis_team.includes(r.user_id));
+        const toAdd = analysis_team.filter(uid => !existingIds.includes(uid));
+
+        if (toDelete.length > 0) {
+          const deleteIds = toDelete.map((r: any) => r.id);
+          const { error: delErr } = await supabase
+            .from('nonconformity_analysis_team')
+            .delete()
+            .in('id', deleteIds);
+          if (delErr) throw delErr;
+        }
+
+        if (toAdd.length > 0) {
+          const teamRows = toAdd.map(userId => ({
             nonconformity_id: editingId,
             user_id: userId,
             role: 'member',
