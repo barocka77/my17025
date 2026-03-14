@@ -339,7 +339,7 @@ export default function NonconformitiesView() {
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
                 <h3 className="text-sm md:text-base font-bold">
-                  {editingId ? 'Uygunsuzluğu Düzenle' : 'Yeni Uygunsuzluk'}
+                  Uygunsuzluk Kaydı
                 </h3>
               </div>
               <button
