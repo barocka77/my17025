@@ -470,36 +470,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                         <p className="text-[12px] text-slate-300 mt-0.5">—</p>
                       )}
                     </div>
-                    <div>
-                      <label className={`block text-[10px] font-semibold uppercase tracking-wide mb-1 ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Faaliyet Kapatma Tarihi
-                      </label>
-                      {actionFulfilled ? (
-                        <input
-                          type="date"
-                          value={closureDate}
-                          onChange={e => setClosureDate(e.target.value)}
-                          className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        />
-                      ) : (
-                        <p className="text-[12px] text-slate-300 mt-0.5">—</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className={`block text-[10px] font-semibold uppercase tracking-wide mb-1 ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Etkinlik Değerlendirme Tarihi
-                      </label>
-                      {actionFulfilled ? (
-                        <input
-                          type="date"
-                          value={effectivenessEvaluationDate}
-                          onChange={e => setEffectivenessEvaluationDate(e.target.value)}
-                          className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        />
-                      ) : (
-                        <p className="text-[12px] text-slate-300 mt-0.5">—</p>
-                      )}
-                    </div>
                   </div>
                   {/* Recurrence observation */}
                   <div className={`mt-4 pt-4 border-t border-slate-200 space-y-2 transition-all ${!actionFulfilled ? 'opacity-40 pointer-events-none' : ''}`}>
