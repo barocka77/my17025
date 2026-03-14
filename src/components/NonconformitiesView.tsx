@@ -502,36 +502,6 @@ export default function NonconformitiesView() {
                 )}
               </div>
 
-              {/* Impact Analysis */}
-              <div className="border-t border-slate-200 pt-4">
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-3 uppercase tracking-wide">
-                  Uygunsuzluğun Etkisi
-                </label>
-                <div className="space-y-3">
-                  <ImpactToggle
-                    label="Uygunsuzluğun içeriği UYGUN OLMAYAN KALİBRASYON İŞİ – mahiyetinde mi?"
-                    value={formData.impact_inappropriate_calibration}
-                    onChange={v => setFormData(prev => ({ ...prev, impact_inappropriate_calibration: v }))}
-                  />
-                  <ImpactToggle
-                    label="Uygunsuzluk herhangi bir kalibrasyonun durdurulmasını, tekrarlanmasını veya raporların bekletilmesini gerektiriyor mu?"
-                    value={formData.impact_requires_stoppage}
-                    onChange={v => setFormData(prev => ({ ...prev, impact_requires_stoppage: v }))}
-                    note="Evet ise; Kalibrasyon Durdurma Formu doldurulması gerekiyor."
-                  />
-                  <ImpactToggle
-                    label="Uygunsuzluğun ileride aynı yerde veya başka yerlerde tekrarlanma ihtimali var mı?"
-                    value={formData.impact_recurrence_possible}
-                    onChange={v => setFormData(prev => ({ ...prev, impact_recurrence_possible: v }))}
-                  />
-                  <ImpactToggle
-                    label="Uygunsuzluğun etkisi kök neden analiz ve düzeltici faaliyet çalışmasının genişletilmesini gerektiriyor mu?"
-                    value={formData.impact_requires_extended_analysis}
-                    onChange={v => setFormData(prev => ({ ...prev, impact_requires_extended_analysis: v }))}
-                  />
-                </div>
-              </div>
-
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
