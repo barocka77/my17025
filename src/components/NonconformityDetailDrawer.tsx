@@ -6,6 +6,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
+import CorrectiveActionFormModal from './CorrectiveActionFormModal';
 
 const SOURCE_LABELS: Record<string, string> = {
   internal_audit: 'İç Tetkik',
@@ -101,6 +102,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [caError, setCaError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
   const [impactSaving, setImpactSaving] = useState<string | null>(null);
+  const [dfFormOpen, setDfFormOpen] = useState(false);
 
   useEffect(() => {
     fetchNc();
@@ -149,6 +151,9 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       if (error) throw error;
       setNc((prev: any) => ({ ...prev, [field]: value }));
       onRefresh();
+      if (field === 'impact_requires_extended_analysis' && value === true) {
+        setDfFormOpen(true);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -396,6 +401,8 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     value={nc.impact_requires_extended_analysis ?? false}
                     saving={impactSaving === 'impact_requires_extended_analysis'}
                     onToggle={handleImpactToggle}
+                    note={nc.impact_requires_extended_analysis ? 'Evet — Düzeltici Faaliyet Formu açmak için tıklayın.' : undefined}
+                    onNoteClick={nc.impact_requires_extended_analysis ? () => setDfFormOpen(true) : undefined}
                   />
                 </div>
               </div>
@@ -598,6 +605,20 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         </div>
       )}
 
+      {/* Düzeltici Faaliyet Formu Modal */}
+      {dfFormOpen && nc && (
+        <CorrectiveActionFormModal
+          nc={nc}
+          onClose={() => setDfFormOpen(false)}
+          onSaved={() => {
+            setDfFormOpen(false);
+            fetchCa();
+            onRefresh();
+            setActiveTab('ca');
+          }}
+        />
+      )}
+
       {/* CA Modal */}
       {caModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
@@ -682,20 +703,31 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ImpactRow({ field, label, value, note, saving, onToggle }: {
+function ImpactRow({ field, label, value, note, saving, onToggle, onNoteClick }: {
   field: string;
   label: string;
   value: boolean;
   note?: string;
   saving: boolean;
   onToggle: (field: string, value: boolean) => void;
+  onNoteClick?: () => void;
 }) {
   return (
     <div className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-100 last:border-0">
       <div className="flex-1">
         <p className="text-[11px] text-slate-700 leading-snug">{label}</p>
         {note && value && (
-          <p className="text-[10px] text-amber-700 font-semibold mt-1 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">{note}</p>
+          onNoteClick ? (
+            <button
+              type="button"
+              onClick={onNoteClick}
+              className="text-[10px] text-blue-700 font-semibold mt-1 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded inline-block hover:bg-blue-100 transition-colors cursor-pointer"
+            >
+              {note}
+            </button>
+          ) : (
+            <p className="text-[10px] text-amber-700 font-semibold mt-1 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">{note}</p>
+          )
         )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
