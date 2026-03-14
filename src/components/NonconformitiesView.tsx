@@ -305,22 +305,23 @@ export default function NonconformitiesView() {
                 <div className="border border-slate-300 rounded-lg overflow-hidden max-h-44 overflow-y-auto divide-y divide-slate-100">
                   {SOURCE_OPTIONS.map(opt => {
                     const selected = formData.source.includes(opt.value);
+                    const toggle = () => setFormData(prev => ({
+                      ...prev,
+                      source: prev.source.includes(opt.value)
+                        ? prev.source.filter(v => v !== opt.value)
+                        : [...prev.source, opt.value],
+                    }));
                     return (
-                      <label
+                      <div
                         key={opt.value}
+                        onClick={toggle}
                         className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50 border-l-2 border-l-slate-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}`}
                       >
                         <input
                           type="checkbox"
                           checked={selected}
-                          onChange={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              source: prev.source.includes(opt.value)
-                                ? prev.source.filter(v => v !== opt.value)
-                                : [...prev.source, opt.value],
-                            }));
-                          }}
+                          onChange={toggle}
+                          onClick={e => e.stopPropagation()}
                           className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500 flex-shrink-0"
                         />
                         <span className={`text-[11px] font-medium truncate ${selected ? 'text-slate-900' : 'text-slate-700'}`}>
@@ -329,7 +330,7 @@ export default function NonconformitiesView() {
                         {selected && (
                           <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 flex-shrink-0 ml-auto" />
                         )}
-                      </label>
+                      </div>
                     );
                   })}
                 </div>
@@ -409,22 +410,23 @@ export default function NonconformitiesView() {
                   ) : (
                     profiles.map(p => {
                       const selected = formData.analysis_team.includes(p.id);
+                      const toggle = () => setFormData(prev => ({
+                        ...prev,
+                        analysis_team: prev.analysis_team.includes(p.id)
+                          ? prev.analysis_team.filter(id => id !== p.id)
+                          : [...prev.analysis_team, p.id],
+                      }));
                       return (
-                        <label
+                        <div
                           key={p.id}
+                          onClick={toggle}
                           className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50 border-l-2 border-l-slate-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}`}
                         >
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() => {
-                              setFormData(prev => ({
-                                ...prev,
-                                analysis_team: prev.analysis_team.includes(p.id)
-                                  ? prev.analysis_team.filter(id => id !== p.id)
-                                  : [...prev.analysis_team, p.id],
-                              }));
-                            }}
+                            onChange={toggle}
+                            onClick={e => e.stopPropagation()}
                             className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
@@ -438,7 +440,7 @@ export default function NonconformitiesView() {
                           {selected && (
                             <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
                           )}
-                        </label>
+                        </div>
                       );
                     })
                   )}
