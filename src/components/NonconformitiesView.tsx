@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil } from 'lucide-react';
+import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil, FlaskConical } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import NonconformityDetailDrawer from './NonconformityDetailDrawer';
@@ -336,6 +336,13 @@ export default function NonconformitiesView() {
                               >
                                 <Pencil className="w-3 h-3" />
                                 Düzenle
+                              </button>
+                              <button
+                                onClick={e => { e.stopPropagation(); setSelectedNcId(item.id); }}
+                                className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                              >
+                                <FlaskConical className="w-3 h-3" />
+                                U. Analizi
                               </button>
                               <button
                                 onClick={e => { e.stopPropagation(); handleDelete(item.id); }}
