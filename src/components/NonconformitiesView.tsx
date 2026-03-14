@@ -431,15 +431,25 @@ export default function NonconformitiesView() {
                   value=""
                   onChange={e => {
                     const id = e.target.value;
-                    if (!id || formData.analysis_team.includes(id)) return;
-                    setFormData(prev => ({ ...prev, analysis_team: [...prev.analysis_team, id] }));
+                    if (!id) return;
+                    setFormData(prev => ({
+                      ...prev,
+                      analysis_team: prev.analysis_team.includes(id)
+                        ? prev.analysis_team.filter(i => i !== id)
+                        : [...prev.analysis_team, id],
+                    }));
                   }}
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 >
-                  <option value="">-- Ekip üyesi ekle --</option>
-                  {profiles.filter(p => !formData.analysis_team.includes(p.id)).map(p => (
-                    <option key={p.id} value={p.id}>{p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}</option>
-                  ))}
+                  <option value="">-- Ekip üyesi seç / çıkar --</option>
+                  {profiles.map(p => {
+                    const selected = formData.analysis_team.includes(p.id);
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {selected ? '✓ ' : '    '}{p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
                 {formData.analysis_team.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
