@@ -427,46 +427,40 @@ export default function NonconformitiesView() {
                     </span>
                   )}
                 </label>
-                <div className="border border-slate-300 rounded-lg overflow-hidden max-h-48 overflow-y-auto divide-y divide-slate-100">
-                  {profiles.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 px-3 py-3 text-center">Personel bulunamadı</p>
-                  ) : (
-                    profiles.map(p => {
-                      const selected = formData.analysis_team.includes(p.id);
+                <select
+                  value=""
+                  onChange={e => {
+                    const id = e.target.value;
+                    if (!id || formData.analysis_team.includes(id)) return;
+                    setFormData(prev => ({ ...prev, analysis_team: [...prev.analysis_team, id] }));
+                  }}
+                  className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                >
+                  <option value="">-- Ekip üyesi ekle --</option>
+                  {profiles.filter(p => !formData.analysis_team.includes(p.id)).map(p => (
+                    <option key={p.id} value={p.id}>{p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}</option>
+                  ))}
+                </select>
+                {formData.analysis_team.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {formData.analysis_team.map(id => {
+                      const p = profiles.find(pr => pr.id === id);
+                      if (!p) return null;
                       return (
-                        <label
-                          key={p.id}
-                          className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50 border-l-2 border-l-slate-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => {
-                              setFormData(prev => ({
-                                ...prev,
-                                analysis_team: prev.analysis_team.includes(p.id)
-                                  ? prev.analysis_team.filter(id => id !== p.id)
-                                  : [...prev.analysis_team, p.id],
-                              }));
-                            }}
-                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500 flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <span className={`text-[11px] font-medium block truncate ${selected ? 'text-slate-900' : 'text-slate-700'}`}>{p.full_name}</span>
-                            {(p.job_title || p.department) && (
-                              <span className="text-[10px] text-slate-400 block truncate">
-                                {[p.job_title, p.department].filter(Boolean).join(' · ')}
-                              </span>
-                            )}
-                          </div>
-                          {selected && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
-                          )}
-                        </label>
+                        <span key={id} className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-medium px-2 py-1 rounded-md">
+                          {p.full_name}
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, analysis_team: prev.analysis_team.filter(i => i !== id) }))}
+                            className="text-slate-400 hover:text-red-500 transition-colors ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
                       );
-                    })
-                  )}
-                </div>
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
