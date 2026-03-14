@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
-  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity,
+  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -104,6 +104,12 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [impactSaving, setImpactSaving] = useState<string | null>(null);
   const [dfFormOpen, setDfFormOpen] = useState(false);
 
+  const [correctionAction, setCorrectionAction] = useState('');
+  const [correctionResponsible, setCorrectionResponsible] = useState('');
+  const [correctionDeadline, setCorrectionDeadline] = useState('');
+  const [correctionSaving, setCorrectionSaving] = useState(false);
+  const [correctionEditMode, setCorrectionEditMode] = useState(false);
+
   useEffect(() => {
     fetchNc();
     fetchRca();
@@ -134,6 +140,11 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         .maybeSingle();
       if (error) throw error;
       setNc(data);
+      if (data) {
+        setCorrectionAction(data.correction_action || '');
+        setCorrectionResponsible(data.correction_responsible || '');
+        setCorrectionDeadline(data.correction_deadline || '');
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -158,6 +169,29 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       console.error(err);
     } finally {
       setImpactSaving(null);
+    }
+  };
+
+  const handleCorrectionSave = async () => {
+    setCorrectionSaving(true);
+    try {
+      const payload: any = {
+        correction_action: correctionAction || null,
+        correction_responsible: correctionResponsible || null,
+        correction_deadline: correctionDeadline || null,
+      };
+      const { error } = await supabase
+        .from('nonconformities')
+        .update(payload)
+        .eq('id', ncId);
+      if (error) throw error;
+      setNc((prev: any) => ({ ...prev, ...payload }));
+      setCorrectionEditMode(false);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCorrectionSaving(false);
     }
   };
 
@@ -404,6 +438,115 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     note={nc.impact_requires_extended_analysis ? 'Evet — Düzeltici Faaliyet Formu açmak için tıklayın.' : undefined}
                     onNoteClick={nc.impact_requires_extended_analysis ? () => setDfFormOpen(true) : undefined}
                   />
+                </div>
+              </div>
+
+              {/* Düzeltme Faaliyeti Section */}
+              <div className="col-span-2 mt-2">
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Düzeltme Faaliyeti</span>
+                      <span className="text-[9px] text-slate-400 font-normal">(Uygunsuzluğa karşı ilk tepki)</span>
+                    </div>
+                    {!correctionEditMode ? (
+                      <button
+                        type="button"
+                        onClick={() => setCorrectionEditMode(true)}
+                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                      >
+                        {nc.correction_action ? 'Düzenle' : 'Ekle'}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleCorrectionSave}
+                          disabled={correctionSaving}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                        >
+                          <Save className="w-3 h-3" />
+                          {correctionSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCorrectionEditMode(false);
+                            setCorrectionAction(nc.correction_action || '');
+                            setCorrectionResponsible(nc.correction_responsible || '');
+                            setCorrectionDeadline(nc.correction_deadline || '');
+                          }}
+                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4">
+                    {correctionEditMode ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Düzeltme Açıklaması</label>
+                          <textarea
+                            value={correctionAction}
+                            onChange={e => setCorrectionAction(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                            placeholder="Uygunsuzluğa karşı alınan ilk düzeltme tedbirini açıklayın..."
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Sorumlu</label>
+                            <select
+                              value={correctionResponsible}
+                              onChange={e => setCorrectionResponsible(e.target.value)}
+                              className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                            >
+                              <option value="">-- Seçiniz --</option>
+                              {profiles.map(p => (
+                                <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Termin Tarihi</label>
+                            <input
+                              type="date"
+                              value={correctionDeadline}
+                              onChange={e => setCorrectionDeadline(e.target.value)}
+                              className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : nc.correction_action ? (
+                      <div className="space-y-3">
+                        <p className="text-[12px] text-slate-700 leading-relaxed">{nc.correction_action}</p>
+                        <div className="flex items-center gap-4 flex-wrap pt-1 border-t border-slate-100">
+                          {nc.correction_responsible && (
+                            <div>
+                              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-0.5">Sorumlu</span>
+                              <span className="text-[11px] font-semibold text-slate-700">{nc.correction_responsible}</span>
+                            </div>
+                          )}
+                          {nc.correction_deadline && (
+                            <div>
+                              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-0.5">Termin</span>
+                              <span className={`text-[11px] font-semibold ${new Date(nc.correction_deadline) < new Date() ? 'text-red-600' : 'text-slate-700'}`}>
+                                {new Date(nc.correction_deadline).toLocaleDateString('tr-TR')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400 italic py-1">Henüz düzeltme faaliyeti belirlenmemiş.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
