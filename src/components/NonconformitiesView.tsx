@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users } from 'lucide-react';
+import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import NonconformityDetailDrawer from './NonconformityDetailDrawer';
@@ -51,6 +51,16 @@ const ncStatusConfig: Record<string, { label: string; className: string; icon: R
   Kapalı: { label: 'Kapalı', className: 'bg-green-100 text-green-800 border-green-200', icon: <CheckCircle2 className="w-2.5 h-2.5" /> },
 };
 
+const EMPTY_FORM = {
+  detection_date: '',
+  source: '',
+  description: '',
+  severity: 'major',
+  recurrence_risk: 'medium',
+  calibration_impact: 'none',
+  analysis_team: [] as string[],
+};
+
 interface NcFormData {
   detection_date: string;
   source: string;
@@ -68,15 +78,8 @@ export default function NonconformitiesView() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NcFormData>({
-    detection_date: '',
-    source: '',
-    description: '',
-    severity: 'major',
-    recurrence_risk: 'medium',
-    calibration_impact: 'none',
-    analysis_team: [],
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<NcFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
@@ -113,31 +116,96 @@ export default function NonconformitiesView() {
     }
   };
 
+  const openNewModal = () => {
+    setEditingId(null);
+    setFormData(EMPTY_FORM);
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = async (e: React.MouseEvent, item: any) => {
+    e.stopPropagation();
+    setError(null);
+    setEditingId(item.id);
+
+    let teamIds: string[] = [];
+    try {
+      const { data: teamRows } = await supabase
+        .from('nonconformity_analysis_team')
+        .select('user_id')
+        .eq('nonconformity_id', item.id);
+      teamIds = (teamRows || []).map((r: any) => r.user_id);
+    } catch {
+      teamIds = Array.isArray(item.analysis_team) ? item.analysis_team : [];
+    }
+
+    setFormData({
+      detection_date: item.detection_date || '',
+      source: item.source || '',
+      description: item.description || '',
+      severity: item.severity || 'major',
+      recurrence_risk: item.recurrence_risk || 'medium',
+      calibration_impact: item.calibration_impact || 'none',
+      analysis_team: teamIds,
+    });
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingId(null);
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
     try {
       const { analysis_team, ...ncData } = formData;
-      const { data: newNc, error: ncErr } = await supabase
-        .from('nonconformities')
-        .insert([ncData])
-        .select('id')
-        .single();
-      if (ncErr) throw ncErr;
 
-      if (analysis_team.length > 0) {
-        const teamRows = analysis_team.map(userId => ({
-          nonconformity_id: newNc.id,
-          user_id: userId,
-          role: 'member',
-        }));
-        const { error: teamErr } = await supabase.from('nonconformity_analysis_team').insert(teamRows);
-        if (teamErr) throw teamErr;
+      if (editingId) {
+        const { error: updateErr } = await supabase
+          .from('nonconformities')
+          .update(ncData)
+          .eq('id', editingId);
+        if (updateErr) throw updateErr;
+
+        const { error: delErr } = await supabase
+          .from('nonconformity_analysis_team')
+          .delete()
+          .eq('nonconformity_id', editingId);
+        if (delErr) throw delErr;
+
+        if (analysis_team.length > 0) {
+          const teamRows = analysis_team.map(userId => ({
+            nonconformity_id: editingId,
+            user_id: userId,
+            role: 'member',
+          }));
+          const { error: teamErr } = await supabase.from('nonconformity_analysis_team').insert(teamRows);
+          if (teamErr) throw teamErr;
+        }
+      } else {
+        const { data: newNc, error: ncErr } = await supabase
+          .from('nonconformities')
+          .insert([ncData])
+          .select('id')
+          .single();
+        if (ncErr) throw ncErr;
+
+        if (analysis_team.length > 0) {
+          const teamRows = analysis_team.map(userId => ({
+            nonconformity_id: newNc.id,
+            user_id: userId,
+            role: 'member',
+          }));
+          const { error: teamErr } = await supabase.from('nonconformity_analysis_team').insert(teamRows);
+          if (teamErr) throw teamErr;
+        }
       }
 
-      setModalOpen(false);
-      setFormData({ detection_date: '', source: '', description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none', analysis_team: [] });
+      closeModal();
       fetchData();
     } catch (err: any) {
       setError(err.message || 'Kayıt sırasında bir hata oluştu');
@@ -166,7 +234,7 @@ export default function NonconformitiesView() {
             <h1 className="text-xl md:text-3xl font-light text-gray-900">Uygunsuzluklar</h1>
           </div>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={openNewModal}
             className="flex items-center gap-2 bg-slate-600 text-white px-4 md:px-6 py-3 rounded-lg hover:bg-slate-700 transition-all shadow-sm hover:shadow-md font-medium text-xs md:text-sm"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5" />
@@ -198,7 +266,7 @@ export default function NonconformitiesView() {
                     <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Şiddet</th>
                     <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Durum</th>
                     {isManager && (
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">İşlemler</th>
+                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">İşlemler</th>
                     )}
                   </tr>
                 </thead>
@@ -232,12 +300,21 @@ export default function NonconformitiesView() {
                         </td>
                         {isManager && (
                           <td className="px-3 py-2 text-right whitespace-nowrap">
-                            <button
-                              onClick={e => { e.stopPropagation(); handleDelete(item.id); }}
-                              className="inline-flex items-center gap-0.5 text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
-                            >
-                              Sil
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={e => openEditModal(e, item)}
+                                className="inline-flex items-center gap-0.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                Düzenle
+                              </button>
+                              <button
+                                onClick={e => { e.stopPropagation(); handleDelete(item.id); }}
+                                className="inline-flex items-center gap-0.5 text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                              >
+                                Sil
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -261,10 +338,12 @@ export default function NonconformitiesView() {
             <div className="sticky top-0 bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-sm md:text-base font-bold">Yeni Uygunsuzluk</h3>
+                <h3 className="text-sm md:text-base font-bold">
+                  {editingId ? 'Uygunsuzluğu Düzenle' : 'Yeni Uygunsuzluk'}
+                </h3>
               </div>
               <button
-                onClick={() => { setModalOpen(false); setError(null); }}
+                onClick={closeModal}
                 className="hover:bg-white/20 p-2 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -426,7 +505,7 @@ export default function NonconformitiesView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setModalOpen(false); setError(null); }}
+                  onClick={closeModal}
                   className="flex-1 bg-slate-100 text-slate-700 px-4 py-3 md:py-2 rounded-lg hover:bg-slate-200 transition-colors font-semibold text-xs"
                 >
                   İptal
