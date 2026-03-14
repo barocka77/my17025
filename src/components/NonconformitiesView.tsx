@@ -31,6 +31,7 @@ const SOURCE_OPTIONS: { value: string; label: string }[] = [
   { value: 'lak', label: 'Laboratuvarlar Arası Karşılaştırma (LAK)' },
   { value: 'pak', label: 'Personeller Arası Karşılaştırma (PAK)' },
   { value: 'personnel_observation', label: 'Personel Gözlemi' },
+  { value: 'ineffective_df', label: 'Etkisiz DF' },
   { value: 'other', label: 'Diğer' },
 ];
 
@@ -415,7 +416,7 @@ export default function NonconformitiesView() {
                 >
                   <option value="">-- Seçiniz --</option>
                   {SOURCE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value} disabled={!editingId && opt.value === 'ineffective_df'}>{opt.label}</option>
                   ))}
                 </select>
               </div>

@@ -15,6 +15,9 @@ const SOURCE_LABELS: Record<string, string> = {
   risk_analysis: 'Risk Analizi',
   personnel_observation: 'Personel Gözlemi',
   data_control: 'Veri Kontrolü',
+  lak: 'Laboratuvarlar Arası Karşılaştırma (LAK)',
+  pak: 'Personeller Arası Karşılaştırma (PAK)',
+  ineffective_df: 'Etkisiz DF',
   other: 'Diğer',
 };
 

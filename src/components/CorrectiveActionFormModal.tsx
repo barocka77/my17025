@@ -171,7 +171,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
         if (!existing) {
           const followUpPayload: any = {
             detection_date: recurrenceDate || new Date().toISOString().split('T')[0],
-            source: nc.source,
+            source: 'ineffective_df',
             description: nc.description,
             severity: nc.severity,
             recurrence_risk: nc.recurrence_risk,
