@@ -295,6 +295,35 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                   )}
                 </div>
                 <div className={`p-4 transition-all ${actionFulfilled ? 'bg-green-50/30' : 'bg-white'}`}>
+                  {/* Fulfilled toggle — always visible at top */}
+                  <div className="flex items-center justify-between gap-4 flex-wrap mb-4 pb-4 border-b border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setActionFulfilled(v => !v)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
+                        actionFulfilled
+                          ? 'bg-green-600 text-white border-green-600'
+                          : 'bg-white text-slate-500 border-slate-300 hover:border-green-400 hover:text-green-600'
+                      }`}
+                    >
+                      {actionFulfilled ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                      İLGİLİ FAALİYET YERİNE GETİRİLMİŞTİR
+                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>TARİH:</span>
+                      <input
+                        type="date"
+                        value={fulfillmentDate}
+                        onChange={e => setFulfillmentDate(e.target.value)}
+                        disabled={!actionFulfilled}
+                        className={`px-2 py-1 text-[11px] border rounded-lg transition-all ${
+                          actionFulfilled
+                            ? 'border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                            : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                        }`}
+                      />
+                    </div>
+                  </div>
                   {!actionFulfilled && (
                     <p className="text-[11px] text-slate-400 italic mb-4">
                       Bu bölüm, faaliyet yerine getirildi olarak işaretlendiğinde doldurulabilir hale gelir.
@@ -378,36 +407,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                       ) : (
                         <p className="text-[12px] text-slate-300 mt-0.5">—</p>
                       )}
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setActionFulfilled(v => !v)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
-                          actionFulfilled
-                            ? 'bg-green-600 text-white border-green-600'
-                            : 'bg-white text-slate-500 border-slate-300 hover:border-green-400 hover:text-green-600'
-                        }`}
-                      >
-                        {actionFulfilled ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
-                        İLGİLİ FAALİYET YERİNE GETİRİLMİŞTİR
-                      </button>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>TARİH:</span>
-                        <input
-                          type="date"
-                          value={fulfillmentDate}
-                          onChange={e => setFulfillmentDate(e.target.value)}
-                          disabled={!actionFulfilled}
-                          className={`px-2 py-1 text-[11px] border rounded-lg transition-all ${
-                            actionFulfilled
-                              ? 'border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-transparent'
-                              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                          }`}
-                        />
-                      </div>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-slate-100">
