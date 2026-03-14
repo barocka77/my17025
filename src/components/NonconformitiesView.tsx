@@ -27,8 +27,10 @@ const SOURCE_OPTIONS: { value: string; label: string }[] = [
   { value: 'external_audit', label: 'Dış Tetkik' },
   { value: 'customer_feedback', label: 'Müşteri Geri Bildirimi' },
   { value: 'risk_analysis', label: 'Risk Analizi' },
-  { value: 'personnel_observation', label: 'Personel Gözlemi' },
   { value: 'data_control', label: 'Veri Kontrolü' },
+  { value: 'lak', label: 'Laboratuvarlar Arası Karşılaştırma (LAK)' },
+  { value: 'pak', label: 'Personeller Arası Karşılaştırma (PAK)' },
+  { value: 'personnel_observation', label: 'Personel Gözlemi' },
   { value: 'other', label: 'Diğer' },
 ];
 
