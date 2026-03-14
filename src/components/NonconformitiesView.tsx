@@ -80,7 +80,7 @@ export default function NonconformitiesView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null; role: string | null }[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -91,7 +91,7 @@ export default function NonconformitiesView() {
     try {
       const { data: rows, error: err } = await supabase
         .from('profiles')
-        .select('id, full_name, job_title')
+        .select('id, full_name, job_title, role')
         .order('full_name', { ascending: true });
       if (err) throw err;
       setProfiles(rows || []);
@@ -121,8 +121,24 @@ export default function NonconformitiesView() {
     setSaving(true);
     setError(null);
     try {
-      const { error: err } = await supabase.from('nonconformities').insert([formData]);
-      if (err) throw err;
+      const { analysis_team, ...ncData } = formData;
+      const { data: newNc, error: ncErr } = await supabase
+        .from('nonconformities')
+        .insert([ncData])
+        .select('id')
+        .single();
+      if (ncErr) throw ncErr;
+
+      if (analysis_team.length > 0) {
+        const teamRows = analysis_team.map(userId => ({
+          nonconformity_id: newNc.id,
+          user_id: userId,
+          role: 'member',
+        }));
+        const { error: teamErr } = await supabase.from('nonconformity_analysis_team').insert(teamRows);
+        if (teamErr) throw teamErr;
+      }
+
       setModalOpen(false);
       setFormData({ detection_date: '', source: '', description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none', analysis_team: [] });
       fetchData();
@@ -386,8 +402,10 @@ export default function NonconformitiesView() {
                           />
                           <div className="flex-1 min-w-0">
                             <span className={`text-[11px] font-medium block truncate ${selected ? 'text-slate-900' : 'text-slate-700'}`}>{p.full_name}</span>
-                            {p.job_title && (
-                              <span className="text-[10px] text-slate-400 block truncate">{p.job_title}</span>
+                            {(p.job_title || p.role) && (
+                              <span className="text-[10px] text-slate-400 block truncate">
+                                {p.job_title || p.role}
+                              </span>
                             )}
                           </div>
                           {selected && (
