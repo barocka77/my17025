@@ -30,8 +30,19 @@ const caStatusConfig: Record<string, { label: string; className: string; icon: R
   Tamamlandı: { label: 'Tamamlandı', className: 'bg-green-100 text-green-800 border-green-200', icon: <CheckCircle2 className="w-2.5 h-2.5" /> },
 };
 
+const SOURCE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'internal_audit', label: 'İç Tetkik' },
+  { value: 'external_audit', label: 'Dış Tetkik' },
+  { value: 'customer_feedback', label: 'Müşteri Geri Bildirimi' },
+  { value: 'risk_analysis', label: 'Risk Analizi' },
+  { value: 'personnel_observation', label: 'Personel Gözlemi' },
+  { value: 'data_control', label: 'Veri Kontrolü' },
+  { value: 'other', label: 'Diğer' },
+];
+
 interface NcFormData {
   detection_date: string;
+  source: string;
   description: string;
   severity: string;
   recurrence_risk: string;
@@ -55,6 +66,7 @@ export default function NcAndCapaView() {
   const [ncModalOpen, setNcModalOpen] = useState(false);
   const [ncFormData, setNcFormData] = useState<NcFormData>({
     detection_date: '',
+    source: '',
     description: '',
     severity: 'Orta',
     recurrence_risk: 'Orta',
@@ -119,7 +131,7 @@ export default function NcAndCapaView() {
       const { error } = await supabase.from('nonconformities').insert([ncFormData]);
       if (error) throw error;
       setNcModalOpen(false);
-      setNcFormData({ detection_date: '', description: '', severity: 'Orta', recurrence_risk: 'Orta', calibration_impact: 'Belirsiz' });
+      setNcFormData({ detection_date: '', source: '', description: '', severity: 'Orta', recurrence_risk: 'Orta', calibration_impact: 'Belirsiz' });
       fetchNc();
     } catch (err: any) {
       setNcError(err.message || 'Kayıt sırasında bir hata oluştu');
@@ -271,6 +283,22 @@ export default function NcAndCapaView() {
                   onChange={e => setNcFormData({ ...ncFormData, detection_date: e.target.value })}
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
+                  Uygunsuzluk Kaynağı
+                </label>
+                <select
+                  value={ncFormData.source}
+                  onChange={e => setNcFormData({ ...ncFormData, source: e.target.value })}
+                  className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                >
+                  <option value="">-- Seçiniz --</option>
+                  {SOURCE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
