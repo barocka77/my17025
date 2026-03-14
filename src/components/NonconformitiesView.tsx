@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import NonconformityDetailDrawer from './NonconformityDetailDrawer';
@@ -58,6 +58,7 @@ interface NcFormData {
   severity: string;
   recurrence_risk: string;
   calibration_impact: string;
+  analysis_team: string[];
 }
 
 export default function NonconformitiesView() {
@@ -74,14 +75,30 @@ export default function NonconformitiesView() {
     severity: 'major',
     recurrence_risk: 'medium',
     calibration_impact: 'none',
+    analysis_team: [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
 
   useEffect(() => {
     fetchData();
+    fetchProfiles();
   }, []);
+
+  const fetchProfiles = async () => {
+    try {
+      const { data: rows, error: err } = await supabase
+        .from('profiles')
+        .select('id, full_name, job_title')
+        .order('full_name', { ascending: true });
+      if (err) throw err;
+      setProfiles(rows || []);
+    } catch (err) {
+      console.error('Profiles fetch error:', err);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -107,7 +124,7 @@ export default function NonconformitiesView() {
       const { error: err } = await supabase.from('nonconformities').insert([formData]);
       if (err) throw err;
       setModalOpen(false);
-      setFormData({ detection_date: '', source: '', description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none' });
+      setFormData({ detection_date: '', source: '', description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none', analysis_team: [] });
       fetchData();
     } catch (err: any) {
       setError(err.message || 'Kayıt sırasında bir hata oluştu');
@@ -331,6 +348,54 @@ export default function NonconformitiesView() {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                  <Users className="w-3.5 h-3.5" />
+                  Analiz Ekibi
+                </label>
+                <div className="border border-slate-300 rounded-lg overflow-hidden max-h-48 overflow-y-auto divide-y divide-slate-100">
+                  {profiles.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 px-3 py-2">Personel bulunamadı</p>
+                  ) : (
+                    profiles.map(p => {
+                      const selected = formData.analysis_team.includes(p.id);
+                      return (
+                        <label
+                          key={p.id}
+                          className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50' : 'hover:bg-gray-50'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => {
+                              const team = selected
+                                ? formData.analysis_team.filter(id => id !== p.id)
+                                : [...formData.analysis_team, p.id];
+                              setFormData({ ...formData, analysis_team: team });
+                            }}
+                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-medium text-slate-800 block truncate">{p.full_name}</span>
+                            {p.job_title && (
+                              <span className="text-[10px] text-slate-400 block truncate">{p.job_title}</span>
+                            )}
+                          </div>
+                          {selected && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0"></span>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                {formData.analysis_team.length > 0 && (
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    {formData.analysis_team.length} personel seçildi
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">

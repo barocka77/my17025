@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
-  AlertCircle, CheckCircle2, Clock, ChevronRight, Trash2,
+  AlertCircle, CheckCircle2, Clock, Trash2, Users,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -99,7 +99,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [caDate, setCaDate] = useState('');
   const [caSaving, setCaSaving] = useState(false);
   const [caError, setCaError] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<{ id: string; full_name: string }[]>([]);
+  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
 
   useEffect(() => {
     fetchNc();
@@ -112,7 +112,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, job_title')
         .order('full_name', { ascending: true });
       if (error) throw error;
       setProfiles(data || []);
@@ -308,6 +308,32 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                   )}
                 </div>
               </div>
+
+              {Array.isArray(nc.analysis_team) && nc.analysis_team.length > 0 && (
+                <div className="col-span-2">
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                    <Users className="w-3 h-3" />
+                    Analiz Ekibi
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(nc.analysis_team as string[]).map(memberId => {
+                      const member = profiles.find(p => p.id === memberId);
+                      if (!member) return null;
+                      return (
+                        <span
+                          key={memberId}
+                          className="inline-flex flex-col items-start px-2 py-1 rounded-md bg-slate-100 border border-slate-200"
+                        >
+                          <span className="text-[11px] font-semibold text-slate-800 leading-tight">{member.full_name}</span>
+                          {member.job_title && (
+                            <span className="text-[9px] text-slate-500 leading-tight">{member.job_title}</span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
