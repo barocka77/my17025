@@ -392,7 +392,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                   />
                   <ImpactRow
                     field="impact_requires_extended_analysis"
-                    label="Uygunsuzluğun etkisi kök neden analiz ve düzeltici faaliyet çalışmasının genişletilmesini gerektiriyor mu?"
+                    label="Uygunsuzluğun etkisi, Düzeltici Faaliyet açılmasını gerektiriyor mu?"
                     value={nc.impact_requires_extended_analysis ?? false}
                     saving={impactSaving === 'impact_requires_extended_analysis'}
                     onToggle={handleImpactToggle}
