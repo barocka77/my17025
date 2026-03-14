@@ -100,6 +100,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [caSaving, setCaSaving] = useState(false);
   const [caError, setCaError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [impactSaving, setImpactSaving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNc();
@@ -135,6 +136,23 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImpactToggle = async (field: string, value: boolean) => {
+    setImpactSaving(field);
+    try {
+      const { error } = await supabase
+        .from('nonconformities')
+        .update({ [field]: value })
+        .eq('id', ncId);
+      if (error) throw error;
+      setNc((prev: any) => ({ ...prev, [field]: value }));
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setImpactSaving(null);
     }
   };
 
@@ -351,21 +369,33 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                 </div>
                 <div className="space-y-2.5">
                   <ImpactRow
+                    field="impact_inappropriate_calibration"
                     label="Uygunsuzluğun içeriği UYGUN OLMAYAN KALİBRASYON İŞİ – mahiyetinde mi?"
                     value={nc.impact_inappropriate_calibration ?? false}
+                    saving={impactSaving === 'impact_inappropriate_calibration'}
+                    onToggle={handleImpactToggle}
                   />
                   <ImpactRow
+                    field="impact_requires_stoppage"
                     label="Uygunsuzluk herhangi bir kalibrasyonun durdurulmasını, tekrarlanmasını veya raporların bekletilmesini gerektiriyor mu?"
                     value={nc.impact_requires_stoppage ?? false}
+                    saving={impactSaving === 'impact_requires_stoppage'}
+                    onToggle={handleImpactToggle}
                     note={nc.impact_requires_stoppage ? 'Evet ise; Kalibrasyon Durdurma Formu doldurulması gerekiyor.' : undefined}
                   />
                   <ImpactRow
+                    field="impact_recurrence_possible"
                     label="Uygunsuzluğun ileride aynı yerde veya başka yerlerde tekrarlanma ihtimali var mı?"
                     value={nc.impact_recurrence_possible ?? false}
+                    saving={impactSaving === 'impact_recurrence_possible'}
+                    onToggle={handleImpactToggle}
                   />
                   <ImpactRow
+                    field="impact_requires_extended_analysis"
                     label="Uygunsuzluğun etkisi kök neden analiz ve düzeltici faaliyet çalışmasının genişletilmesini gerektiriyor mu?"
                     value={nc.impact_requires_extended_analysis ?? false}
+                    saving={impactSaving === 'impact_requires_extended_analysis'}
+                    onToggle={handleImpactToggle}
                   />
                 </div>
               </div>
@@ -652,28 +682,50 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ImpactRow({ label, value, note }: { label: string; value: boolean; note?: string }) {
+function ImpactRow({ field, label, value, note, saving, onToggle }: {
+  field: string;
+  label: string;
+  value: boolean;
+  note?: string;
+  saving: boolean;
+  onToggle: (field: string, value: boolean) => void;
+}) {
   return (
-    <div className="flex items-start justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-100 last:border-0">
       <div className="flex-1">
         <p className="text-[11px] text-slate-700 leading-snug">{label}</p>
         {note && value && (
-          <p className="text-[10px] text-amber-700 font-semibold mt-0.5 bg-amber-50 px-1.5 py-0.5 rounded inline-block">{note}</p>
+          <p className="text-[10px] text-amber-700 font-semibold mt-1 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">{note}</p>
         )}
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${!value ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {saving ? (
+          <div className="w-4 h-4 rounded-full border-2 border-slate-400 border-t-transparent animate-spin" />
+        ) : null}
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => onToggle(field, false)}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all disabled:opacity-50 ${
+            !value
+              ? 'bg-slate-700 text-white border-slate-700'
+              : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600'
+          }`}
+        >
           Hayır
-          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[8px] font-black ${!value ? 'bg-slate-700 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-300'}`}>
-            {!value ? '✓' : ''}
-          </span>
-        </span>
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${value ? 'bg-red-100 text-red-700 border-red-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => onToggle(field, true)}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all disabled:opacity-50 ${
+            value
+              ? 'bg-red-600 text-white border-red-600'
+              : 'bg-white text-slate-400 border-slate-200 hover:border-red-300 hover:text-red-500'
+          }`}
+        >
           Evet
-          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[8px] font-black ${value ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-slate-300 text-slate-300'}`}>
-            {value ? '✓' : ''}
-          </span>
-        </span>
+        </button>
       </div>
     </div>
   );
