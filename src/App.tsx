@@ -7,6 +7,7 @@ import PersonnelView from './components/PersonnelView';
 import DocumentMasterListView from './components/DocumentMasterListView';
 import NonconformitiesView from './components/NonconformitiesView';
 import CorrectiveActionsView from './components/CorrectiveActionsView';
+import RisksOpportunitiesView from './components/RisksOpportunitiesView';
 import AdminPanel from './components/AdminPanel';
 import ActionTracking from './components/ActionTracking';
 import PersonalNotepad from './components/PersonalNotepad';
@@ -344,6 +345,8 @@ function App() {
             <PersonnelView />
           ) : activeModule.id === 'document_master_list' ? (
             <DocumentMasterListView />
+          ) : activeModule.id === 'risks_opportunities' ? (
+            <RisksOpportunitiesView />
           ) : activeModule.id === 'nonconformities' ? (
             <NonconformitiesView />
           ) : activeModule.id === 'corrective_actions' ? (
