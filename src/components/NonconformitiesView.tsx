@@ -375,10 +375,12 @@ export default function NonconformitiesView() {
                             type="checkbox"
                             checked={selected}
                             onChange={() => {
-                              const team = selected
-                                ? formData.analysis_team.filter(id => id !== p.id)
-                                : [...formData.analysis_team, p.id];
-                              setFormData({ ...formData, analysis_team: team });
+                              setFormData(prev => ({
+                                ...prev,
+                                analysis_team: prev.analysis_team.includes(p.id)
+                                  ? prev.analysis_team.filter(id => id !== p.id)
+                                  : [...prev.analysis_team, p.id],
+                              }));
                             }}
                             className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500 flex-shrink-0"
                           />
