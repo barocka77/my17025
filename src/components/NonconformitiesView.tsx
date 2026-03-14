@@ -171,7 +171,7 @@ export default function NonconformitiesView() {
       if (editingId) {
         const { error: updateErr } = await supabase
           .from('nonconformities')
-          .update(ncData)
+          .update({ ...ncData, analysis_team: analysis_team })
           .eq('id', editingId);
         if (updateErr) throw updateErr;
 
@@ -193,7 +193,7 @@ export default function NonconformitiesView() {
       } else {
         const { data: newNc, error: ncErr } = await supabase
           .from('nonconformities')
-          .insert([ncData])
+          .insert([{ ...ncData, analysis_team }])
           .select('id')
           .single();
         if (ncErr) throw ncErr;
