@@ -160,7 +160,9 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       setNc((prev: any) => ({ ...prev, [field]: value }));
       onRefresh();
       if (field === 'impact_requires_extended_analysis' && value === true) {
-        setDfFormOpen(true);
+        if (caList.length === 0) {
+          setDfFormOpen(true);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -432,8 +434,8 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     value={nc.impact_requires_extended_analysis ?? false}
                     saving={impactSaving === 'impact_requires_extended_analysis'}
                     onToggle={handleImpactToggle}
-                    note={nc.impact_requires_extended_analysis ? 'Evet — Düzeltici Faaliyet Formu açmak için tıklayın.' : undefined}
-                    onNoteClick={nc.impact_requires_extended_analysis ? () => setDfFormOpen(true) : undefined}
+                    note={nc.impact_requires_extended_analysis ? (caList.length > 0 ? 'Evet — Bu uygunsuzluk için zaten bir DF kaydı mevcut.' : 'Evet — Düzeltici Faaliyet Formu açmak için tıklayın.') : undefined}
+                    onNoteClick={nc.impact_requires_extended_analysis ? () => { if (caList.length === 0) setDfFormOpen(true); } : undefined}
                   />
                 </div>
               </div>
