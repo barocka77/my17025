@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users } from 'lucide-react';
+import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import NonconformityDetailDrawer from './NonconformityDetailDrawer';
@@ -81,6 +81,7 @@ export default function NonconformitiesView() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [teamSearch, setTeamSearch] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -351,20 +352,66 @@ export default function NonconformitiesView() {
               </div>
 
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-2 uppercase tracking-wide">
-                  <Users className="w-3.5 h-3.5" />
-                  Analiz Ekibi
-                </label>
-                <div className="border border-slate-300 rounded-lg overflow-hidden max-h-48 overflow-y-auto divide-y divide-slate-100">
-                  {profiles.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 px-3 py-2">Personel bulunamadı</p>
-                  ) : (
-                    profiles.map(p => {
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 uppercase tracking-wide">
+                    <Users className="w-3.5 h-3.5" />
+                    Analiz Ekibi
+                    {formData.analysis_team.length > 0 && (
+                      <span className="ml-1 bg-slate-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        {formData.analysis_team.length}
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, analysis_team: profiles.map(p => p.id) })}
+                      className="text-[9px] font-semibold text-slate-600 hover:text-slate-800 px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors"
+                    >
+                      Tümünü Seç
+                    </button>
+                    {formData.analysis_team.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, analysis_team: [] })}
+                        className="text-[9px] font-semibold text-red-500 hover:text-red-700 px-1.5 py-0.5 rounded hover:bg-red-50 transition-colors"
+                      >
+                        Temizle
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative mb-1.5">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={teamSearch}
+                    onChange={e => setTeamSearch(e.target.value)}
+                    placeholder="Personel ara..."
+                    className="w-full pl-7 pr-3 py-1.5 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div className="border border-slate-300 rounded-lg overflow-hidden max-h-44 overflow-y-auto divide-y divide-slate-100">
+                  {(() => {
+                    const filtered = profiles.filter(p =>
+                      p.full_name.toLowerCase().includes(teamSearch.toLowerCase()) ||
+                      (p.job_title || '').toLowerCase().includes(teamSearch.toLowerCase())
+                    );
+                    if (filtered.length === 0) {
+                      return (
+                        <p className="text-[11px] text-slate-400 px-3 py-3 text-center">
+                          {profiles.length === 0 ? 'Personel bulunamadı' : 'Arama sonucu yok'}
+                        </p>
+                      );
+                    }
+                    return filtered.map(p => {
                       const selected = formData.analysis_team.includes(p.id);
                       return (
                         <label
                           key={p.id}
-                          className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50 border-l-2 border-l-slate-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}`}
                         >
                           <input
                             type="checkbox"
@@ -375,26 +422,42 @@ export default function NonconformitiesView() {
                                 : [...formData.analysis_team, p.id];
                               setFormData({ ...formData, analysis_team: team });
                             }}
-                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
+                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <span className="text-[11px] font-medium text-slate-800 block truncate">{p.full_name}</span>
+                            <span className={`text-[11px] font-medium block truncate ${selected ? 'text-slate-900' : 'text-slate-700'}`}>{p.full_name}</span>
                             {p.job_title && (
                               <span className="text-[10px] text-slate-400 block truncate">{p.job_title}</span>
                             )}
                           </div>
                           {selected && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0"></span>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
                           )}
                         </label>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
+
                 {formData.analysis_team.length > 0 && (
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    {formData.analysis_team.length} personel seçildi
-                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {formData.analysis_team.map(id => {
+                      const p = profiles.find(x => x.id === id);
+                      if (!p) return null;
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                          {p.full_name}
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, analysis_team: formData.analysis_team.filter(x => x !== id) })}
+                            className="text-slate-400 hover:text-red-500 transition-colors ml-0.5"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
