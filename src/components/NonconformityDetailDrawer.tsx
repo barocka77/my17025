@@ -278,7 +278,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
           <div className="flex-shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-4">
             <div className="grid grid-cols-2 gap-3">
               <InfoRow label="Tespit Tarihi" value={nc.detection_date ? new Date(nc.detection_date).toLocaleDateString('tr-TR') : '-'} />
-              <InfoRow label="Kaynak" value={SOURCE_LABELS[nc.source] || nc.source || '-'} />
+              <InfoRow label="Tespit Noktası" value={SOURCE_LABELS[nc.source] || nc.source || '-'} />
               <div className="col-span-2">
                 <InfoRow label="Açıklama" value={nc.description || '-'} />
               </div>
