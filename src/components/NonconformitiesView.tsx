@@ -53,7 +53,7 @@ const ncStatusConfig: Record<string, { label: string; className: string; icon: R
 
 interface NcFormData {
   detection_date: string;
-  source: string;
+  source: string[];
   description: string;
   severity: string;
   recurrence_risk: string;
@@ -70,7 +70,7 @@ export default function NonconformitiesView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState<NcFormData>({
     detection_date: '',
-    source: '',
+    source: [],
     description: '',
     severity: 'major',
     recurrence_risk: 'medium',
@@ -121,7 +121,8 @@ export default function NonconformitiesView() {
     setSaving(true);
     setError(null);
     try {
-      const { analysis_team, ...ncData } = formData;
+      const { analysis_team, source, ...rest } = formData;
+      const ncData = { ...rest, source: source.join(',') };
       const { data: newNc, error: ncErr } = await supabase
         .from('nonconformities')
         .insert([ncData])
@@ -140,7 +141,7 @@ export default function NonconformitiesView() {
       }
 
       setModalOpen(false);
-      setFormData({ detection_date: '', source: '', description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none', analysis_team: [] });
+      setFormData({ detection_date: '', source: [], description: '', severity: 'major', recurrence_risk: 'medium', calibration_impact: 'none', analysis_team: [] });
       fetchData();
     } catch (err: any) {
       setError(err.message || 'Kayıt sırasında bir hata oluştu');
@@ -293,19 +294,45 @@ export default function NonconformitiesView() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-2 uppercase tracking-wide">
                   Tespit Noktası
+                  {formData.source.length > 0 && (
+                    <span className="ml-1 bg-slate-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                      {formData.source.length}
+                    </span>
+                  )}
                 </label>
-                <select
-                  value={formData.source}
-                  onChange={e => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                >
-                  <option value="">-- Seçiniz --</option>
-                  {SOURCE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                <div className="border border-slate-300 rounded-lg overflow-hidden max-h-44 overflow-y-auto divide-y divide-slate-100">
+                  {SOURCE_OPTIONS.map(opt => {
+                    const selected = formData.source.includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none ${selected ? 'bg-slate-50 border-l-2 border-l-slate-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              source: prev.source.includes(opt.value)
+                                ? prev.source.filter(v => v !== opt.value)
+                                : [...prev.source, opt.value],
+                            }));
+                          }}
+                          className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500 flex-shrink-0"
+                        />
+                        <span className={`text-[11px] font-medium truncate ${selected ? 'text-slate-900' : 'text-slate-700'}`}>
+                          {opt.label}
+                        </span>
+                        {selected && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 flex-shrink-0 ml-auto" />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
