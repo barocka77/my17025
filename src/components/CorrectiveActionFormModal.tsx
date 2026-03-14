@@ -208,7 +208,7 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
                       >
                         <option value="">-- Seçiniz --</option>
                         {profiles.map(p => (
-                          <option key={p.id} value={p.full_name}>
+                          <option key={p.id} value={p.id}>
                             {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
                           </option>
                         ))}

@@ -505,7 +505,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                             >
                               <option value="">-- Seçiniz --</option>
                               {profiles.map(p => (
-                                <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                                <option key={p.id} value={p.id}>{p.full_name}</option>
                               ))}
                             </select>
                           </div>
