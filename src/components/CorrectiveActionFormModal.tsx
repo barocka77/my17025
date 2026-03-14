@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, FileText, Save, CheckSquare, Square } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -74,6 +74,15 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
   const [reportRecall, setReportRecall] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('id, full_name, job_title')
+      .order('full_name', { ascending: true })
+      .then(({ data }) => setProfiles(data || []));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,13 +203,18 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
                         Faaliyete Karar Veren Yetkili
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={responsibleName}
                         onChange={e => setResponsibleName(e.target.value)}
                         className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Ad Soyad"
-                      />
+                      >
+                        <option value="">-- Seçiniz --</option>
+                        {profiles.map(p => (
+                          <option key={p.id} value={p.full_name}>
+                            {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
