@@ -4,6 +4,7 @@ import ModuleView from './components/ModuleView';
 import CustomerFeedbackView from './components/CustomerFeedbackView';
 import InternalAuditsView from './components/internal-audits/InternalAuditsView';
 import ManagementReviewsView from './components/management-reviews/ManagementReviewsView';
+import SuppliersView from './components/suppliers/SuppliersView';
 import CustomerSurveyView from './components/CustomerSurveyView';
 import PublicSurveyPage from './components/PublicSurveyPage';
 import PersonnelView from './components/PersonnelView';
@@ -356,6 +357,8 @@ function App() {
             <InternalAuditsView />
           ) : activeModule.id === 'management_reviews' ? (
             <ManagementReviewsView />
+          ) : activeModule.id === 'suppliers' ? (
+            <SuppliersView />
           ) : activeModule.id === 'customer_surveys' ? (
             <CustomerSurveyView />
           ) : activeModule.id === 'personnel' ? (
