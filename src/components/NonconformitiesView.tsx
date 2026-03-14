@@ -71,6 +71,7 @@ interface NcFormData {
   analysis_team: string[];
 }
 
+
 export default function NonconformitiesView() {
   const { role } = useAuth();
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
@@ -395,51 +396,6 @@ export default function NonconformitiesView() {
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
                   placeholder="Uygunsuzluk açıklamasını girin..."
                 />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
-                  Şiddet
-                </label>
-                <select
-                  value={formData.severity}
-                  onChange={e => setFormData({ ...formData, severity: e.target.value })}
-                  className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                >
-                  {SEVERITY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
-                  Tekrarlama Riski
-                </label>
-                <select
-                  value={formData.recurrence_risk}
-                  onChange={e => setFormData({ ...formData, recurrence_risk: e.target.value })}
-                  className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                >
-                  {RECURRENCE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
-                  Kalibrasyon Etkisi
-                </label>
-                <select
-                  value={formData.calibration_impact}
-                  onChange={e => setFormData({ ...formData, calibration_impact: e.target.value })}
-                  className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                >
-                  {CALIBRATION_IMPACT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
               </div>
 
               <div>
