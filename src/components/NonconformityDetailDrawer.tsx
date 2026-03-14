@@ -332,7 +332,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
 
         {/* Info cards */}
         {!loading && nc && (
-          <div className="flex-shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-4">
+          <div className="flex-shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-4 max-h-[55vh] overflow-y-auto">
             <div className="grid grid-cols-2 gap-3">
               <InfoRow label="Tespit Tarihi" value={nc.detection_date ? new Date(nc.detection_date).toLocaleDateString('tr-TR') : '-'} />
               <InfoRow label="Tespit Noktası" value={SOURCE_LABELS[nc.source] || nc.source || '-'} />
