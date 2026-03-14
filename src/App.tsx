@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ModuleView from './components/ModuleView';
 import CustomerFeedbackView from './components/CustomerFeedbackView';
+import InternalAuditsView from './components/internal-audits/InternalAuditsView';
 import CustomerSurveyView from './components/CustomerSurveyView';
 import PublicSurveyPage from './components/PublicSurveyPage';
 import PersonnelView from './components/PersonnelView';
@@ -350,6 +351,8 @@ function App() {
         ) : activeModule ? (
           activeModule.id === 'customer_feedback' ? (
             <CustomerFeedbackView autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
+          ) : activeModule.id === 'internal_audits' ? (
+            <InternalAuditsView />
           ) : activeModule.id === 'customer_surveys' ? (
             <CustomerSurveyView />
           ) : activeModule.id === 'personnel' ? (
