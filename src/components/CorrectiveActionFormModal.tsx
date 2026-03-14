@@ -95,7 +95,7 @@ export default function CorrectiveActionFormModal({ nc, onClose, onSaved }: Prop
         nonconformity_id: nc.id,
         action_description: actionDecision,
         responsible_user: responsibleName || null,
-        status: 'Planlandı',
+        status: 'open',
         df_customer_affected: customerAffected,
         df_customer_notified: customerNotified,
         df_report_recall: reportRecall,
