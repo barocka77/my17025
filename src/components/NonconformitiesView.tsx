@@ -259,7 +259,7 @@ export default function NonconformitiesView() {
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">
-                  Uygunsuzluk Kaynağı
+                  Tespit Noktası
                 </label>
                 <select
                   value={formData.source}
