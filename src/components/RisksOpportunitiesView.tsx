@@ -58,7 +58,7 @@ export default function RisksOpportunitiesView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editRecord, setEditRecord] = useState<RiskRecord | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'risk' | 'opportunity'>('all');
-  const [sortKey, setSortKey] = useState<string>('created_at');
+  const [sortKey, setSortKey] = useState<string>('evaluation_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const handleSort = (key: string) => {
@@ -85,7 +85,8 @@ export default function RisksOpportunitiesView() {
       const { data: rows, error: err } = await supabase
         .from('risks_opportunities')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('evaluation_date', { ascending: false, nullsFirst: false })
+        .order('risk_no', { ascending: false });
       if (err) throw err;
       setData(rows || []);
     } catch (err) {
@@ -119,7 +120,9 @@ export default function RisksOpportunitiesView() {
       const cmp = typeof av === 'number' && typeof bv === 'number'
         ? av - bv
         : String(av).localeCompare(String(bv), 'tr', { numeric: true });
-      return sortDir === 'asc' ? cmp : -cmp;
+      if (cmp !== 0) return sortDir === 'asc' ? cmp : -cmp;
+      const rcmp = String(a.risk_no ?? '').localeCompare(String(b.risk_no ?? ''), 'tr', { numeric: true });
+      return -rcmp;
     });
   }, [data, filterType, sortKey, sortDir]);
 

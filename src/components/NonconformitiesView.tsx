@@ -117,7 +117,7 @@ export default function NonconformitiesView() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortKey, setSortKey] = useState<string>('created_at');
+  const [sortKey, setSortKey] = useState<string>('detection_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const handleSort = (key: string) => {
@@ -159,7 +159,9 @@ export default function NonconformitiesView() {
       const av = a[sortKey] ?? '';
       const bv = b[sortKey] ?? '';
       const cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true });
-      return sortDir === 'asc' ? cmp : -cmp;
+      if (cmp !== 0) return sortDir === 'asc' ? cmp : -cmp;
+      const ancmp = String(a.nc_number ?? '').localeCompare(String(b.nc_number ?? ''), 'tr', { numeric: true });
+      return sortDir === 'asc' ? ancmp : -ancmp;
     });
   }, [filteredData, sortKey, sortDir]);
 
@@ -193,7 +195,8 @@ export default function NonconformitiesView() {
       const { data: rows, error: err } = await supabase
         .from('nonconformities')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('detection_date', { ascending: false })
+        .order('nc_number', { ascending: false });
       if (err) throw err;
       setData(rows || []);
     } catch (err) {

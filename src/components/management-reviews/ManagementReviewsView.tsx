@@ -38,7 +38,8 @@ export default function ManagementReviewsView() {
       const { data } = await supabase
         .from('management_reviews')
         .select('id, meeting_year, meeting_no, meeting_type, meeting_date, meeting_location, status, chairperson, participants, created_at')
-        .order('meeting_date', { ascending: false });
+        .order('meeting_date', { ascending: false, nullsFirst: false })
+        .order('meeting_no', { ascending: false });
       setReviews(data || []);
     } finally {
       setLoading(false);

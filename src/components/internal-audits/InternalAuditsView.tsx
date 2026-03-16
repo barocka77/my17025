@@ -42,7 +42,8 @@ export default function InternalAuditsView() {
       const { data } = await supabase
         .from('internal_audit_plans')
         .select('*')
-        .order('planned_date', { ascending: false });
+        .order('planned_date', { ascending: false, nullsFirst: false })
+        .order('audit_no', { ascending: false });
       setPlans(data || []);
     } finally {
       setLoading(false);

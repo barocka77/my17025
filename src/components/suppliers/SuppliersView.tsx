@@ -55,7 +55,8 @@ export default function SuppliersView() {
       const { data } = await supabase
         .from('suppliers')
         .select('id, supplier_no, name, category, status, contact_person, phone, email, is_accredited, accreditation_body, accreditation_no, accreditation_expiry, last_evaluation_date, last_evaluation_score, last_evaluation_result, warning_notes, created_at')
-        .order('name');
+        .order('created_at', { ascending: false })
+        .order('supplier_no', { ascending: false });
       setSuppliers(data || []);
     } finally {
       setLoading(false);

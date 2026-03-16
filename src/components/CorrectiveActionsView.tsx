@@ -15,7 +15,7 @@ export default function CorrectiveActionsView() {
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState<string>('created_at');
+  const [sortKey, setSortKey] = useState<string>('planned_completion_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const handleSort = (key: string) => {
@@ -44,7 +44,9 @@ export default function CorrectiveActionsView() {
         bv = b[sortKey] ?? '';
       }
       const cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true });
-      return sortDir === 'asc' ? cmp : -cmp;
+      if (cmp !== 0) return sortDir === 'asc' ? cmp : -cmp;
+      const acmp = String(a.ca_number ?? '').localeCompare(String(b.ca_number ?? ''), 'tr', { numeric: true });
+      return -acmp;
     });
   }, [data, sortKey, sortDir]);
 
@@ -58,7 +60,8 @@ export default function CorrectiveActionsView() {
       const { data: rows, error: err } = await supabase
         .from('corrective_actions')
         .select('*, nonconformities(nc_number)')
-        .order('created_at', { ascending: false });
+        .order('planned_completion_date', { ascending: false, nullsFirst: false })
+        .order('ca_number', { ascending: false });
       if (err) throw err;
       setData(rows || []);
     } catch (err) {
