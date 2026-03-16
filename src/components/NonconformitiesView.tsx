@@ -481,9 +481,9 @@ export default function NonconformitiesView() {
                   <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
                     {[
                       { key: 'nc_number', label: 'NC No', cls: 'w-32' },
+                      { key: 'source', label: 'Tespit Noktası', cls: 'w-36' },
                       { key: 'detection_date', label: 'Tespit Tarihi', cls: 'w-28' },
                       { key: 'description', label: 'Açıklama', cls: '' },
-                      { key: 'source', label: 'Tespit Noktası', cls: 'w-36' },
                       { key: 'status', label: 'Durum', cls: 'w-28' },
                     ].map(col => (
                       <th
@@ -507,6 +507,13 @@ export default function NonconformitiesView() {
                         <td className="px-3 py-2 text-[11px] font-medium text-slate-700 whitespace-nowrap">
                           {item.nc_number || '-'}
                         </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {item.source ? (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${(sourceConfig[item.source] || { className: 'bg-gray-100 text-gray-700 border-gray-200' }).className}`}>
+                              {(sourceConfig[item.source] || { label: item.source }).label}
+                            </span>
+                          ) : '-'}
+                        </td>
                         <td className="px-3 py-2 text-[11px] text-gray-600 whitespace-nowrap">
                           {item.detection_date ? new Date(item.detection_date).toLocaleDateString('tr-TR') : '-'}
                         </td>
@@ -514,13 +521,6 @@ export default function NonconformitiesView() {
                           <div className="truncate" title={item.description}>
                             {item.description || '-'}
                           </div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {item.source ? (
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${(sourceConfig[item.source] || { className: 'bg-gray-100 text-gray-700 border-gray-200' }).className}`}>
-                              {(sourceConfig[item.source] || { label: item.source }).label}
-                            </span>
-                          ) : '-'}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.className}`}>
