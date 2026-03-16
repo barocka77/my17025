@@ -470,7 +470,7 @@ export default function NonconformitiesView() {
                       { key: 'nc_number', label: 'NC No', cls: 'w-32' },
                       { key: 'detection_date', label: 'Tespit Tarihi', cls: 'w-28' },
                       { key: 'description', label: 'Açıklama', cls: '' },
-                      { key: 'severity', label: 'Şiddet', cls: 'w-24' },
+                      { key: 'source', label: 'Tespit Noktası', cls: 'w-36' },
                       { key: 'status', label: 'Durum', cls: 'w-28' },
                     ].map(col => (
                       <th
@@ -488,7 +488,6 @@ export default function NonconformitiesView() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {sortedData.map(item => {
-                    const sev = severityConfig[item.severity] || { label: item.severity, className: 'bg-gray-100 text-gray-800 border-gray-200' };
                     const st = ncStatusConfig[item.status] || { label: item.status, className: 'bg-gray-100 text-gray-800 border-gray-200', icon: null };
                     return (
                       <tr key={item.id} onClick={() => setSelectedNcId(item.id)} className="hover:bg-slate-50 transition-colors cursor-pointer">
@@ -503,10 +502,8 @@ export default function NonconformitiesView() {
                             {item.description || '-'}
                           </div>
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${sev.className}`}>
-                            {sev.label}
-                          </span>
+                        <td className="px-3 py-2 text-[11px] text-gray-600 whitespace-nowrap">
+                          {SOURCE_OPTIONS.find(s => s.value === item.source)?.label || item.source || '-'}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.className}`}>
