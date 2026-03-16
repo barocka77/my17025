@@ -41,6 +41,19 @@ const severityConfig: Record<string, { label: string; className: string }> = {
   critical: { label: 'Kritik', className: 'bg-red-100 text-red-800 border-red-200' },
 };
 
+const sourceConfig: Record<string, { label: string; className: string }> = {
+  internal_audit:      { label: 'İç Tetkik',         className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  external_audit:      { label: 'Dış Tetkik',         className: 'bg-violet-100 text-violet-800 border-violet-200' },
+  customer_feedback:   { label: 'Müşteri Geri Bildirimi', className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  risk_analysis:       { label: 'Risk Analizi',        className: 'bg-rose-100 text-rose-800 border-rose-200' },
+  data_control:        { label: 'Veri Kontrolü',       className: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
+  lak:                 { label: 'LAK',                 className: 'bg-teal-100 text-teal-800 border-teal-200' },
+  pak:                 { label: 'PAK',                 className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  personnel_observation: { label: 'Personel Gözlemi', className: 'bg-amber-100 text-amber-800 border-amber-200' },
+  ineffective_df:      { label: 'Etkisiz DF',          className: 'bg-red-100 text-red-800 border-red-200' },
+  other:               { label: 'Diğer',               className: 'bg-gray-100 text-gray-700 border-gray-200' },
+};
+
 const ncStatusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   open: { label: 'Açık', className: 'bg-red-100 text-red-800 border-red-200', icon: <AlertCircle className="w-2.5 h-2.5" /> },
   analysis: { label: 'Analiz', className: 'bg-orange-100 text-orange-800 border-orange-200', icon: <Clock className="w-2.5 h-2.5" /> },
@@ -502,8 +515,12 @@ export default function NonconformitiesView() {
                             {item.description || '-'}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-[11px] text-gray-600 whitespace-nowrap">
-                          {SOURCE_OPTIONS.find(s => s.value === item.source)?.label || item.source || '-'}
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {item.source ? (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${(sourceConfig[item.source] || { className: 'bg-gray-100 text-gray-700 border-gray-200' }).className}`}>
+                              {(sourceConfig[item.source] || { label: item.source }).label}
+                            </span>
+                          ) : '-'}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.className}`}>
