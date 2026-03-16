@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Filter, X, RotateCcw, ListOrdered, Search } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, CreditCard as Edit2, Trash2, Filter, X, RotateCcw, ListOrdered, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import DocumentMasterListFormModal from './DocumentMasterListFormModal';
@@ -30,6 +30,22 @@ export default function DocumentMasterListView() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState<string>('sira_no');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <span className="ml-0.5 opacity-30">↕</span>;
+    return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   const fetchDocuments = async (includeDeleted = false) => {
     setLoading(true);
@@ -76,6 +92,17 @@ export default function DocumentMasterListView() {
 
     setFilteredDocuments(filtered);
   }, [searchQuery, documents]);
+
+  const sortedDocuments = useMemo(() => {
+    return [...filteredDocuments].sort((a, b) => {
+      const av = a[sortKey as keyof DocumentRecord] ?? '';
+      const bv = b[sortKey as keyof DocumentRecord] ?? '';
+      const cmp = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'tr', { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredDocuments, sortKey, sortDir]);
 
   const handleSoftDelete = async (id: string) => {
     if (!confirm('Bu dokümanı silmek istediğinizden emin misiniz?')) return;
@@ -330,18 +357,28 @@ export default function DocumentMasterListView() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-16">Sıra No</th>
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Doküman Kodu</th>
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Doküman Adı</th>
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">İlk Yayın</th>
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Revizyon</th>
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-16">Rev. No</th>
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Güncellik Kontrol</th>
+                      {[
+                        { key: 'sira_no', label: 'Sıra No', cls: 'w-16' },
+                        { key: 'dokuman_kodu', label: 'Doküman Kodu', cls: 'w-28' },
+                        { key: 'dokuman_adi', label: 'Doküman Adı', cls: '' },
+                        { key: 'ilk_yayin_tarihi', label: 'İlk Yayın', cls: 'w-24' },
+                        { key: 'revizyon_tarihi', label: 'Revizyon', cls: 'w-24' },
+                        { key: 'rev_no', label: 'Rev. No', cls: 'w-16' },
+                        { key: 'guncellik_kontrol_tarihi', label: 'Güncellik Kontrol', cls: 'w-28' },
+                      ].map(col => (
+                        <th
+                          key={col.key}
+                          onClick={() => handleSort(col.key)}
+                          className={`px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none hover:bg-slate-100 transition-colors ${col.cls}`}
+                        >
+                          {col.label}<SortIcon col={col.key} />
+                        </th>
+                      ))}
                       <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">İşlemler</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredDocuments.map((doc) => (
+                    {sortedDocuments.map((doc) => (
                       <tr
                         key={doc.id}
                         className={`transition-colors border-b ${
@@ -418,11 +455,11 @@ export default function DocumentMasterListView() {
                 </table>
               </div>
 
-              {filteredDocuments.length > 0 && (
+              {sortedDocuments.length > 0 && (
                 <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200">
                   <p className="text-[10px] text-gray-600">
-                    Toplam <span className="font-semibold text-gray-900">{filteredDocuments.length}</span> kayıt
-                    {documents.length !== filteredDocuments.length && (
+                    Toplam <span className="font-semibold text-gray-900">{sortedDocuments.length}</span> kayıt
+                    {documents.length !== sortedDocuments.length && (
                       <span> (Tüm kayıtlar: {documents.length})</span>
                     )}
                   </p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AlertTriangle, Plus, Pencil, Trash2, TrendingUp, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -58,6 +58,22 @@ export default function RisksOpportunitiesView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editRecord, setEditRecord] = useState<RiskRecord | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'risk' | 'opportunity'>('all');
+  const [sortKey, setSortKey] = useState<string>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <span className="ml-0.5 opacity-30">↕</span>;
+    return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   useEffect(() => {
     fetchData();
@@ -91,11 +107,21 @@ export default function RisksOpportunitiesView() {
     }
   };
 
-  const filtered = data.filter(r => {
-    if (filterType === 'all') return true;
-    if (filterType === 'risk') return r.risk_type !== 'opportunity';
-    return r.risk_type === 'opportunity';
-  });
+  const filtered = useMemo(() => {
+    const base = data.filter(r => {
+      if (filterType === 'all') return true;
+      if (filterType === 'risk') return r.risk_type !== 'opportunity';
+      return r.risk_type === 'opportunity';
+    });
+    return [...base].sort((a, b) => {
+      const av = a[sortKey] ?? '';
+      const bv = b[sortKey] ?? '';
+      const cmp = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'tr', { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, filterType, sortKey, sortDir]);
 
   const counts = {
     all: data.length,
@@ -180,16 +206,24 @@ export default function RisksOpportunitiesView() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">Risk No</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-16">Tip</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Risk Tanımı</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Etki Alanı</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Risk Derecesi</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">
-                      <div className="flex items-center gap-1"><RefreshCw className="w-3 h-3" />Tekrar</div>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-32">Sorumlu</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Termin</th>
+                    {[
+                      { key: 'risk_no', label: 'Risk No', cls: 'w-20' },
+                      { key: 'risk_type', label: 'Tip', cls: 'w-16' },
+                      { key: 'risk_definition', label: 'Risk Tanımı', cls: '' },
+                      { key: 'impact_area', label: 'Etki Alanı', cls: 'w-24' },
+                      { key: 'risk_level', label: 'Risk Derecesi', cls: 'w-28' },
+                      { key: 're_risk_level', label: <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3" />Tekrar</span>, cls: 'w-28' },
+                      { key: 'activity_responsible', label: 'Sorumlu', cls: 'w-32' },
+                      { key: 'deadline', label: 'Termin', cls: 'w-24' },
+                    ].map(col => (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        className={`px-3 py-2.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none hover:bg-slate-100 transition-colors ${col.cls}`}
+                      >
+                        <span className="flex items-center gap-0.5">{col.label}<SortIcon col={col.key} /></span>
+                      </th>
+                    ))}
                     <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">İşlemler</th>
                   </tr>
                 </thead>

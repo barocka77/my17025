@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +15,38 @@ export default function CorrectiveActionsView() {
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<string>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <span className="ml-0.5 opacity-30">↕</span>;
+    return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => {
+      let av: string;
+      let bv: string;
+      if (sortKey === 'nc_number') {
+        av = a.nonconformities?.nc_number ?? '';
+        bv = b.nonconformities?.nc_number ?? '';
+      } else {
+        av = a[sortKey] ?? '';
+        bv = b[sortKey] ?? '';
+      }
+      const cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, sortKey, sortDir]);
 
   useEffect(() => {
     fetchData();
@@ -78,19 +110,29 @@ export default function CorrectiveActionsView() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">CA No</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">NC No</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Faaliyet Açıklaması</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-36">Sorumlu</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-36">Planlanan Tarih</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Durum</th>
+                    {[
+                      { key: 'ca_number', label: 'CA No', cls: 'w-28' },
+                      { key: 'nc_number', label: 'NC No', cls: 'w-28' },
+                      { key: 'action_description', label: 'Faaliyet Açıklaması', cls: '' },
+                      { key: 'responsible_user', label: 'Sorumlu', cls: 'w-36' },
+                      { key: 'planned_completion_date', label: 'Planlanan Tarih', cls: 'w-36' },
+                      { key: 'status', label: 'Durum', cls: 'w-28' },
+                    ].map(col => (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        className={`px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none hover:bg-slate-100 transition-colors ${col.cls}`}
+                      >
+                        {col.label}<SortIcon col={col.key} />
+                      </th>
+                    ))}
                     {isManager && (
                       <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">İşlemler</th>
                     )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {data.map(item => {
+                  {sortedData.map(item => {
                     const st = caStatusConfig[item.status] || { label: item.status, className: 'bg-gray-100 text-gray-800 border-gray-200', icon: null };
                     const isOverdue = item.planned_completion_date && item.status !== 'Tamamlandı'
                       && new Date(item.planned_completion_date) < new Date();
@@ -148,7 +190,7 @@ export default function CorrectiveActionsView() {
             </div>
             <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200">
               <p className="text-[10px] text-gray-600">
-                Toplam <span className="font-semibold text-gray-900">{data.length}</span> kayıt
+                Toplam <span className="font-semibold text-gray-900">{sortedData.length}</span> kayıt
               </p>
             </div>
           </div>

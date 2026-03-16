@@ -104,6 +104,22 @@ export default function NonconformitiesView() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<string>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <span className="ml-0.5 opacity-30">↕</span>;
+    return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   const activeFilterCount = [filterStatus, filterSeverity, filterSource, filterDateFrom, filterDateTo].filter(Boolean).length;
 
@@ -124,6 +140,15 @@ export default function NonconformitiesView() {
       return true;
     });
   }, [data, searchText, filterStatus, filterSeverity, filterSource, filterDateFrom, filterDateTo]);
+
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      const av = a[sortKey] ?? '';
+      const bv = b[sortKey] ?? '';
+      const cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredData, sortKey, sortDir]);
 
   const clearFilters = () => {
     setSearchText('');
@@ -441,18 +466,28 @@ export default function NonconformitiesView() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-32">NC No</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Tespit Tarihi</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Açıklama</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Şiddet</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Durum</th>
+                    {[
+                      { key: 'nc_number', label: 'NC No', cls: 'w-32' },
+                      { key: 'detection_date', label: 'Tespit Tarihi', cls: 'w-28' },
+                      { key: 'description', label: 'Açıklama', cls: '' },
+                      { key: 'severity', label: 'Şiddet', cls: 'w-24' },
+                      { key: 'status', label: 'Durum', cls: 'w-28' },
+                    ].map(col => (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        className={`px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none hover:bg-slate-100 transition-colors ${col.cls}`}
+                      >
+                        {col.label}<SortIcon col={col.key} />
+                      </th>
+                    ))}
                     {isManager && (
                       <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">İşlemler</th>
                     )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredData.map(item => {
+                  {sortedData.map(item => {
                     const sev = severityConfig[item.severity] || { label: item.severity, className: 'bg-gray-100 text-gray-800 border-gray-200' };
                     const st = ncStatusConfig[item.status] || { label: item.status, className: 'bg-gray-100 text-gray-800 border-gray-200', icon: null };
                     return (
@@ -514,7 +549,7 @@ export default function NonconformitiesView() {
             <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between">
               <p className="text-[10px] text-gray-600">
                 {activeFilterCount > 0
-                  ? <><span className="font-semibold text-gray-900">{filteredData.length}</span> / {data.length} kayıt gösteriliyor</>
+                  ? <><span className="font-semibold text-gray-900">{sortedData.length}</span> / {data.length} kayıt gösteriliyor</>
                   : <>Toplam <span className="font-semibold text-gray-900">{data.length}</span> kayıt</>
                 }
               </p>

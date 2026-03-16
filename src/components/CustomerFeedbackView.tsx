@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Plus, CreditCard as Edit2, Trash2, Eye, AlertTriangle, Lightbulb, MessageSquare, Flag, Clock, CheckCircle2, PlayCircle, Filter, X, RotateCcw, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +30,31 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
   const [showDeleted, setShowDeleted] = useState(false);
   const [lockedRecordIds, setLockedRecordIds] = useState<Set<string>>(new Set());
   const [closedRecordIds, setClosedRecordIds] = useState<Set<string>>(new Set());
+  const [sortKey, setSortKey] = useState<string>('form_date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <span className="ml-0.5 opacity-30">↕</span>;
+    return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  const sortedFeedbacks = useMemo(() => {
+    return [...filteredFeedbacks].sort((a, b) => {
+      const av = a[sortKey] ?? '';
+      const bv = b[sortKey] ?? '';
+      const cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredFeedbacks, sortKey, sortDir]);
 
   const fetchLockedRecords = async () => {
     const { data } = await supabase
@@ -514,20 +539,30 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
                 <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">Tarih</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Bildirim No</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Bildirim Sahibi</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Kaynak</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">Tür</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Geçerlilik</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">Durum</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">Sorumlu</th>
-                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">Termin</th>
+                    {[
+                      { key: 'form_date', label: 'Tarih', cls: 'w-20' },
+                      { key: 'application_no', label: 'Bildirim No', cls: 'w-28' },
+                      { key: 'applicant_name', label: 'Bildirim Sahibi', cls: '' },
+                      { key: 'source_type', label: 'Kaynak', cls: 'w-24' },
+                      { key: 'feedback_type', label: 'Tür', cls: 'w-20' },
+                      { key: 'validation_status', label: 'Geçerlilik', cls: 'w-28' },
+                      { key: 'status', label: 'Durum', cls: 'w-24' },
+                      { key: 'responsible_person', label: 'Sorumlu', cls: 'w-28' },
+                      { key: 'deadline', label: 'Termin', cls: 'w-20' },
+                    ].map(col => (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        className={`px-3 py-1.5 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none hover:bg-slate-100 transition-colors ${col.cls}`}
+                      >
+                        {col.label}<SortIcon col={col.key} />
+                      </th>
+                    ))}
                     <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-36">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredFeedbacks.map((feedback) => (
+                  {sortedFeedbacks.map((feedback) => (
                     <tr key={feedback.id} className={`transition-colors border-b ${feedback.is_deleted ? 'bg-gray-50 opacity-70 border-gray-200' : isDeadlineUrgent(feedback.deadline) ? 'bg-red-50 hover:bg-red-100 text-red-900 border-red-200' : 'hover:bg-slate-50/50 border-gray-100'}`}>
                       <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-gray-900">
                         {feedback.form_date ? new Date(feedback.form_date).toLocaleDateString('tr-TR') : '-'}
@@ -645,11 +680,11 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
               </table>
             </div>
 
-            {filteredFeedbacks.length > 0 && (
+            {sortedFeedbacks.length > 0 && (
               <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200">
                 <p className="text-[10px] text-gray-600">
-                  Toplam <span className="font-semibold text-gray-900">{filteredFeedbacks.length}</span> kayıt
-                  {feedbacks.length !== filteredFeedbacks.length && (
+                  Toplam <span className="font-semibold text-gray-900">{sortedFeedbacks.length}</span> kayıt
+                  {feedbacks.length !== sortedFeedbacks.length && (
                     <span> (Tüm kayıtlar: {feedbacks.length})</span>
                   )}
                 </p>
@@ -658,11 +693,11 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
           </div>
 
             {/* Mobile Footer */}
-            {filteredFeedbacks.length > 0 && (
+            {sortedFeedbacks.length > 0 && (
               <div className="md:hidden mt-3 bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5">
                 <p className="text-[11px] text-gray-600 text-center">
-                  Toplam <span className="font-semibold text-gray-900">{filteredFeedbacks.length}</span> kayıt
-                  {feedbacks.length !== filteredFeedbacks.length && (
+                  Toplam <span className="font-semibold text-gray-900">{sortedFeedbacks.length}</span> kayıt
+                  {feedbacks.length !== sortedFeedbacks.length && (
                     <span> (Tüm kayıtlar: {feedbacks.length})</span>
                   )}
                 </p>
