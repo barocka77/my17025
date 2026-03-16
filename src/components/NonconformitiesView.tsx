@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil, FlaskConical } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil, FlaskConical, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import NonconformityDetailDrawer from './NonconformityDetailDrawer';
@@ -96,6 +96,43 @@ export default function NonconformitiesView() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNcId, setSelectedNcId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null; role: string | null; department: string | null }[]>([]);
+
+  const [searchText, setSearchText] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const activeFilterCount = [filterStatus, filterSeverity, filterSource, filterDateFrom, filterDateTo].filter(Boolean).length;
+
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      if (searchText) {
+        const q = searchText.toLowerCase();
+        const matchesSearch =
+          (item.nc_number || '').toLowerCase().includes(q) ||
+          (item.description || '').toLowerCase().includes(q);
+        if (!matchesSearch) return false;
+      }
+      if (filterStatus && item.status !== filterStatus) return false;
+      if (filterSeverity && item.severity !== filterSeverity) return false;
+      if (filterSource && item.source !== filterSource) return false;
+      if (filterDateFrom && item.detection_date && item.detection_date < filterDateFrom) return false;
+      if (filterDateTo && item.detection_date && item.detection_date > filterDateTo) return false;
+      return true;
+    });
+  }, [data, searchText, filterStatus, filterSeverity, filterSource, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setSearchText('');
+    setFilterStatus('');
+    setFilterSeverity('');
+    setFilterSource('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+  };
 
   useEffect(() => {
     fetchData();
@@ -275,14 +312,128 @@ export default function NonconformitiesView() {
       </div>
 
       <div className="flex-1 overflow-auto p-4 md:p-8">
+
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="NC No veya açıklama ara..."
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all placeholder-gray-400"
+              />
+              {searchText && (
+                <button onClick={() => setSearchText('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setFiltersOpen(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                filtersOpen || activeFilterCount > 0
+                  ? 'bg-slate-700 text-white border-slate-700'
+                  : 'bg-white text-slate-700 border-gray-200 hover:border-slate-400'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filtreler
+              {activeFilterCount > 0 && (
+                <span className="bg-white text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown className={`w-3 h-3 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-medium transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+                Temizle
+              </button>
+            )}
+          </div>
+
+          {filtersOpen && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 shadow-sm">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Durum</label>
+                <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent bg-white"
+                >
+                  <option value="">Tümü</option>
+                  <option value="open">Açık</option>
+                  <option value="analysis">Analiz</option>
+                  <option value="action_required">Aksiyon Gerekli</option>
+                  <option value="monitoring">İzlemede</option>
+                  <option value="closed">Kapalı</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Şiddet</label>
+                <select
+                  value={filterSeverity}
+                  onChange={e => setFilterSeverity(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent bg-white"
+                >
+                  <option value="">Tümü</option>
+                  {SEVERITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Kaynak</label>
+                <select
+                  value={filterSource}
+                  onChange={e => setFilterSource(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent bg-white"
+                >
+                  <option value="">Tümü</option>
+                  {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Tarih Başlangıç</label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={e => setFilterDateFrom(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Tarih Bitiş</label>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={e => setFilterDateTo(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent bg-white"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
           </div>
-        ) : data.length === 0 ? (
+        ) : filteredData.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
             <AlertTriangle className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-            <p className="text-slate-500 text-sm">Kayıt bulunamadı</p>
+            <p className="text-slate-500 text-sm">
+              {data.length === 0 ? 'Kayıt bulunamadı' : 'Filtreyle eşleşen kayıt bulunamadı'}
+            </p>
+            {data.length > 0 && activeFilterCount > 0 && (
+              <button onClick={clearFilters} className="mt-3 text-xs text-slate-500 underline hover:text-slate-700">
+                Filtreleri temizle
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -301,7 +452,7 @@ export default function NonconformitiesView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {data.map(item => {
+                  {filteredData.map(item => {
                     const sev = severityConfig[item.severity] || { label: item.severity, className: 'bg-gray-100 text-gray-800 border-gray-200' };
                     const st = ncStatusConfig[item.status] || { label: item.status, className: 'bg-gray-100 text-gray-800 border-gray-200', icon: null };
                     return (
@@ -360,10 +511,18 @@ export default function NonconformitiesView() {
                 </tbody>
               </table>
             </div>
-            <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200">
+            <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between">
               <p className="text-[10px] text-gray-600">
-                Toplam <span className="font-semibold text-gray-900">{data.length}</span> kayıt
+                {activeFilterCount > 0
+                  ? <><span className="font-semibold text-gray-900">{filteredData.length}</span> / {data.length} kayıt gösteriliyor</>
+                  : <>Toplam <span className="font-semibold text-gray-900">{data.length}</span> kayıt</>
+                }
               </p>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="text-[10px] text-slate-500 hover:text-slate-700 underline">
+                  Filtreleri temizle
+                </button>
+              )}
             </div>
           </div>
         )}
