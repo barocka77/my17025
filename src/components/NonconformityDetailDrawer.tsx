@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
-  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench,
+  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench, FileDown,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
 import CorrectiveActionFormModal from './CorrectiveActionFormModal';
+import { generateNcPDF } from '../utils/ncPdfExport';
+import type { NcSignatureGroup } from '../utils/ncPdfExport';
 
 const SOURCE_LABELS: Record<string, string> = {
   internal_audit: 'İç Tetkik',
@@ -115,6 +117,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [correctionSaving, setCorrectionSaving] = useState(false);
   const [correctionEditMode, setCorrectionEditMode] = useState(false);
   const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
+  const [pdfExporting, setPdfExporting] = useState(false);
 
   useEffect(() => {
     fetchNc();
@@ -312,6 +315,83 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!nc) return;
+    setPdfExporting(true);
+    try {
+      const { data: sigData } = await supabase
+        .from('record_signatures')
+        .select('signer_role, signer_name, signed_at, signature_image_url, signature_id, signature_type')
+        .eq('record_id', ncId);
+
+      const { data: rolesData } = await supabase
+        .from('module_signature_roles')
+        .select('module_key, role_name, role_order')
+        .eq('module_key', 'nonconformities');
+
+      const { data: orgData } = await supabase
+        .from('organization_settings')
+        .select('name, logo_url')
+        .maybeSingle();
+
+      const { data: docMetaData } = await supabase
+        .from('document_master_list')
+        .select('*')
+        .ilike('dokuman_kodu', '%NC%')
+        .limit(1)
+        .maybeSingle();
+
+      const sigs = (sigData || []) as any[];
+      const roles = (rolesData || []) as { module_key: string; role_name: string; role_order: number }[];
+
+      const signatureGroups: NcSignatureGroup[] = roles.length > 0 ? [{
+        moduleKey: 'nonconformities',
+        label: 'Onay Imzalari',
+        signatures: sigs,
+        roles: roles,
+      }] : [];
+
+      const corrResponsibleName = nc.correction_responsible
+        ? (profiles.find(p => p.id === nc.correction_responsible)?.full_name || nc.correction_responsible)
+        : undefined;
+
+      const identifiedByName = nc.identified_by
+        ? (profiles.find(p => p.id === nc.identified_by)?.full_name)
+        : undefined;
+
+      const analysisTeamNames: string[] = Array.isArray(nc.analysis_team)
+        ? nc.analysis_team.map((id: string) => profiles.find(p => p.id === id)?.full_name || id)
+        : [];
+
+      await generateNcPDF({
+        nc: {
+          ...nc,
+          identified_by_name: identifiedByName,
+          analysis_team_names: analysisTeamNames,
+          correction_responsible_name: corrResponsibleName,
+        },
+        rootCauses: rcaList.map(r => ({ rca_category: r.rca_category, rca_description: r.rca_description })),
+        correctiveActions: caList.map(a => ({
+          ca_number: a.ca_number,
+          action_description: a.action_description,
+          responsible_user: a.responsible_user,
+          planned_completion_date: a.planned_completion_date,
+          status: a.status,
+          completed_date: a.completed_date,
+        })),
+        signatureGroups,
+        organizationName: orgData?.name,
+        logoUrl: orgData?.logo_url,
+        docMeta: docMetaData || undefined,
+        isLocked: false,
+      });
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
   const sev = nc ? (SEVERITY_LABELS[nc.severity] || { label: nc.severity, className: 'bg-gray-100 text-gray-700 border-gray-200' }) : null;
   const st = nc ? (STATUS_CONFIG[nc.status] || { label: nc.status, className: 'bg-gray-100 text-gray-700 border-gray-200', icon: null }) : null;
 
@@ -334,12 +414,27 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
               <div className="text-base font-bold leading-tight">{loading ? '...' : (nc?.nc_number || '-')}</div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="hover:bg-white/20 p-2 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleExportPdf}
+              disabled={pdfExporting || loading}
+              className="flex items-center gap-1.5 hover:bg-white/20 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold disabled:opacity-50"
+              title="PDF olarak indir"
+            >
+              {pdfExporting ? (
+                <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="hover:bg-white/20 p-2 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Info cards */}
