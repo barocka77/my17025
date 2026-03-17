@@ -28,6 +28,19 @@ const SOURCE_LABELS: Record<string, string> = {
   other: 'Diger',
 };
 
+const SOURCE_ABBR: Record<string, string> = {
+  internal_audit: 'IT',
+  external_audit: 'DT',
+  customer_feedback: 'MGB',
+  risk_analysis: 'RA',
+  data_control: 'VK',
+  lak: 'LAK',
+  pak: 'PAK',
+  personnel_observation: 'PG',
+  ineffective_df: 'EDF',
+  other: 'DG',
+};
+
 const SEVERITY_LABELS: Record<string, string> = {
   minor: 'Dusuk',
   major: 'Orta',
@@ -433,10 +446,10 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   await registerFonts(doc);
 
-  const docCode = docMeta?.dokuman_kodu || 'FR-NC';
+  const docCode = 'FR.13';
   const docName = docMeta?.dokuman_adi || 'Uygunsuzluk Analiz Formu';
-  const revNo = docMeta?.rev_no || '';
-  const revDate = docMeta?.revizyon_tarihi ? formatRevDate(docMeta.revizyon_tarihi) : '';
+  const revNo = '03';
+  const revDate = '17.03.2026';
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
@@ -459,17 +472,28 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
     }
   }
 
+  const HEADER_HEIGHT = 28;
+  const LOGO_WIDTH = 28;
+  const LOGO_HEIGHT = 20;
+  const LOGO_X = pageWidth - margin - LOGO_WIDTH;
+  const LOGO_Y = (HEADER_HEIGHT - LOGO_HEIGHT) / 2;
+
   doc.setFillColor(255, 255, 255);
-  doc.rect(0, 0, pageWidth, 28, 'F');
+  doc.rect(0, 0, pageWidth, HEADER_HEIGHT, 'F');
   doc.setDrawColor(...BORDER_COLOR);
   doc.setLineWidth(0.3);
-  doc.line(0, 28, pageWidth, 28);
+  doc.line(0, HEADER_HEIGHT, pageWidth, HEADER_HEIGHT);
   doc.setFont(FONT_NAME, 'bold');
   doc.setFontSize(14);
   doc.setTextColor(0, 172, 193);
-  doc.text(docName, pageWidth / 2, 17, { align: 'center' });
+  const titleMaxWidth = pageWidth - 2 * margin - LOGO_WIDTH - 6;
+  doc.text(docName, margin + titleMaxWidth / 2, 17, { align: 'center', maxWidth: titleMaxWidth });
 
-  let y = 34;
+  if (logoImgData) {
+    doc.addImage(logoImgData, 'PNG', LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT);
+  }
+
+  let y = HEADER_HEIGHT + 6;
 
   const fwStyles = fullWidthTableStyles(contentWidth, margin);
 
@@ -698,9 +722,9 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
 
   if (logoImgData) {
     const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 2; i <= totalPages; i++) {
       doc.setPage(i);
-      doc.addImage(logoImgData, 'PNG', pageWidth - 42, 4, 26, 18);
+      doc.addImage(logoImgData, 'PNG', pageWidth - margin - LOGO_WIDTH, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT);
     }
   }
 
@@ -708,6 +732,8 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
     addImzaliWatermark(doc);
   }
 
-  const ncPart = sanitize(nc.nc_number || '');
-  doc.save(`${ncPart || 'uygunsuzluk'}.pdf`);
+  const sourceAbbr = SOURCE_ABBR[nc.source] || sanitize(SOURCE_LABELS[nc.source] || nc.source || '');
+  const ncNumberPart = sanitize(nc.nc_number || '');
+  const fileName = `NC_${sourceAbbr}_${ncNumberPart}`;
+  doc.save(`${fileName}.pdf`);
 };
