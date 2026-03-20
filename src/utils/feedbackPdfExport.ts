@@ -851,14 +851,6 @@ export const generateFeedbackPDF = async (
 
   if (logoImgData) {
     const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.addImage(logoImgData, 'PNG', pageWidth - 42, 4, 26, 18);
-    }
-  }
-
-  if (logoImgData) {
-    const totalPages = doc.getNumberOfPages();
     for (let i = 2; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setDrawColor(...BORDER_COLOR);
