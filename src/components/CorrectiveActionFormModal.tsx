@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, FileText, Save, CheckSquare, Square, AlertTriangle, ArrowRight } from 'lucide-react';
+import { X, FileText, Save, CheckSquare, Square, AlertTriangle, ArrowRight, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface NonconformityData {
@@ -112,12 +112,22 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [analysisTeam, setAnalysisTeam] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
 
   useEffect(() => {
     supabase.rpc('get_personnel_list').then(({ data }) => {
-      setProfiles((data || []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title })));
+      const list = (data || []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
+      setProfiles(list);
+      supabase
+        .from('nonconformity_analysis_team')
+        .select('user_id')
+        .eq('nonconformity_id', nc.id)
+        .then(({ data: teamData }) => {
+          const memberIds = (teamData || []).map((r: any) => r.user_id);
+          setAnalysisTeam(list.filter((p: any) => memberIds.includes(p.id)));
+        });
     });
-  }, []);
+  }, [nc.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -471,14 +481,13 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                     </div>
                     <div>
                       <label className={`block text-[10px] font-semibold uppercase tracking-wide mb-1 ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Faaliyetin Etkinliğini İzleme Süresi
+                        Faaliyetin Etkinliğini İzleme Bitiş Tarihi
                       </label>
                       {actionFulfilled ? (
                         <input
-                          type="text"
+                          type="date"
                           value={monitoringPeriod}
                           onChange={e => setMonitoringPeriod(e.target.value)}
-                          placeholder="Örn: 3 ay"
                           className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                         />
                       ) : (
@@ -546,8 +555,27 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-slate-100">
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Analiz Ekibi Onayı / İmzalar</span>
-                    <p className="text-[11px] text-slate-400 italic mt-0.5">Faaliyet kaydedildikten sonra imza süreçleri başlatılabilir.</p>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Users className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Analiz Ekibi Onayı / İmzalar</span>
+                    </div>
+                    {analysisTeam.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {analysisTeam.map(member => (
+                          <div key={member.id} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            <div>
+                              <p className="text-[12px] font-semibold text-slate-700">{member.full_name}</p>
+                              {member.job_title && (
+                                <p className="text-[10px] text-slate-400">{member.job_title}</p>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 italic">Faaliyet kaydedildikten sonra imzalanabilir</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400 italic">Bu uygunsuzluğa henüz analiz ekibi atanmamış.</p>
+                    )}
                   </div>
                 </div>
               </div>
