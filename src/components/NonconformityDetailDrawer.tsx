@@ -9,6 +9,7 @@ import SignaturesSection from './SignaturesSection';
 import CorrectiveActionFormModal from './CorrectiveActionFormModal';
 import { generateNcPDF } from '../utils/ncPdfExport';
 import type { NcSignatureGroup } from '../utils/ncPdfExport';
+import { generateDfPDF } from '../utils/dfPdfExport';
 
 const SOURCE_LABELS: Record<string, string> = {
   internal_audit: 'İç Tetkik',
@@ -118,6 +119,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [correctionEditMode, setCorrectionEditMode] = useState(false);
   const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [dfPdfExporting, setDfPdfExporting] = useState<string | null>(null);
 
   const [spreadAnalysis, setSpreadAnalysis] = useState('');
   const [ncReference, setNcReference] = useState('');
@@ -452,6 +454,52 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       console.error('PDF export error:', err);
     } finally {
       setPdfExporting(false);
+    }
+  };
+
+  const handleDfPdfExport = async (ca: any) => {
+    if (!nc) return;
+    setDfPdfExporting(ca.id);
+    try {
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('name, logo_url')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: teamData } = await supabase
+        .from('nonconformity_analysis_team')
+        .select('user_id')
+        .eq('nonconformity_id', ncId);
+
+      const memberIds = (teamData || []).map((r: any) => r.user_id);
+      const analysisTeam = profiles
+        .filter((p: any) => memberIds.includes(p.id))
+        .map((p: any) => ({ full_name: p.full_name, job_title: p.job_title || null }));
+
+      const responsibleName = ca.responsible_user
+        ? (profiles.find((p: any) => p.id === ca.responsible_user)?.full_name || ca.responsible_user)
+        : undefined;
+
+      await generateDfPDF({
+        nc: {
+          nc_number: nc.nc_number,
+          detection_date: nc.detection_date,
+          source: nc.source,
+          description: nc.description,
+          severity: nc.severity,
+          status: nc.status,
+        },
+        ca: { ...ca, responsible_user_name: responsibleName },
+        analysisTeam,
+        logoUrl: orgData?.logo_url,
+        organizationName: orgData?.name,
+      });
+    } catch (err) {
+      console.error('DF PDF export error:', err);
+    } finally {
+      setDfPdfExporting(null);
     }
   };
 
@@ -983,6 +1031,18 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                             )}
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDfPdfExport(item); }}
+                              disabled={dfPdfExporting === item.id}
+                              title="PDF İndir"
+                              className="flex items-center gap-1 text-slate-400 hover:text-blue-600 p-1 rounded transition-colors disabled:opacity-40"
+                            >
+                              {dfPdfExporting === item.id ? (
+                                <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <FileDown className="w-3.5 h-3.5" />
+                              )}
+                            </button>
                             {isManager && (
                               <button
                                 onClick={e => { e.stopPropagation(); handleCaDelete(item.id); }}
