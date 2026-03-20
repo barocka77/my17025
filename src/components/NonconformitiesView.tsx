@@ -195,8 +195,7 @@ export default function NonconformitiesView() {
       const { data: rows, error: err } = await supabase
         .from('nonconformities')
         .select('*')
-        .order('detection_date', { ascending: false })
-        .order('nc_number', { ascending: false });
+        .order('nc_number', { ascending: true });
       if (err) throw err;
       setData(rows || []);
     } catch (err) {
