@@ -125,6 +125,9 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [spreadSaving, setSpreadSaving] = useState(false);
   const [refEditMode, setRefEditMode] = useState(false);
   const [refSaving, setRefSaving] = useState(false);
+  const [descriptionText, setDescriptionText] = useState('');
+  const [descEditMode, setDescEditMode] = useState(false);
+  const [descSaving, setDescSaving] = useState(false);
 
   useEffect(() => {
     fetchNc();
@@ -159,6 +162,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         setCorrectionDeadline(data.correction_deadline || '');
         setSpreadAnalysis(data.spread_analysis || '');
         setNcReference(data.nc_reference || '');
+        setDescriptionText(data.description || '');
       }
     } catch (err) {
       console.error(err);
@@ -236,6 +240,22 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       console.error(err);
     } finally {
       setRefSaving(false);
+    }
+  };
+
+  const handleDescriptionSave = async () => {
+    setDescSaving(true);
+    try {
+      const payload = { description: descriptionText || null };
+      const { error } = await supabase.from('nonconformities').update(payload).eq('id', ncId);
+      if (error) throw error;
+      setNc((prev: any) => ({ ...prev, ...payload }));
+      setDescEditMode(false);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDescSaving(false);
     }
   };
 
@@ -487,7 +507,52 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
               <InfoRow label="Tespit Tarihi" value={nc.detection_date ? new Date(nc.detection_date).toLocaleDateString('tr-TR') : '-'} />
               <InfoRow label="Tespit Noktası" value={SOURCE_LABELS[nc.source] || nc.source || '-'} />
               <div className="col-span-2">
-                <InfoRow label="Açıklama" value={nc.description || '-'} />
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Uygunsuzluk Tanımı</span>
+                    {!descEditMode ? (
+                      <button
+                        type="button"
+                        onClick={() => setDescEditMode(true)}
+                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                      >
+                        Düzenle
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleDescriptionSave}
+                          disabled={descSaving}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                        >
+                          <Save className="w-3 h-3" />
+                          {descSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setDescEditMode(false); setDescriptionText(nc.description || ''); }}
+                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    {descEditMode ? (
+                      <textarea
+                        value={descriptionText}
+                        onChange={e => setDescriptionText(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                        placeholder="Uygunsuzluk tanımını girin..."
+                      />
+                    ) : (
+                      <p className="text-[12px] text-slate-800 font-medium leading-relaxed">{nc.description || '-'}</p>
+                    )}
+                  </div>
+                </div>
               </div>
               {nc.identified_by && (
                 <div className="col-span-2">
