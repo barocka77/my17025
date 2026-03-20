@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
-  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench, FileDown,
+  AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench, FileDown, GitBranch,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -119,6 +119,11 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
   const [pdfExporting, setPdfExporting] = useState(false);
 
+  const [spreadAnalysis, setSpreadAnalysis] = useState('');
+  const [ncReference, setNcReference] = useState('');
+  const [analysisFieldsEditMode, setAnalysisFieldsEditMode] = useState(false);
+  const [analysisFieldsSaving, setAnalysisFieldsSaving] = useState(false);
+
   useEffect(() => {
     fetchNc();
     fetchRca();
@@ -150,6 +155,8 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         setCorrectionAction(data.correction_action || '');
         setCorrectionResponsible(data.correction_responsible || '');
         setCorrectionDeadline(data.correction_deadline || '');
+        setSpreadAnalysis(data.spread_analysis || '');
+        setNcReference(data.nc_reference || '');
       }
     } catch (err) {
       console.error(err);
@@ -195,6 +202,28 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
       console.error(err);
     } finally {
       setCorrectionSaving(false);
+    }
+  };
+
+  const handleAnalysisFieldsSave = async () => {
+    setAnalysisFieldsSaving(true);
+    try {
+      const payload = {
+        spread_analysis: spreadAnalysis || null,
+        nc_reference: ncReference || null,
+      };
+      const { error } = await supabase
+        .from('nonconformities')
+        .update(payload)
+        .eq('id', ncId);
+      if (error) throw error;
+      setNc((prev: any) => ({ ...prev, ...payload }));
+      setAnalysisFieldsEditMode(false);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAnalysisFieldsSaving(false);
     }
   };
 
@@ -546,6 +575,93 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     onToggle={handleImpactToggle}
                     note={nc.impact_requires_extended_analysis && caList.length > 0 ? 'Evet — Bu uygunsuzluk için zaten bir DF kaydı mevcut.' : undefined}
                   />
+                </div>
+              </div>
+
+              {/* Yayılım Analizi & Referans Section */}
+              <div className="col-span-2 mt-2">
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Yayılım Analizi & Referans</span>
+                    </div>
+                    {!analysisFieldsEditMode ? (
+                      <button
+                        type="button"
+                        onClick={() => setAnalysisFieldsEditMode(true)}
+                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                      >
+                        {nc.spread_analysis || nc.nc_reference ? 'Düzenle' : 'Ekle'}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleAnalysisFieldsSave}
+                          disabled={analysisFieldsSaving}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                        >
+                          <Save className="w-3 h-3" />
+                          {analysisFieldsSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAnalysisFieldsEditMode(false);
+                            setSpreadAnalysis(nc.spread_analysis || '');
+                            setNcReference(nc.nc_reference || '');
+                          }}
+                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    {analysisFieldsEditMode ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Yayılım Analizi (KAPLAM)</label>
+                          <textarea
+                            value={spreadAnalysis}
+                            onChange={e => setSpreadAnalysis(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                            placeholder="Uygunsuzluğun ne kadar alana yayıldığını ve kapsamını açıklayın..."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Uygunsuzluk Referansı</label>
+                          <textarea
+                            value={ncReference}
+                            onChange={e => setNcReference(e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                            placeholder="İlgili doküman, standart maddesi veya referans numarası..."
+                          />
+                        </div>
+                      </div>
+                    ) : nc.spread_analysis || nc.nc_reference ? (
+                      <div className="space-y-3">
+                        {nc.spread_analysis && (
+                          <div>
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">Yayılım Analizi (KAPLAM)</span>
+                            <p className="text-[12px] text-slate-700 leading-relaxed">{nc.spread_analysis}</p>
+                          </div>
+                        )}
+                        {nc.nc_reference && (
+                          <div className={nc.spread_analysis ? 'pt-2 border-t border-slate-100' : ''}>
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">Uygunsuzluk Referansı</span>
+                            <p className="text-[12px] text-slate-700 leading-relaxed">{nc.nc_reference}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400 italic py-1">Henüz yayılım analizi veya referans girilmemiş.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
