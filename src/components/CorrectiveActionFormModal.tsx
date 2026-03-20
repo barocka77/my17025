@@ -267,13 +267,24 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="submit"
+              form="ca-form"
+              disabled={saving}
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white px-3 py-1.5 rounded-lg transition-all text-xs font-semibold disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saving ? 'Kaydediliyor...' : 'Kaydet'}
+            </button>
+            <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-y-auto flex-1">
-          <form onSubmit={handleSubmit}>
+          <form id="ca-form" onSubmit={handleSubmit}>
             <div className="p-5 space-y-5">
               {/* NC Info Banner */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -298,7 +309,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                     <p className="text-[12px] font-medium text-slate-800">{SEVERITY_LABELS[nc.severity] || nc.severity || '-'}</p>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Açıklama</span>
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Uygunsuzluk Tanımı</span>
                     <p className="text-[12px] font-medium text-slate-800 leading-relaxed">{nc.description || '-'}</p>
                   </div>
                 </div>
@@ -543,19 +554,11 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
             </div>
 
             {/* Footer */}
-            <div className="flex gap-3 px-5 pb-5">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-700 text-white px-4 py-2.5 rounded-xl hover:bg-blue-800 transition-all font-semibold text-sm disabled:opacity-60 shadow-sm"
-              >
-                <Save className="w-4 h-4" />
-                {saving ? 'Kaydediliyor...' : isEdit ? 'Değişiklikleri Kaydet' : 'Düzeltici Faaliyet Kaydını Oluştur'}
-              </button>
+            <div className="flex justify-end px-5 pb-5">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-semibold text-sm"
+                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors font-medium text-xs"
               >
                 İptal
               </button>
