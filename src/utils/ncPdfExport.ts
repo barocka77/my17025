@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { DocumentMeta } from './documentLinkService';
-import { formatRevDate } from './documentLinkService';
 
 const FONT_NAME = 'Roboto';
 
@@ -720,11 +719,16 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
 
   addFooter(doc, docCode, revNo, revDate);
 
-  if (logoImgData) {
+  {
     const totalPages = doc.getNumberOfPages();
     for (let i = 2; i <= totalPages; i++) {
       doc.setPage(i);
-      doc.addImage(logoImgData, 'PNG', pageWidth - margin - LOGO_WIDTH, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT);
+      doc.setDrawColor(...BORDER_COLOR);
+      doc.setLineWidth(0.3);
+      doc.line(0, HEADER_HEIGHT, pageWidth, HEADER_HEIGHT);
+      if (logoImgData) {
+        doc.addImage(logoImgData, 'PNG', pageWidth - margin - LOGO_WIDTH, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT);
+      }
     }
   }
 

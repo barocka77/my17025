@@ -540,19 +540,10 @@ export const generateFeedbackPDF = async (
   const gap = 4;
   const colWidth = (contentWidth - gap) / 2;
 
-  let y = 14;
-
-  doc.setFillColor(255, 255, 255);
-  doc.rect(0, 0, pageWidth, 28, 'F');
-
-  doc.setDrawColor(...BORDER_COLOR);
-  doc.setLineWidth(0.3);
-  doc.line(0, 28, pageWidth, 28);
-
-  doc.setFont(FONT_NAME, 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(0, 172, 193);
-  doc.text(docName, pageWidth / 2, 17, { align: 'center' });
+  const HEADER_HEIGHT = 28;
+  const LOGO_WIDTH = 28;
+  const LOGO_HEIGHT = 20;
+  const LOGO_Y = (HEADER_HEIGHT - LOGO_HEIGHT) / 2;
 
   let logoImgData: string | null = null;
   if (opts.logoUrl) {
@@ -569,7 +560,22 @@ export const generateFeedbackPDF = async (
     }
   }
 
-  y = 34;
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, pageWidth, HEADER_HEIGHT, 'F');
+  doc.setDrawColor(...BORDER_COLOR);
+  doc.setLineWidth(0.3);
+  doc.line(0, HEADER_HEIGHT, pageWidth, HEADER_HEIGHT);
+  doc.setFont(FONT_NAME, 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(0, 172, 193);
+  const titleMaxWidth = pageWidth - 2 * margin - LOGO_WIDTH - 6;
+  doc.text(docName, margin + titleMaxWidth / 2, 17, { align: 'center', maxWidth: titleMaxWidth });
+
+  if (logoImgData) {
+    doc.addImage(logoImgData, 'PNG', pageWidth - margin - LOGO_WIDTH, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT);
+  }
+
+  let y = HEADER_HEIGHT + 6;
 
   // 1. BASVURU BILGILERI & MUSTERI BILGILERI (side-by-side)
   const leftRows = [
@@ -848,6 +854,17 @@ export const generateFeedbackPDF = async (
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.addImage(logoImgData, 'PNG', pageWidth - 42, 4, 26, 18);
+    }
+  }
+
+  if (logoImgData) {
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 2; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(...BORDER_COLOR);
+      doc.setLineWidth(0.3);
+      doc.line(0, HEADER_HEIGHT, pageWidth, HEADER_HEIGHT);
+      doc.addImage(logoImgData, 'PNG', pageWidth - margin - LOGO_WIDTH, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT);
     }
   }
 
