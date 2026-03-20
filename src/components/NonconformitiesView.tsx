@@ -117,8 +117,8 @@ export default function NonconformitiesView() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortKey, setSortKey] = useState<string>('detection_date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [sortKey, setSortKey] = useState<string>('nc_number');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
