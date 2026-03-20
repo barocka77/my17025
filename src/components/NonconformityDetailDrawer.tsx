@@ -330,8 +330,10 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
         .eq('module_key', 'nonconformities');
 
       const { data: orgData } = await supabase
-        .from('organization_settings')
+        .from('organizations')
         .select('name, logo_url')
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle();
 
       const { data: docMetaData } = await supabase
