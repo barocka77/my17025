@@ -1041,21 +1041,12 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
           {/* TAB 4: Düzeltici Faaliyetler */}
           {activeTab === 'actions' && (
             <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-slate-500" />
-                  <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Düzeltici Faaliyetler</h3>
-                  <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
-                    {caList.length}
-                  </span>
-                </div>
-                <button
-                  onClick={() => { setSelectedCA(null); setDfFormOpen(true); }}
-                  className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors text-[11px] font-semibold"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Yeni DF Ekle
-                </button>
+              <div className="flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-slate-500" />
+                <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Düzeltici Faaliyetler</h3>
+                <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                  {caList.length}
+                </span>
               </div>
 
               {caLoading ? (
@@ -1117,7 +1108,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                         <p className="text-[12px] text-slate-700 mt-1.5 leading-relaxed">{item.action_description || '-'}</p>
                         <div className="flex items-center gap-3 mt-2 flex-wrap">
                           <span className="text-[10px] text-slate-500">
-                            <span className="font-semibold">Sorumlu:</span> {item.responsible_user || '-'}
+                            <span className="font-semibold">Sorumlu:</span> {(profiles.find(p => p.id === item.responsible_user)?.full_name) || item.responsible_user || '-'}
                           </span>
                           {item.planned_completion_date && (
                             <span className={`text-[10px] font-medium ${isOverdue ? 'text-red-600' : 'text-slate-500'}`}>
