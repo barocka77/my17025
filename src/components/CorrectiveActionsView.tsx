@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link } from 'lucide-react';
+import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link, FileDown, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { generateDfPDF } from '../utils/dfPdfExport';
 
 const caStatusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   Planlandı: { label: 'Planlandı', className: 'bg-gray-100 text-gray-800 border-gray-200', icon: <Clock className="w-2.5 h-2.5" /> },
@@ -17,6 +18,7 @@ export default function CorrectiveActionsView() {
   const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<string>('planned_completion_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [dfPdfExporting, setDfPdfExporting] = useState<string | null>(null);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -59,7 +61,7 @@ export default function CorrectiveActionsView() {
     try {
       const { data: rows, error: err } = await supabase
         .from('corrective_actions')
-        .select('*, nonconformities(nc_number)')
+        .select('*, nonconformities(nc_number, detection_date, source, description, severity, status)')
         .order('planned_completion_date', { ascending: false, nullsFirst: false })
         .order('ca_number', { ascending: false });
       if (err) throw err;
@@ -80,6 +82,56 @@ export default function CorrectiveActionsView() {
     } catch (err) {
       console.error('Delete error:', err);
       alert('Kayıt silinirken bir hata oluştu!');
+    }
+  };
+
+  const handleDfPdfExport = async (item: any) => {
+    setDfPdfExporting(item.id);
+    try {
+      const nc = item.nonconformities;
+
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('name, logo_url')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: teamData } = await supabase
+        .from('nonconformity_analysis_team')
+        .select('user_id')
+        .eq('nonconformity_id', item.nonconformity_id);
+
+      const memberIds = (teamData || []).map((r: any) => r.user_id);
+      let analysisTeam: { full_name: string; job_title: string | null }[] = [];
+      if (memberIds.length > 0) {
+        const { data: profileRows } = await supabase
+          .rpc('get_all_profiles');
+        if (profileRows) {
+          analysisTeam = profileRows
+            .filter((p: any) => memberIds.includes(p.id))
+            .map((p: any) => ({ full_name: p.full_name, job_title: p.job_title || null }));
+        }
+      }
+
+      await generateDfPDF({
+        nc: {
+          nc_number: nc?.nc_number || '-',
+          detection_date: nc?.detection_date || '',
+          source: nc?.source || '',
+          description: nc?.description || '-',
+          severity: nc?.severity || '',
+          status: nc?.status || '',
+        },
+        ca: { ...item },
+        analysisTeam,
+        logoUrl: orgData?.logo_url,
+        organizationName: orgData?.name,
+      });
+    } catch (err) {
+      console.error('DF PDF export error:', err);
+    } finally {
+      setDfPdfExporting(null);
     }
   };
 
@@ -129,9 +181,7 @@ export default function CorrectiveActionsView() {
                         {col.label}<SortIcon col={col.key} />
                       </th>
                     ))}
-                    {isManager && (
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-20">İşlemler</th>
-                    )}
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-24">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -175,16 +225,30 @@ export default function CorrectiveActionsView() {
                             {st.label}
                           </span>
                         </td>
-                        {isManager && (
-                          <td className="px-3 py-2 text-right whitespace-nowrap">
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
                             <button
-                              onClick={() => handleDelete(item.id)}
-                              className="inline-flex items-center gap-0.5 text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                              onClick={() => handleDfPdfExport(item)}
+                              disabled={dfPdfExporting === item.id}
+                              title="PDF İndir"
+                              className="inline-flex items-center gap-0.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-1.5 py-0.5 rounded text-[10px] transition-colors disabled:opacity-40"
                             >
-                              Sil
+                              {dfPdfExporting === item.id ? (
+                                <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <FileDown className="w-3 h-3" />
+                              )}
                             </button>
-                          </td>
-                        )}
+                            {isManager && (
+                              <button
+                                onClick={() => handleDelete(item.id)}
+                                className="inline-flex items-center gap-0.5 text-red-500 hover:text-red-700 hover:bg-red-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
