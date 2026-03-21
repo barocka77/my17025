@@ -15,6 +15,7 @@ export default function CorrectiveActionsView() {
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
 
   const [data, setData] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<string>('planned_completion_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -59,13 +60,19 @@ export default function CorrectiveActionsView() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: rows, error: err } = await supabase
-        .from('corrective_actions')
-        .select('*, nonconformities(nc_number, detection_date, source, description, severity, status)')
-        .order('planned_completion_date', { ascending: false, nullsFirst: false })
-        .order('ca_number', { ascending: false });
+      const [{ data: rows, error: err }, { data: profileRows }] = await Promise.all([
+        supabase
+          .from('corrective_actions')
+          .select('*, nonconformities(nc_number, detection_date, source, description, severity, status)')
+          .order('planned_completion_date', { ascending: false, nullsFirst: false })
+          .order('ca_number', { ascending: false }),
+        supabase.rpc('get_all_profiles'),
+      ]);
       if (err) throw err;
       setData(rows || []);
+      const map: Record<string, string> = {};
+      (profileRows || []).forEach((p: any) => { map[p.id] = p.full_name; });
+      setProfiles(map);
     } catch (err) {
       console.error('CA fetch error:', err);
     } finally {
@@ -105,13 +112,10 @@ export default function CorrectiveActionsView() {
       const memberIds = (teamData || []).map((r: any) => r.user_id);
       let analysisTeam: { full_name: string; job_title: string | null }[] = [];
       if (memberIds.length > 0) {
-        const { data: profileRows } = await supabase
-          .rpc('get_all_profiles');
-        if (profileRows) {
-          analysisTeam = profileRows
-            .filter((p: any) => memberIds.includes(p.id))
-            .map((p: any) => ({ full_name: p.full_name, job_title: p.job_title || null }));
-        }
+        const { data: profileRows } = await supabase.rpc('get_all_profiles');
+        analysisTeam = (profileRows || [])
+          .filter((p: any) => memberIds.includes(p.id))
+          .map((p: any) => ({ full_name: p.full_name, job_title: p.job_title || null }));
       }
 
       await generateDfPDF({
@@ -123,7 +127,12 @@ export default function CorrectiveActionsView() {
           severity: nc?.severity || '',
           status: nc?.status || '',
         },
-        ca: { ...item },
+        ca: {
+          ...item,
+          responsible_user: item.responsible_user
+            ? (profiles[item.responsible_user] || item.responsible_user)
+            : item.responsible_user,
+        },
         analysisTeam,
         logoUrl: orgData?.logo_url,
         organizationName: orgData?.name,
@@ -210,7 +219,9 @@ export default function CorrectiveActionsView() {
                           </div>
                         </td>
                         <td className="px-3 py-2 text-[11px] text-gray-600 whitespace-nowrap">
-                          {item.responsible_user || '-'}
+                          {item.responsible_user
+                            ? (profiles[item.responsible_user] || item.responsible_user)
+                            : '-'}
                         </td>
                         <td className="px-3 py-2 text-[11px] whitespace-nowrap">
                           <span className={isOverdue ? 'text-red-700 font-semibold' : 'text-gray-600'}>
