@@ -522,9 +522,9 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4" onClick={onClose}>
 
-      <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+      <div className="w-full max-w-5xl bg-white shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl max-h-[92vh]" onClick={e => e.stopPropagation()}>
 
         {/* FIXED HEADER */}
         <div className="flex-shrink-0 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: '#1e293b' }}>
@@ -1188,6 +1188,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* RCA Modal */}
