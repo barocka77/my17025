@@ -11,6 +11,7 @@ import CorrectiveActionFormModal from './CorrectiveActionFormModal';
 import { generateNcPDF } from '../utils/ncPdfExport';
 import type { NcSignatureGroup } from '../utils/ncPdfExport';
 import { generateDfPDF } from '../utils/dfPdfExport';
+import FiveWhyInterface from './FiveWhyInterface';
 
 const SOURCE_LABELS: Record<string, string> = {
   internal_audit: 'İç Tetkik',
@@ -100,6 +101,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
   const [rcaDescription, setRcaDescription] = useState('');
   const [rcaSaving, setRcaSaving] = useState(false);
   const [rcaError, setRcaError] = useState<string | null>(null);
+  const [rcaMethod, setRcaMethod] = useState<'fishbone' | '5why' | null>(null);
 
   const [caList, setCaList] = useState<any[]>([]);
   const [caLoading, setCaLoading] = useState(true);
@@ -934,25 +936,79 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
           {/* TAB 3: Analiz */}
           {activeTab === 'analysis' && (
             <div className="p-5 space-y-5">
-              {/* Kök Neden Listesi */}
+              {/* Kök Neden Analizi */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-slate-500" />
-                    <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Kök Neden Analizi</h3>
-                    <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
-                      {rcaList.length}
-                    </span>
-                  </div>
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-4 h-4 text-slate-500" />
+                  <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Kök Neden Analizi</h3>
+                  <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                    {rcaList.length}
+                  </span>
+                </div>
+
+                {/* Method Selection Cards */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   <button
-                    onClick={() => setRcaModalOpen(true)}
-                    className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-[11px] font-semibold"
+                    onClick={() => setRcaMethod(rcaMethod === 'fishbone' ? null : 'fishbone')}
+                    className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all text-left ${
+                      rcaMethod === 'fishbone'
+                        ? 'border-slate-700 bg-slate-700 text-white shadow-md'
+                        : 'border-slate-200 bg-white hover:border-slate-400 hover:shadow-sm'
+                    }`}
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Ekle
+                    <span className="text-2xl">🐟</span>
+                    <span className={`text-[11px] font-bold ${rcaMethod === 'fishbone' ? 'text-white' : 'text-slate-700'}`}>
+                      Balık Kılçığı
+                    </span>
+                    <span className={`text-[10px] text-center leading-snug ${rcaMethod === 'fishbone' ? 'text-slate-300' : 'text-slate-400'}`}>
+                      Kategorilere göre kök neden analizi
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setRcaMethod(rcaMethod === '5why' ? null : '5why')}
+                    className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all text-left ${
+                      rcaMethod === '5why'
+                        ? 'border-slate-700 bg-slate-700 text-white shadow-md'
+                        : 'border-slate-200 bg-white hover:border-slate-400 hover:shadow-sm'
+                    }`}
+                  >
+                    <span className="text-2xl">❓</span>
+                    <span className={`text-[11px] font-bold ${rcaMethod === '5why' ? 'text-white' : 'text-slate-700'}`}>
+                      5 Why (5 Neden)
+                    </span>
+                    <span className={`text-[10px] text-center leading-snug ${rcaMethod === '5why' ? 'text-slate-300' : 'text-slate-400'}`}>
+                      Zincirleme neden analizi
+                    </span>
                   </button>
                 </div>
 
+                {/* Balık Kılçığı: Ekle button */}
+                {rcaMethod === 'fishbone' && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => setRcaModalOpen(true)}
+                      className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-[11px] font-semibold"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Ekle
+                    </button>
+                  </div>
+                )}
+
+                {/* 5 Why Interface */}
+                {rcaMethod === '5why' && (
+                  <div className="mb-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <FiveWhyInterface
+                      ncId={ncId}
+                      ncDescription={nc?.description || ''}
+                      onSaved={() => { setRcaMethod(null); fetchRca(); }}
+                    />
+                  </div>
+                )}
+
+                {/* Saved RCA List */}
                 {rcaLoading ? (
                   <div className="flex items-center justify-center h-20">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-600" />
@@ -965,20 +1021,37 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 ) : (
                   <div className="space-y-2">
                     {rcaList.map(item => (
-                      <div key={item.id} className="bg-white border border-slate-200 rounded-lg p-3 flex items-start gap-3 hover:border-slate-300 transition-colors">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap mt-0.5">
-                          {RCA_CATEGORY_LABELS[item.rca_category] || item.rca_category}
-                        </span>
-                        <p className="text-[12px] text-slate-700 flex-1 leading-relaxed">{item.rca_description}</p>
-                        {isManager && (
-                          <button
-                            onClick={() => handleRcaDelete(item.id)}
-                            className="text-red-400 hover:text-red-600 p-1 rounded transition-colors flex-shrink-0"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
+                      item.rca_method === '5why' ? (
+                        <div key={item.id} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-start gap-3 hover:border-emerald-300 transition-colors">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200 whitespace-nowrap mt-0.5">
+                            5 Why
+                          </span>
+                          <p className="text-[12px] text-slate-700 flex-1 leading-relaxed">{item.root_cause_summary || item.rca_description}</p>
+                          {isManager && (
+                            <button
+                              onClick={() => handleRcaDelete(item.id)}
+                              className="text-red-400 hover:text-red-600 p-1 rounded transition-colors flex-shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div key={item.id} className="bg-white border border-slate-200 rounded-lg p-3 flex items-start gap-3 hover:border-slate-300 transition-colors">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap mt-0.5">
+                            {RCA_CATEGORY_LABELS[item.rca_category] || item.rca_category}
+                          </span>
+                          <p className="text-[12px] text-slate-700 flex-1 leading-relaxed">{item.rca_description}</p>
+                          {isManager && (
+                            <button
+                              onClick={() => handleRcaDelete(item.id)}
+                              className="text-red-400 hover:text-red-600 p-1 rounded transition-colors flex-shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )
                     ))}
                   </div>
                 )}
