@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, FileDown, Trash2, FolderOpen } from 'lucide-react';
+import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link, FileDown, Trash2, FolderOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateDfPDF } from '../utils/dfPdfExport';
