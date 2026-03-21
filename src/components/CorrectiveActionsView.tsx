@@ -1,14 +1,19 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link, FileDown, Trash2, FolderOpen } from 'lucide-react';
+import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link, FileDown, Trash2, FolderOpen, AlertCircle, AlertTriangle, Ban } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateDfPDF } from '../utils/dfPdfExport';
 import CorrectiveActionFormModal from './CorrectiveActionFormModal';
 
 const caStatusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+  open: { label: 'Açık', className: 'bg-red-100 text-red-800 border-red-200', icon: <AlertCircle className="w-2.5 h-2.5" /> },
+  in_progress: { label: 'Devam Ediyor', className: 'bg-blue-100 text-blue-800 border-blue-200', icon: <ChevronRight className="w-2.5 h-2.5" /> },
+  closed: { label: 'Kapalı', className: 'bg-green-100 text-green-800 border-green-200', icon: <CheckCircle2 className="w-2.5 h-2.5" /> },
+  cancelled: { label: 'İptal', className: 'bg-gray-100 text-gray-500 border-gray-200', icon: <Ban className="w-2.5 h-2.5" /> },
   Planlandı: { label: 'Planlandı', className: 'bg-gray-100 text-gray-800 border-gray-200', icon: <Clock className="w-2.5 h-2.5" /> },
   İşlemde: { label: 'İşlemde', className: 'bg-blue-100 text-blue-800 border-blue-200', icon: <ChevronRight className="w-2.5 h-2.5" /> },
   Tamamlandı: { label: 'Tamamlandı', className: 'bg-green-100 text-green-800 border-green-200', icon: <CheckCircle2 className="w-2.5 h-2.5" /> },
+  Kapalı: { label: 'Kapalı', className: 'bg-green-100 text-green-800 border-green-200', icon: <CheckCircle2 className="w-2.5 h-2.5" /> },
 };
 
 export default function CorrectiveActionsView() {
@@ -229,10 +234,17 @@ export default function CorrectiveActionsView() {
                           </span>
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.className}`}>
-                            {st.icon}
-                            {st.label}
-                          </span>
+                          <div className="inline-flex items-center gap-1">
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.className}`}>
+                              {st.icon}
+                              {st.label}
+                            </span>
+                            {(!item.responsible_user || !item.planned_completion_date) && (
+                              <span title="Sorumlu kişi veya tamamlanma tarihi eksik">
+                                <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">

@@ -545,7 +545,7 @@ export default function NonconformitiesView() {
                                 className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded text-[10px] transition-colors"
                               >
                                 <FlaskConical className="w-3 h-3" />
-                                U. Analizi
+                                Analiz
                               </button>
                               <button
                                 onClick={e => { e.stopPropagation(); handleDelete(item.id); }}

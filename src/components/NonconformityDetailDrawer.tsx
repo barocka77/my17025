@@ -663,6 +663,12 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                 </div>
               )}
 
+              {/* Summary / Analysis divider */}
+              <div className="col-span-2 my-2">
+                <div className="border-t-2 border-dashed border-slate-300" />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Analiz &amp; Etki Değerlendirmesi</p>
+              </div>
+
               {/* Impact Analysis Section */}
               <div className="col-span-2 mt-1">
                 <div className="flex items-center gap-1.5 mb-3">

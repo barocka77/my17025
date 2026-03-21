@@ -45,10 +45,13 @@ interface Props {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
+  ineffective_df: 'Etkisiz DF',
   internal_audit: 'İç Tetkik',
   external_audit: 'Dış Tetkik',
   customer_feedback: 'Müşteri Geri Bildirimi',
   risk_analysis: 'Risk Analizi',
+  lak: 'LAK (Laboratuvarlar Arası Karşılaştırma)',
+  pak: 'PAK (Kişiler Arası Karşılaştırma)',
   personnel_observation: 'Personel Gözlemi',
   data_control: 'Veri Kontrolü',
   other: 'Diğer',
@@ -476,6 +479,11 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                   )}
                 </div>
                 <div className={`p-4 transition-all ${actionFulfilled ? 'bg-green-50/30' : 'bg-white'}`}>
+                  {!actionFulfilled && !noRecurrenceObserved && !recurrenceObserved && (
+                    <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                      Faaliyetler tamamlandıkça ilgili adımları işaretleyiniz.
+                    </p>
+                  )}
                   {/* Fulfilled toggle — always visible at top */}
                   <div className="flex items-center justify-between gap-4 flex-wrap mb-4 pb-4 border-b border-slate-200">
                     <button
