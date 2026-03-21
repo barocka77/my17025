@@ -180,28 +180,11 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         closure_date: '',
         closure_notes: '',
       });
-      generateApplicationNo();
       setAttachments([]);
       setActions([]);
     }
     setUploadError(null);
   }, [editData, isOpen]);
-
-  const generateApplicationNo = async () => {
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const prefix = `GB.${yy}.${mm}.${dd}`;
-
-    const { count } = await supabase
-      .from('feedback_records')
-      .select('id', { count: 'exact', head: true })
-      .like('application_no', `${prefix}%`);
-
-    const seq = String((count ?? 0) + 1).padStart(2, '0');
-    setFormData(prev => ({ ...prev, application_no: `${prefix}.${seq}` }));
-  };
 
   const calculateRiskLevel = (probability: string, severity: string): string => {
     const probMap: Record<string, number> = {
@@ -326,7 +309,7 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
       const riskLevel = calculateRiskLevel(formData.risk_probability, formData.risk_severity);
 
       // Convert empty date strings to null to avoid PostgreSQL errors
-      const { action_plan: _ap, responsible_person: _rp, deadline: _dl, ...restFormData } = formData;
+      const { action_plan: _ap, responsible_person: _rp, deadline: _dl, application_no: _an, ...restFormData } = formData;
       const dataToSave = {
         ...restFormData,
         risk_level: riskLevel,
@@ -505,11 +488,9 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                 <label className="block text-[11px] font-medium text-gray-700 mb-1">Bildirim No</label>
                 <input
                   type="text"
-                  value={formData.application_no}
-                  onChange={(e) => setFormData({ ...formData, application_no: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                  placeholder="FB-2024-0001"
-                  required
+                  value={editData ? (formData.application_no || '-') : 'Otomatik atanacak'}
+                  readOnly
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-default"
                 />
               </div>
 
