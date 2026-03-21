@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   X, FileText, Save, CheckSquare, Square, AlertTriangle,
   ArrowRight, FileDown, CheckCircle2, PenLine, Clock,
+  Plus, Trash2, ChevronDown,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateDfPDF } from '../utils/dfPdfExport';
@@ -39,6 +40,15 @@ interface ExistingCA {
   no_recurrence_date?: string;
   recurrence_observed?: boolean;
   recurrence_date?: string;
+}
+
+interface ActionItem {
+  id?: string;
+  action_description: string;
+  responsible_person: string;
+  deadline: string;
+  status: string;
+  completed_date: string;
 }
 
 interface Props {
@@ -191,6 +201,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [error, setError]                                       = useState<string | null>(null);
   const [profiles, setProfiles]                                 = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
   const [analysisTeam, setAnalysisTeam]                         = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [actionItems, setActionItems]                           = useState<ActionItem[]>([]);
 
   useEffect(() => {
     supabase.rpc('get_personnel_list').then(({ data }) => {
@@ -205,7 +216,68 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
           setAnalysisTeam(list.filter((p: any) => memberIds.includes(p.id)));
         });
     });
-  }, [nc.id]);
+
+    if (existingCA?.id) {
+      supabase
+        .from('corrective_action_items')
+        .select('*')
+        .eq('corrective_action_id', existingCA.id)
+        .order('sort_order', { ascending: true })
+        .then(({ data }) => {
+          if (data) {
+            setActionItems(data.map((r: any) => ({
+              id: r.id,
+              action_description: r.action_description || '',
+              responsible_person: r.responsible_person || '',
+              deadline: r.deadline || '',
+              status: r.status || 'Devam Ediyor',
+              completed_date: r.completed_date || '',
+            })));
+          }
+        });
+    }
+  }, [nc.id, existingCA?.id]);
+
+  const syncActionItems = async (caId: string) => {
+    const existingIds = actionItems.filter(i => i.id).map(i => i.id as string);
+    if (existingIds.length > 0 || (isEdit && existingCA?.id)) {
+      const { data: dbItems } = await supabase
+        .from('corrective_action_items')
+        .select('id')
+        .eq('corrective_action_id', caId);
+      const dbIds = (dbItems || []).map((r: any) => r.id as string);
+      const toDelete = dbIds.filter(id => !existingIds.includes(id));
+      if (toDelete.length > 0) {
+        await supabase.from('corrective_action_items').delete().in('id', toDelete);
+      }
+    }
+    for (let i = 0; i < actionItems.length; i++) {
+      const item = actionItems[i];
+      const row = {
+        corrective_action_id: caId,
+        action_description: item.action_description,
+        responsible_person: item.responsible_person,
+        deadline: item.deadline || null,
+        status: item.status,
+        completed_date: item.completed_date || null,
+        sort_order: i,
+      };
+      if (item.id) {
+        await supabase.from('corrective_action_items').update(row).eq('id', item.id);
+      } else {
+        const { data: inserted } = await supabase
+          .from('corrective_action_items')
+          .insert([row])
+          .select('id')
+          .single();
+        if (inserted) {
+          setActionItems(prev =>
+            prev.map((p, idx) => (idx === i ? { ...p, id: inserted.id } : p))
+          );
+        }
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,18 +311,28 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
         payload.status = 'Kapalı';
       }
 
+      let caId: string;
+
       if (isEdit && existingCA) {
         const { error: updateError } = await supabase
           .from('corrective_actions')
           .update(payload)
           .eq('id', existingCA.id);
         if (updateError) throw updateError;
+        caId = existingCA.id;
       } else {
         payload.nonconformity_id = nc.id;
         payload.status = 'open';
-        const { error: insertError } = await supabase.from('corrective_actions').insert([payload]);
+        const { data: newCa, error: insertError } = await supabase
+          .from('corrective_actions')
+          .insert([payload])
+          .select('id')
+          .single();
         if (insertError) throw insertError;
+        caId = newCa.id;
       }
+
+      await syncActionItems(caId);
 
       if (recurrenceObserved) {
         const { data: existing } = await supabase
@@ -561,6 +643,147 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                       onChange={setReportRecall}
                     />
                   </div>
+                </div>
+
+                {/* ── Action Items ── */}
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Faaliyetler
+                      {actionItems.length > 0 && (
+                        <span className="ml-2 text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-bold">
+                          {actionItems.length}
+                        </span>
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActionItems(prev => [
+                        ...prev,
+                        { action_description: '', responsible_person: '', deadline: '', status: 'Devam Ediyor', completed_date: '' },
+                      ])}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[11px] font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Yeni Faaliyet Ekle
+                    </button>
+                  </div>
+
+                  {actionItems.length === 0 && (
+                    <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-[11px]">
+                      Henüz faaliyet eklenmemiş.
+                    </div>
+                  )}
+
+                  {actionItems.map((item, idx) => (
+                    <div key={idx} className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          Faaliyet {idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActionItems(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className={labelCls}>Gerçekleştirilecek Faaliyet</label>
+                        <textarea
+                          value={item.action_description}
+                          onChange={e => setActionItems(prev => {
+                            const u = [...prev]; u[idx] = { ...u[idx], action_description: e.target.value }; return u;
+                          })}
+                          rows={3}
+                          className={`${inputCls} resize-none`}
+                          placeholder="Yapılacak faaliyet detayı..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className={labelCls}>Sorumlu Kişi</label>
+                          <div className="relative">
+                            <select
+                              value={item.responsible_person}
+                              onChange={e => setActionItems(prev => {
+                                const u = [...prev]; u[idx] = { ...u[idx], responsible_person: e.target.value }; return u;
+                              })}
+                              className={`${inputCls} appearance-none pr-8`}
+                            >
+                              <option value="">-- Personel Seçin --</option>
+                              {profiles.map(p => (
+                                <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={labelCls}>Termin Tarihi</label>
+                          <input
+                            type="date"
+                            value={item.deadline}
+                            onChange={e => setActionItems(prev => {
+                              const u = [...prev]; u[idx] = { ...u[idx], deadline: e.target.value }; return u;
+                            })}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Durum</label>
+                          <select
+                            value={item.status}
+                            onChange={e => {
+                              const newStatus = e.target.value;
+                              setActionItems(prev => {
+                                const u = [...prev];
+                                u[idx] = {
+                                  ...u[idx],
+                                  status: newStatus,
+                                  completed_date: newStatus === 'Tamamlandı' && !u[idx].completed_date
+                                    ? new Date().toISOString().split('T')[0]
+                                    : newStatus !== 'Tamamlandı' ? '' : u[idx].completed_date,
+                                };
+                                return u;
+                              });
+                            }}
+                            className={inputCls}
+                          >
+                            <option>Devam Ediyor</option>
+                            <option>Tamamlandı</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {item.status === 'Tamamlandı' && (
+                        <div className="max-w-xs">
+                          <label className={labelCls}>Tamamlanma Tarihi</label>
+                          <input
+                            type="date"
+                            value={item.completed_date}
+                            onChange={e => setActionItems(prev => {
+                              const u = [...prev]; u[idx] = { ...u[idx], completed_date: e.target.value }; return u;
+                            })}
+                            className={inputCls}
+                          />
+                        </div>
+                      )}
+
+                      {item.id && (
+                        <div className="pt-3 border-t border-slate-200">
+                          <SignaturesSection
+                            moduleKey="ca_action_item"
+                            recordId={item.id}
+                            onLockChange={() => {}}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
