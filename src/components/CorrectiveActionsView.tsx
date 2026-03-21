@@ -178,7 +178,7 @@ export default function CorrectiveActionsView() {
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
                     {[
-                      { key: 'ca_number', label: 'CA No', cls: 'w-28' },
+                      { key: 'ca_number', label: 'DF No', cls: 'w-28' },
                       { key: 'nc_number', label: 'NC No', cls: 'w-28' },
                       { key: 'action_description', label: 'Faaliyet Açıklaması', cls: '' },
                       { key: 'responsible_user', label: 'Sorumlu', cls: 'w-36' },
