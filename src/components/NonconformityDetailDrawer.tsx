@@ -75,7 +75,7 @@ const RCA_CATEGORY_LABELS: Record<string, string> = {
   management: 'Yönetim',
 };
 
-type Tab = 'rca' | 'ca' | 'signatures';
+type Tab = 'general' | 'impact' | 'analysis' | 'actions' | 'signatures';
 
 interface Props {
   ncId: string;
@@ -89,7 +89,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
 
   const [nc, setNc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('rca');
+  const [activeTab, setActiveTab] = useState<Tab>('general');
 
   const [rcaList, setRcaList] = useState<any[]>([]);
   const [rcaLoading, setRcaLoading] = useState(true);
@@ -506,30 +506,42 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   const sev = nc ? (SEVERITY_LABELS[nc.severity] || { label: nc.severity, className: 'bg-gray-100 text-gray-700 border-gray-200' }) : null;
   const st = nc ? (STATUS_CONFIG[nc.status] || { label: nc.status, className: 'bg-gray-100 text-gray-700 border-gray-200', icon: null }) : null;
 
+  const identifiedByName = nc?.identified_by
+    ? (profiles.find(p => p.id === nc.identified_by)?.full_name || '-')
+    : '-';
+
+  const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
+    { key: 'general', label: 'Genel Bilgi', icon: <ClipboardCheck className="w-3.5 h-3.5" /> },
+    { key: 'impact', label: 'Uygunsuzluk Etki', icon: <Activity className="w-3.5 h-3.5" /> },
+    { key: 'analysis', label: 'Analiz', icon: <AlertTriangle className="w-3.5 h-3.5" />, count: rcaList.length },
+    { key: 'actions', label: 'Düzeltici Faaliyetler', icon: <Wrench className="w-3.5 h-3.5" />, count: caList.length },
+    { key: 'signatures', label: 'İmzalar', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
+  ];
+
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
 
-      {/* Drawer */}
       <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-5 h-5 text-amber-300" />
-            <div>
-              <div className="text-xs text-slate-300 font-medium">Uygunsuzluk Analizi</div>
-              <div className="text-base font-bold leading-tight">{loading ? '...' : (nc?.nc_number || '-')}</div>
-            </div>
+
+        {/* FIXED HEADER */}
+        <div className="flex-shrink-0 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: '#1e293b' }}>
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Uygunsuzluk Detayı</p>
+            <p className="text-xl font-bold text-white leading-tight">
+              {loading ? '...' : (nc?.nc_number || '-')}
+            </p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            {st && nc && (
+              <span className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${st.className}`}>
+                {st.icon}{st.label}
+              </span>
+            )}
             <button
               onClick={handleExportPdf}
               disabled={pdfExporting || loading}
-              className="flex items-center gap-1.5 hover:bg-white/20 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold disabled:opacity-50"
+              className="flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold disabled:opacity-50"
               title="PDF olarak indir"
             >
               {pdfExporting ? (
@@ -541,473 +553,519 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
             </button>
             <button
               onClick={onClose}
-              className="hover:bg-white/20 p-2 rounded-lg transition-colors"
+              className="text-slate-300 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Info cards */}
+        {/* FIXED SUMMARY BAR */}
         {!loading && nc && (
-          <div className="flex-shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-4 max-h-[55vh] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-3">
-              <InfoRow label="Tespit Tarihi" value={nc.detection_date ? new Date(nc.detection_date).toLocaleDateString('tr-TR') : '-'} />
-              <InfoRow label="Tespit Noktası" value={SOURCE_LABELS[nc.source] || nc.source || '-'} />
-              <div className="col-span-2">
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Uygunsuzluk Tanımı</span>
-                    {!descEditMode ? (
-                      <button
-                        type="button"
-                        onClick={() => setDescEditMode(true)}
-                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                      >
-                        Düzenle
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleDescriptionSave}
-                          disabled={descSaving}
-                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
-                        >
-                          <Save className="w-3 h-3" />
-                          {descSaving ? 'Kaydediliyor...' : 'Kaydet'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setDescEditMode(false); setDescriptionText(nc.description || ''); }}
-                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                        >
-                          İptal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    {descEditMode ? (
-                      <textarea
-                        value={descriptionText}
-                        onChange={e => setDescriptionText(e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
-                        placeholder="Uygunsuzluk tanımını girin..."
-                      />
-                    ) : (
-                      <p className="text-[12px] text-slate-800 font-medium leading-relaxed">{nc.description || '-'}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {nc.identified_by && (
-                <div className="col-span-2">
-                  <InfoRow
-                    label="Uygunsuzluğu Tanımlayan"
-                    value={profiles.find(p => p.id === nc.identified_by)?.full_name || '-'}
-                  />
-                </div>
-              )}
-              <div className="flex items-center gap-4 flex-wrap col-span-2">
-                <div>
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Şiddet</span>
-                  {sev && (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${sev.className}`}>
-                      {sev.label}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Tekrarlama Riski</span>
-                  <span className="text-[11px] font-medium text-slate-700">{RECURRENCE_LABELS[nc.recurrence_risk] || nc.recurrence_risk || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Kalibrasyon Etkisi</span>
-                  <span className="text-[11px] font-medium text-slate-700">{CALIBRATION_LABELS[nc.calibration_impact] || nc.calibration_impact || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Durum</span>
-                  {st && (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${st.className}`}>
-                      {st.icon}{st.label}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {Array.isArray(nc.analysis_team) && nc.analysis_team.length > 0 && (
-                <div className="col-span-2">
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    <Users className="w-3 h-3" />
-                    Analiz Ekibi
+          <div className="flex-shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-3">
+            <div className="grid grid-cols-4 gap-3">
+              <SummaryCell
+                label="Tespit Tarihi"
+                value={nc.detection_date ? new Date(nc.detection_date).toLocaleDateString('tr-TR') : '-'}
+              />
+              <SummaryCell
+                label="Kaynak"
+                value={SOURCE_LABELS[nc.source] || nc.source || '-'}
+              />
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Şiddet</p>
+                {sev ? (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${sev.className}`}>
+                    {sev.label}
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(nc.analysis_team as string[]).map(memberId => {
-                      const member = profiles.find(p => p.id === memberId);
-                      if (!member) return null;
-                      return (
-                        <span
-                          key={memberId}
-                          className="inline-flex flex-col items-start px-2 py-1 rounded-md bg-slate-100 border border-slate-200"
-                        >
-                          <span className="text-[11px] font-semibold text-slate-800 leading-tight">{member.full_name}</span>
-                          {member.job_title && (
-                            <span className="text-[9px] text-slate-500 leading-tight">{member.job_title}</span>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Summary / Analysis divider */}
-              <div className="col-span-2 my-2">
-                <div className="border-t-2 border-dashed border-slate-300" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Analiz &amp; Etki Değerlendirmesi</p>
+                ) : <span className="text-[11px] text-slate-500">-</span>}
               </div>
-
-              {/* Impact Analysis Section */}
-              <div className="col-span-2 mt-1">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <Activity className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Uygunsuzluğun Etkisi</span>
-                </div>
-                <div className="space-y-2.5">
-                  <ImpactRow
-                    field="impact_inappropriate_calibration"
-                    label="Uygunsuzluğun içeriği UYGUN OLMAYAN KALİBRASYON İŞİ – mahiyetinde mi?"
-                    value={nc.impact_inappropriate_calibration ?? false}
-                    saving={impactSaving === 'impact_inappropriate_calibration'}
-                    onToggle={handleImpactToggle}
-                  />
-                  <ImpactRow
-                    field="impact_requires_stoppage"
-                    label="Uygunsuzluk herhangi bir kalibrasyonun durdurulmasını, tekrarlanmasını veya raporların bekletilmesini gerektiriyor mu?"
-                    value={nc.impact_requires_stoppage ?? false}
-                    saving={impactSaving === 'impact_requires_stoppage'}
-                    onToggle={handleImpactToggle}
-                    note={nc.impact_requires_stoppage ? 'Evet ise; Kalibrasyon Durdurma Formu doldurulması gerekiyor.' : undefined}
-                  />
-                  <ImpactRow
-                    field="impact_recurrence_possible"
-                    label="Uygunsuzluğun ileride aynı yerde veya başka yerlerde tekrarlanma ihtimali var mı?"
-                    value={nc.impact_recurrence_possible ?? false}
-                    saving={impactSaving === 'impact_recurrence_possible'}
-                    onToggle={handleImpactToggle}
-                  />
-                  <ImpactRow
-                    field="impact_requires_extended_analysis"
-                    label="Uygunsuzluğun etkisi, Düzeltici Faaliyet açılmasını gerektiriyor mu?"
-                    value={nc.impact_requires_extended_analysis ?? false}
-                    saving={impactSaving === 'impact_requires_extended_analysis'}
-                    onToggle={handleImpactToggle}
-                    note={nc.impact_requires_extended_analysis && caList.length > 0 ? 'Evet — Bu uygunsuzluk için zaten bir DF kaydı mevcut.' : undefined}
-                  />
-                </div>
-              </div>
-
-              {/* Yayılım Analizi Card */}
-              <div className="col-span-2 mt-2">
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <GitBranch className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Yayılım Analizi</span>
-                    </div>
-                    {!spreadEditMode ? (
-                      <button
-                        type="button"
-                        onClick={() => setSpreadEditMode(true)}
-                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                      >
-                        {nc.spread_analysis ? 'Düzenle' : 'Ekle'}
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleSpreadSave}
-                          disabled={spreadSaving}
-                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
-                        >
-                          <Save className="w-3 h-3" />
-                          {spreadSaving ? 'Kaydediliyor...' : 'Kaydet'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setSpreadEditMode(false); setSpreadAnalysis(nc.spread_analysis || ''); }}
-                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                        >
-                          İptal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    {spreadEditMode ? (
-                      <textarea
-                        value={spreadAnalysis}
-                        onChange={e => setSpreadAnalysis(e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
-                        placeholder="Uygunsuzluğun ne kadar alana yayıldığını ve kapsamını açıklayın..."
-                      />
-                    ) : nc.spread_analysis ? (
-                      <p className="text-[12px] text-slate-700 leading-relaxed">{nc.spread_analysis}</p>
-                    ) : (
-                      <p className="text-[11px] text-slate-400 italic py-1">Henüz yayılım analizi girilmemiş.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Referans Card */}
-              <div className="col-span-2 mt-2">
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <GitBranch className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Referans</span>
-                    </div>
-                    {!refEditMode ? (
-                      <button
-                        type="button"
-                        onClick={() => setRefEditMode(true)}
-                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                      >
-                        {nc.nc_reference ? 'Düzenle' : 'Ekle'}
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleRefSave}
-                          disabled={refSaving}
-                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
-                        >
-                          <Save className="w-3 h-3" />
-                          {refSaving ? 'Kaydediliyor...' : 'Kaydet'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setRefEditMode(false); setNcReference(nc.nc_reference || ''); }}
-                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                        >
-                          İptal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    {refEditMode ? (
-                      <textarea
-                        value={ncReference}
-                        onChange={e => setNcReference(e.target.value)}
-                        rows={2}
-                        className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
-                        placeholder="İlgili doküman, standart maddesi veya referans numarası..."
-                      />
-                    ) : nc.nc_reference ? (
-                      <p className="text-[12px] text-slate-700 leading-relaxed">{nc.nc_reference}</p>
-                    ) : (
-                      <p className="text-[11px] text-slate-400 italic py-1">Henüz referans girilmemiş.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Düzeltme Faaliyeti Section */}
-              <div className="col-span-2 mt-2">
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Wrench className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Düzeltme Faaliyeti</span>
-                      <span className="text-[9px] text-slate-400 font-normal">(Uygunsuzluğa karşı ilk tepki)</span>
-                    </div>
-                    {!correctionEditMode ? (
-                      <button
-                        type="button"
-                        onClick={() => setCorrectionEditMode(true)}
-                        className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                      >
-                        {nc.correction_action ? 'Düzenle' : 'Ekle'}
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleCorrectionSave}
-                          disabled={correctionSaving}
-                          className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
-                        >
-                          <Save className="w-3 h-3" />
-                          {correctionSaving ? 'Kaydediliyor...' : 'Kaydet'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCorrectionEditMode(false);
-                            setCorrectionAction(nc.correction_action || '');
-                            setCorrectionResponsible(nc.correction_responsible || '');
-                            setCorrectionDeadline(nc.correction_deadline || '');
-                          }}
-                          className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
-                        >
-                          İptal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4">
-                    {correctionEditMode ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Düzeltme Açıklaması</label>
-                          <textarea
-                            value={correctionAction}
-                            onChange={e => setCorrectionAction(e.target.value)}
-                            rows={3}
-                            className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
-                            placeholder="Uygunsuzluğa karşı alınan ilk düzeltme tedbirini açıklayın..."
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Sorumlu</label>
-                            <select
-                              value={correctionResponsible}
-                              onChange={e => setCorrectionResponsible(e.target.value)}
-                              className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                            >
-                              <option value="">-- Seçiniz --</option>
-                              {profiles.map(p => (
-                                <option key={p.id} value={p.id}>{p.full_name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Termin Tarihi</label>
-                            <input
-                              type="date"
-                              value={correctionDeadline}
-                              onChange={e => setCorrectionDeadline(e.target.value)}
-                              className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ) : nc.correction_action ? (
-                      <div className="space-y-3">
-                        <p className="text-[12px] text-slate-700 leading-relaxed">{nc.correction_action}</p>
-                        <div className="flex items-center gap-4 flex-wrap pt-1 border-t border-slate-100">
-                          {nc.correction_responsible && (
-                            <div>
-                              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-0.5">Sorumlu</span>
-                              <span className="text-[11px] font-semibold text-slate-700">{nc.correction_responsible}</span>
-                            </div>
-                          )}
-                          {nc.correction_deadline && (
-                            <div>
-                              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-0.5">Termin</span>
-                              <span className={`text-[11px] font-semibold ${new Date(nc.correction_deadline) < new Date() ? 'text-red-600' : 'text-slate-700'}`}>
-                                {new Date(nc.correction_deadline).toLocaleDateString('tr-TR')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-slate-400 italic py-1">Henüz düzeltme faaliyeti belirlenmemiş.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <SummaryCell label="Sorumlu" value={identifiedByName} />
             </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex-shrink-0 flex border-b border-gray-200 bg-white">
-          <TabButton active={activeTab === 'rca'} onClick={() => setActiveTab('rca')} icon={<AlertTriangle className="w-3.5 h-3.5" />} label="Kök Neden Analizi" count={rcaList.length} />
-          <TabButton
-            active={activeTab === 'ca'}
-            onClick={() => {
-              setActiveTab('ca');
-              if (nc) {
-                setSelectedCA(caList.length > 0 ? caList[0] : null);
-                setDfFormOpen(true);
-              }
-            }}
-            icon={<ClipboardCheck className="w-3.5 h-3.5" />}
-            label="Düzeltici Faaliyetler"
-            count={caList.length}
-          />
-          <TabButton active={activeTab === 'signatures'} onClick={() => setActiveTab('signatures')} icon={<ShieldCheck className="w-3.5 h-3.5" />} label="İmza ve Onay" />
+        {/* TAB NAVIGATION */}
+        <div className="flex-shrink-0 flex border-b border-gray-200 bg-white overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 px-3 py-3 text-[11px] font-semibold border-b-2 transition-all whitespace-nowrap flex-1 justify-center min-w-0 ${
+                activeTab === tab.key
+                  ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {tab.icon}
+              <span className="hidden sm:inline truncate">{tab.label}</span>
+              {tab.count !== undefined && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                  activeTab === tab.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
-          {/* RCA Tab */}
-          {activeTab === 'rca' && (
-            <div className="p-4 space-y-3">
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setRcaModalOpen(true)}
-                  className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Kök Neden Ekle
-                </button>
-              </div>
+        {/* TAB CONTENT */}
+        <div className="flex-1 overflow-y-auto bg-white">
 
-              {rcaLoading ? (
-                <div className="flex items-center justify-center h-24">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
+          {/* TAB 1: Genel Bilgi */}
+          {activeTab === 'general' && (
+            <div className="p-5 space-y-5">
+              {loading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600" />
                 </div>
-              ) : rcaList.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 text-sm">
-                  <AlertTriangle className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-                  Henüz kök neden analizi eklenmemiş
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {rcaList.map(item => (
-                    <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-start gap-3 hover:border-slate-300 transition-colors">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap mt-0.5">
-                        {RCA_CATEGORY_LABELS[item.rca_category] || item.rca_category}
-                      </span>
-                      <p className="text-[12px] text-gray-700 flex-1 leading-relaxed">{item.rca_description}</p>
-                      {isManager && (
+              ) : nc ? (
+                <>
+                  {/* Uygunsuzluk Tanımı */}
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Uygunsuzluk Tanımı</span>
+                      {!descEditMode ? (
                         <button
-                          onClick={() => handleRcaDelete(item.id)}
-                          className="text-red-400 hover:text-red-600 p-1 rounded transition-colors flex-shrink-0"
+                          type="button"
+                          onClick={() => setDescEditMode(true)}
+                          className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          Düzenle
                         </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleDescriptionSave}
+                            disabled={descSaving}
+                            className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                          >
+                            <Save className="w-3 h-3" />
+                            {descSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDescEditMode(false); setDescriptionText(nc.description || ''); }}
+                            className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                          >
+                            İptal
+                          </button>
+                        </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="p-4">
+                      {descEditMode ? (
+                        <textarea
+                          value={descriptionText}
+                          onChange={e => setDescriptionText(e.target.value)}
+                          rows={4}
+                          className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                          placeholder="Uygunsuzluk tanımını girin..."
+                        />
+                      ) : (
+                        <p className="text-[12px] text-slate-800 font-medium leading-relaxed">{nc.description || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2-col grid: Tekrar Riski | Kalibrasyon Etkisi */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tekrar Riski</p>
+                      <p className="text-[13px] font-semibold text-slate-700">
+                        {RECURRENCE_LABELS[nc.recurrence_risk] || nc.recurrence_risk || '-'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Kalibrasyon Etkisi</p>
+                      <p className="text-[13px] font-semibold text-slate-700">
+                        {CALIBRATION_LABELS[nc.calibration_impact] || nc.calibration_impact || '-'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 2-col grid: Analiz Ekibi | Oluşturma Tarihi */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Users className="w-3 h-3 text-slate-400" />
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Analiz Ekibi</p>
+                      </div>
+                      {Array.isArray(nc.analysis_team) && nc.analysis_team.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(nc.analysis_team as string[]).map(memberId => {
+                            const member = profiles.find(p => p.id === memberId);
+                            if (!member) return null;
+                            return (
+                              <span key={memberId} className="inline-block px-2 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-semibold text-slate-700">
+                                {member.full_name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 italic">Belirtilmemiş</p>
+                      )}
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Oluşturma Tarihi</p>
+                      <p className="text-[13px] font-semibold text-slate-700">
+                        {nc.created_at ? new Date(nc.created_at).toLocaleDateString('tr-TR') : '-'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Düzeltme Faaliyeti */}
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Düzeltme Faaliyeti</span>
+                        <span className="text-[9px] text-slate-400">(İlk tepki)</span>
+                      </div>
+                      {!correctionEditMode ? (
+                        <button
+                          type="button"
+                          onClick={() => setCorrectionEditMode(true)}
+                          className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                        >
+                          {nc.correction_action ? 'Düzenle' : 'Ekle'}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleCorrectionSave}
+                            disabled={correctionSaving}
+                            className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                          >
+                            <Save className="w-3 h-3" />
+                            {correctionSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCorrectionEditMode(false);
+                              setCorrectionAction(nc.correction_action || '');
+                              setCorrectionResponsible(nc.correction_responsible || '');
+                              setCorrectionDeadline(nc.correction_deadline || '');
+                            }}
+                            className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                          >
+                            İptal
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      {correctionEditMode ? (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Düzeltme Açıklaması</label>
+                            <textarea
+                              value={correctionAction}
+                              onChange={e => setCorrectionAction(e.target.value)}
+                              rows={3}
+                              className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                              placeholder="Uygunsuzluğa karşı alınan ilk düzeltme tedbirini açıklayın..."
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Sorumlu</label>
+                              <select
+                                value={correctionResponsible}
+                                onChange={e => setCorrectionResponsible(e.target.value)}
+                                className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                              >
+                                <option value="">-- Seçiniz --</option>
+                                {profiles.map(p => (
+                                  <option key={p.id} value={p.id}>{p.full_name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Termin Tarihi</label>
+                              <input
+                                type="date"
+                                value={correctionDeadline}
+                                onChange={e => setCorrectionDeadline(e.target.value)}
+                                className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : nc.correction_action ? (
+                        <div className="space-y-3">
+                          <p className="text-[12px] text-slate-700 leading-relaxed">{nc.correction_action}</p>
+                          <div className="flex items-center gap-4 flex-wrap pt-1 border-t border-slate-100">
+                            {nc.correction_responsible && (
+                              <div>
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-0.5">Sorumlu</span>
+                                <span className="text-[11px] font-semibold text-slate-700">{nc.correction_responsible}</span>
+                              </div>
+                            )}
+                            {nc.correction_deadline && (
+                              <div>
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mb-0.5">Termin</span>
+                                <span className={`text-[11px] font-semibold ${new Date(nc.correction_deadline) < new Date() ? 'text-red-600' : 'text-slate-700'}`}>
+                                  {new Date(nc.correction_deadline).toLocaleDateString('tr-TR')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 italic">Henüz düzeltme faaliyeti belirlenmemiş.</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           )}
 
-          {/* CA Tab */}
-          {activeTab === 'ca' && (
-            <div className="p-4 space-y-3">
+          {/* TAB 2: Uygunsuzluk Etki */}
+          {activeTab === 'impact' && (
+            <div className="p-5">
+              {loading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600" />
+                </div>
+              ) : nc ? (
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <Activity className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Uygunsuzluğun Etkisi</span>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    <ImpactRow
+                      field="impact_inappropriate_calibration"
+                      label="Uygunsuzluğun içeriği UYGUN OLMAYAN KALİBRASYON İŞİ – mahiyetinde mi?"
+                      value={nc.impact_inappropriate_calibration ?? false}
+                      saving={impactSaving === 'impact_inappropriate_calibration'}
+                      onToggle={handleImpactToggle}
+                    />
+                    <ImpactRow
+                      field="impact_requires_stoppage"
+                      label="Uygunsuzluk herhangi bir kalibrasyonun durdurulmasını, tekrarlanmasını veya raporların bekletilmesini gerektiriyor mu?"
+                      value={nc.impact_requires_stoppage ?? false}
+                      saving={impactSaving === 'impact_requires_stoppage'}
+                      onToggle={handleImpactToggle}
+                      note={nc.impact_requires_stoppage ? 'Evet ise; Kalibrasyon Durdurma Formu doldurulması gerekiyor.' : undefined}
+                    />
+                    <ImpactRow
+                      field="impact_recurrence_possible"
+                      label="Uygunsuzluğun ileride aynı yerde veya başka yerlerde tekrarlanma ihtimali var mı?"
+                      value={nc.impact_recurrence_possible ?? false}
+                      saving={impactSaving === 'impact_recurrence_possible'}
+                      onToggle={handleImpactToggle}
+                    />
+                    <ImpactRow
+                      field="impact_requires_extended_analysis"
+                      label="Uygunsuzluğun etkisi, Düzeltici Faaliyet açılmasını gerektiriyor mu?"
+                      value={nc.impact_requires_extended_analysis ?? false}
+                      saving={impactSaving === 'impact_requires_extended_analysis'}
+                      onToggle={handleImpactToggle}
+                      note={nc.impact_requires_extended_analysis && caList.length > 0 ? 'Evet — Bu uygunsuzluk için zaten bir DF kaydı mevcut.' : undefined}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* TAB 3: Analiz */}
+          {activeTab === 'analysis' && (
+            <div className="p-5 space-y-5">
+              {/* Kök Neden Listesi */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-slate-500" />
+                    <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Kök Neden Analizi</h3>
+                    <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                      {rcaList.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRcaModalOpen(true)}
+                    className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-[11px] font-semibold"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Ekle
+                  </button>
+                </div>
+
+                {rcaLoading ? (
+                  <div className="flex items-center justify-center h-20">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-600" />
+                  </div>
+                ) : rcaList.length === 0 ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                    <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-slate-200" />
+                    <p className="text-[11px] text-slate-400">Henüz kök neden analizi eklenmemiş</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {rcaList.map(item => (
+                      <div key={item.id} className="bg-white border border-slate-200 rounded-lg p-3 flex items-start gap-3 hover:border-slate-300 transition-colors">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap mt-0.5">
+                          {RCA_CATEGORY_LABELS[item.rca_category] || item.rca_category}
+                        </span>
+                        <p className="text-[12px] text-slate-700 flex-1 leading-relaxed">{item.rca_description}</p>
+                        {isManager && (
+                          <button
+                            onClick={() => handleRcaDelete(item.id)}
+                            className="text-red-400 hover:text-red-600 p-1 rounded transition-colors flex-shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Yayılım Analizi */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Yayılım Analizi</span>
+                  </div>
+                  {!spreadEditMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setSpreadEditMode(true)}
+                      className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                    >
+                      {nc?.spread_analysis ? 'Düzenle' : 'Ekle'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSpreadSave}
+                        disabled={spreadSaving}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                      >
+                        <Save className="w-3 h-3" />
+                        {spreadSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setSpreadEditMode(false); setSpreadAnalysis(nc?.spread_analysis || ''); }}
+                        className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                      >
+                        İptal
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  {spreadEditMode ? (
+                    <textarea
+                      value={spreadAnalysis}
+                      onChange={e => setSpreadAnalysis(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                      placeholder="Uygunsuzluğun ne kadar alana yayıldığını ve kapsamını açıklayın..."
+                    />
+                  ) : nc?.spread_analysis ? (
+                    <p className="text-[12px] text-slate-700 leading-relaxed">{nc.spread_analysis}</p>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic">Henüz yayılım analizi girilmemiş.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Referans */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Referans</span>
+                  </div>
+                  {!refEditMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setRefEditMode(true)}
+                      className="text-[10px] font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                    >
+                      {nc?.nc_reference ? 'Düzenle' : 'Ekle'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleRefSave}
+                        disabled={refSaving}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-white bg-slate-700 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-all disabled:opacity-60"
+                      >
+                        <Save className="w-3 h-3" />
+                        {refSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRefEditMode(false); setNcReference(nc?.nc_reference || ''); }}
+                        className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 px-2.5 py-1 rounded-md transition-all"
+                      >
+                        İptal
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  {refEditMode ? (
+                    <textarea
+                      value={ncReference}
+                      onChange={e => setNcReference(e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+                      placeholder="İlgili doküman, standart maddesi veya referans numarası..."
+                    />
+                  ) : nc?.nc_reference ? (
+                    <p className="text-[12px] text-slate-700 leading-relaxed">{nc.nc_reference}</p>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic">Henüz referans girilmemiş.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: Düzeltici Faaliyetler */}
+          {activeTab === 'actions' && (
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-slate-500" />
+                  <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Düzeltici Faaliyetler</h3>
+                  <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                    {caList.length}
+                  </span>
+                </div>
+                <button
+                  onClick={() => { setSelectedCA(null); setDfFormOpen(true); }}
+                  className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors text-[11px] font-semibold"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Yeni DF Ekle
+                </button>
+              </div>
+
               {caLoading ? (
                 <div className="flex items-center justify-center h-24">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600" />
                 </div>
               ) : caList.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 text-sm">
+                <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
                   <ClipboardCheck className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-                  Henüz düzeltici faaliyet eklenmemiş
+                  <p className="text-[11px] text-slate-400">Henüz düzeltici faaliyet eklenmemiş</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1018,11 +1076,8 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white border rounded-lg p-3 transition-colors cursor-pointer hover:border-blue-300 hover:bg-blue-50/20 ${isOverdue ? 'border-red-200 bg-red-50/30' : 'border-gray-200'}`}
-                        onClick={() => {
-                          setSelectedCA(item);
-                          setDfFormOpen(true);
-                        }}
+                        className={`bg-white border rounded-lg p-3 transition-colors cursor-pointer hover:border-blue-300 hover:bg-blue-50/20 ${isOverdue ? 'border-red-200 bg-red-50/30' : 'border-slate-200'}`}
+                        onClick={() => { setSelectedCA(item); setDfFormOpen(true); }}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -1059,13 +1114,13 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                             )}
                           </div>
                         </div>
-                        <p className="text-[12px] text-gray-700 mt-1.5 leading-relaxed">{item.action_description || '-'}</p>
+                        <p className="text-[12px] text-slate-700 mt-1.5 leading-relaxed">{item.action_description || '-'}</p>
                         <div className="flex items-center gap-3 mt-2 flex-wrap">
-                          <span className="text-[10px] text-gray-500">
+                          <span className="text-[10px] text-slate-500">
                             <span className="font-semibold">Sorumlu:</span> {item.responsible_user || '-'}
                           </span>
                           {item.planned_completion_date && (
-                            <span className={`text-[10px] font-medium ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                            <span className={`text-[10px] font-medium ${isOverdue ? 'text-red-600' : 'text-slate-500'}`}>
                               <span className="font-semibold">Planlanan:</span> {new Date(item.planned_completion_date).toLocaleDateString('tr-TR')}
                             </span>
                           )}
@@ -1078,9 +1133,9 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
             </div>
           )}
 
-          {/* Signatures Tab */}
+          {/* TAB 5: İmzalar */}
           {activeTab === 'signatures' && (
-            <div className="p-4">
+            <div className="p-5">
               <SignaturesSection
                 moduleKey="nonconformities"
                 recordId={ncId}
@@ -1163,7 +1218,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
             setSelectedCA(null);
             fetchCa();
             onRefresh();
-            setActiveTab('ca');
+            setActiveTab('actions');
           }}
         />
       )}
@@ -1243,11 +1298,11 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function SummaryCell({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">{label}</span>
-      <span className="text-[12px] text-slate-800 font-medium">{value}</span>
+    <div className="min-w-0">
+      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 truncate">{label}</p>
+      <p className="text-[11px] font-semibold text-slate-700 truncate" title={value}>{value}</p>
     </div>
   );
 }
@@ -1262,32 +1317,32 @@ function ImpactRow({ field, label, value, note, saving, onToggle, onNoteClick }:
   onNoteClick?: () => void;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-100 last:border-0">
-      <div className="flex-1">
-        <p className="text-[11px] text-slate-700 leading-snug">{label}</p>
+    <div className="flex items-start justify-between gap-4 px-4 py-4">
+      <div className="flex-1 min-w-0">
+        <p className="text-[12px] text-slate-700 leading-snug">{label}</p>
         {note && value && (
           onNoteClick ? (
             <button
               type="button"
               onClick={onNoteClick}
-              className="text-[10px] text-blue-700 font-semibold mt-1 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded inline-block hover:bg-blue-100 transition-colors cursor-pointer"
+              className="text-[10px] text-blue-700 font-semibold mt-1.5 bg-blue-50 border border-blue-200 px-2 py-1 rounded inline-block hover:bg-blue-100 transition-colors cursor-pointer"
             >
               {note}
             </button>
           ) : (
-            <p className="text-[10px] text-amber-700 font-semibold mt-1 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">{note}</p>
+            <p className="text-[10px] text-amber-700 font-semibold mt-1.5 bg-amber-50 border border-amber-200 px-2 py-1 rounded inline-block">{note}</p>
           )
         )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        {saving ? (
+        {saving && (
           <div className="w-4 h-4 rounded-full border-2 border-slate-400 border-t-transparent animate-spin" />
-        ) : null}
+        )}
         <button
           type="button"
           disabled={saving}
           onClick={() => onToggle(field, false)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all disabled:opacity-50 ${
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all disabled:opacity-50 ${
             !value
               ? 'bg-slate-700 text-white border-slate-700'
               : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600'
@@ -1299,7 +1354,7 @@ function ImpactRow({ field, label, value, note, saving, onToggle, onNoteClick }:
           type="button"
           disabled={saving}
           onClick={() => onToggle(field, true)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all disabled:opacity-50 ${
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all disabled:opacity-50 ${
             value
               ? 'bg-red-600 text-white border-red-600'
               : 'bg-white text-slate-400 border-slate-200 hover:border-red-300 hover:text-red-500'
@@ -1309,28 +1364,5 @@ function ImpactRow({ field, label, value, note, saving, onToggle, onNoteClick }:
         </button>
       </div>
     </div>
-  );
-}
-
-function TabButton({ active, onClick, icon, label, count }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count?: number;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors flex-1 justify-center ${
-        active
-          ? 'border-slate-700 text-slate-800 bg-slate-50'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-      }`}
-    >
-      {icon}
-      <span className="hidden sm:inline">{label}</span>
-      {count !== undefined && (
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${active ? 'bg-slate-700 text-white' : 'bg-gray-100 text-gray-500'}`}>
-          {count}
-        </span>
-      )}
-    </button>
   );
 }
