@@ -25,9 +25,6 @@ interface ExistingCA {
   action_description?: string;
   responsible_user?: string;
   planned_completion_date?: string;
-  df_customer_affected?: boolean;
-  df_customer_notified?: boolean;
-  df_report_recall?: boolean;
   action_fulfilled?: boolean;
   fulfillment_date?: string;
   status?: string;
@@ -183,9 +180,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [actionDecision, setActionDecision]                     = useState(existingCA?.action_description || '');
   const [plannedDate, setPlannedDate]                           = useState(existingCA?.planned_completion_date || '');
   const [responsibleName, setResponsibleName]                   = useState(existingCA?.responsible_user || '');
-  const [customerAffected, setCustomerAffected]                 = useState(existingCA?.df_customer_affected ?? false);
-  const [customerNotified, setCustomerNotified]                 = useState(existingCA?.df_customer_notified ?? false);
-  const [reportRecall, setReportRecall]                         = useState(existingCA?.df_report_recall ?? false);
+
   const [actionFulfilled, setActionFulfilled]                   = useState(existingCA?.action_fulfilled ?? false);
   const [fulfillmentDate, setFulfillmentDate]                   = useState(existingCA?.fulfillment_date || '');
   const [monitoringPeriod, setMonitoringPeriod]                 = useState(existingCA?.monitoring_period || '');
@@ -292,9 +287,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
       const payload: any = {
         action_description: actionDecision,
         responsible_user: responsibleName || null,
-        df_customer_affected: customerAffected,
-        df_customer_notified: customerNotified,
-        df_report_recall: reportRecall,
         action_fulfilled: actionFulfilled,
         planned_completion_date: plannedDate || null,
         fulfillment_date: fulfillmentDate || null,
@@ -403,9 +395,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
           action_description: actionDecision,
           responsible_user: resolvedResponsible,
           planned_completion_date: plannedDate,
-          df_customer_affected: customerAffected,
-          df_customer_notified: customerNotified,
-          df_report_recall: reportRecall,
           action_fulfilled: actionFulfilled,
           fulfillment_date: fulfillmentDate,
           status: existingCA?.status,
@@ -619,29 +608,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                         </option>
                       ))}
                     </select>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Müşteri Etki Değerlendirmesi</span>
-                  </div>
-                  <div className="px-4 py-1">
-                    <CheckboxRow
-                      label="Uygunsuzluktan etkilenen müşteri var mı?"
-                      value={customerAffected}
-                      onChange={setCustomerAffected}
-                    />
-                    <CheckboxRow
-                      label="Varsa bilgilendirildi mi?"
-                      value={customerNotified}
-                      onChange={setCustomerNotified}
-                    />
-                    <CheckboxRow
-                      label="Verilen bir raporun geri çağrılması gerekiyor mu?"
-                      value={reportRecall}
-                      onChange={setReportRecall}
-                    />
                   </div>
                 </div>
 

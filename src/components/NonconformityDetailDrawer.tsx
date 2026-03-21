@@ -529,7 +529,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         {/* FIXED HEADER */}
         <div className="flex-shrink-0 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: '#1e293b' }}>
           <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Uygunsuzluk Detayı</p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Uygunsuzluk Analizi</p>
             <p className="text-xl font-bold text-white leading-tight">
               {loading ? '...' : (nc?.nc_number || '-')}
             </p>
@@ -857,6 +857,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600" />
                 </div>
               ) : nc ? (
+                <>
                 <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
                     <Activity className="w-3.5 h-3.5 text-slate-500" />
@@ -895,6 +896,37 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                     />
                   </div>
                 </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mt-4">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <Activity className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Müşteri Etki Değerlendirmesi</span>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    <ImpactRow
+                      field="customer_affected"
+                      label="Uygunsuzluktan etkilenen müşteri var mı?"
+                      value={nc.customer_affected ?? false}
+                      saving={impactSaving === 'customer_affected'}
+                      onToggle={handleImpactToggle}
+                    />
+                    <ImpactRow
+                      field="customer_notified"
+                      label="Varsa bilgilendirildi mi?"
+                      value={nc.customer_notified ?? false}
+                      saving={impactSaving === 'customer_notified'}
+                      onToggle={handleImpactToggle}
+                    />
+                    <ImpactRow
+                      field="report_recall"
+                      label="Verilen bir raporun geri çağrılması gerekiyor mu?"
+                      value={nc.report_recall ?? false}
+                      saving={impactSaving === 'report_recall'}
+                      onToggle={handleImpactToggle}
+                    />
+                  </div>
+                </div>
+                </>
               ) : null}
             </div>
           )}
