@@ -411,7 +411,7 @@ function App() {
           ) : activeModule.id === 'nonconformities' ? (
             <NonconformitiesView autoOpenRecordId={autoOpenNcId} onNcOpened={() => setAutoOpenNcId(null)} onNavigateToFeedback={handleNavigateToFeedback} onNavigateToCA={handleNavigateToCA} />
           ) : activeModule.id === 'corrective_actions' ? (
-            <CorrectiveActionsView autoOpenCaId={autoOpenCaId} onCaOpened={() => setAutoOpenCaId(null)} />
+            <CorrectiveActionsView autoOpenCaId={autoOpenCaId} onCaOpened={() => setAutoOpenCaId(null)} onNavigateToNC={handleNavigateToNC} />
           ) : activeModule.id === 'equipment_hardware' ? (
             <ModuleView module={activeModule} userRole={role} autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
           ) : (

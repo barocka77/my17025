@@ -19,9 +19,10 @@ const caStatusConfig: Record<string, { label: string; className: string; icon: R
 interface CorrectiveActionsViewProps {
   autoOpenCaId?: string | null;
   onCaOpened?: () => void;
+  onNavigateToNC?: (ncId: string) => void;
 }
 
-export default function CorrectiveActionsView({ autoOpenCaId, onCaOpened }: CorrectiveActionsViewProps = {}) {
+export default function CorrectiveActionsView({ autoOpenCaId, onCaOpened, onNavigateToNC }: CorrectiveActionsViewProps = {}) {
   const { role } = useAuth();
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
 
@@ -223,10 +224,20 @@ export default function CorrectiveActionsView({ autoOpenCaId, onCaOpened }: Corr
                         </td>
                         <td className="px-3 py-2 text-[11px] whitespace-nowrap">
                           {item.nonconformities?.nc_number ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-semibold text-[10px]">
-                              <Link className="w-2.5 h-2.5" />
-                              {item.nonconformities.nc_number}
-                            </span>
+                            onNavigateToNC ? (
+                              <button
+                                onClick={e => { e.stopPropagation(); onNavigateToNC(item.nonconformities.id); }}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-semibold text-[10px] hover:bg-amber-100 hover:border-amber-300 transition-colors cursor-pointer"
+                              >
+                                <Link className="w-2.5 h-2.5" />
+                                {item.nonconformities.nc_number}
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-semibold text-[10px]">
+                                <Link className="w-2.5 h-2.5" />
+                                {item.nonconformities.nc_number}
+                              </span>
+                            )
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}
