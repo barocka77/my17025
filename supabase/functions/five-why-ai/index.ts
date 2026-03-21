@@ -11,22 +11,22 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  const respond = (body: object) =>
+    new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   try {
     const { prompt } = await req.json();
 
     if (!prompt) {
-      return new Response(JSON.stringify({ error: "Prompt is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "Prompt is required" });
     }
 
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "ANTHROPIC_API_KEY not configured" });
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -37,30 +37,22 @@ Deno.serve(async (req: Request) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 512,
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      return new Response(JSON.stringify({ error: `Anthropic API error: ${errText}` }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: `Anthropic API hatası: ${errText}` });
     }
 
     const data = await response.json();
     const result = data.content?.[0]?.text ?? "";
 
-    return new Response(JSON.stringify({ result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond({ result });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message ?? "Internal error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond({ error: err.message ?? "Internal error" });
   }
 });
