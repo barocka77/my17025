@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CheckCircle, ChevronRight, RotateCcw, Save, Loader2, Info, CloudOff } from 'lucide-react';
+import { CheckCircle, ChevronRight, RotateCcw, Save, Loader2, Info, CloudOff, Lightbulb } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface WhyStep {
@@ -39,12 +39,18 @@ function buildSummaryPrompt(ncDescription: string, steps: WhyStep[]): string {
   return `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${ncDescription}\n5 Why analizi tamamlandı:\n${lines}\n\nBu analize göre kök nedeni tek cümleyle özetle. Sadece özeti yaz, başka hiçbir şey yazma.`;
 }
 
+function buildCorrectionPrompt(ncDescription: string, rootCauseSummary: string): string {
+  return `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${ncDescription}\n\n5 Why analizi sonucunda tespit edilen kök neden:\n${rootCauseSummary}\n\nBu kök nedeni ortadan kaldırmak için somut ve uygulanabilir bir düzeltici faaliyet önerisi yaz.\n- Tek paragraf, maksimum 3 cümle\n- Açık ve uygulanabilir adımlar içersin\n- ISO 17025 gerekliliklerine uygun olsun\n- Sadece öneriyi yaz, başka hiçbir şey yazma.`;
+}
+
 export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props) {
   const [started, setStarted] = useState(false);
   const [steps, setSteps] = useState<WhyStep[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [summary, setSummary] = useState('');
+  const [correctionSuggestion, setCorrectionSuggestion] = useState('');
+  const [correctionLoading, setCorrectionLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -53,6 +59,7 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
   const [draftRestored, setDraftRestored] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const userIdRef = useRef<string | null>(null);
+  const correctionGeneratedForRef = useRef<string>('');
 
   const currentStep = steps.length + 1;
   const isComplete = steps.length === 5 && summary !== '';
@@ -60,6 +67,25 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
   useEffect(() => {
     loadDraft();
   }, [ncId]);
+
+  useEffect(() => {
+    if (isComplete && summary && correctionSuggestion === '' && !correctionLoading && correctionGeneratedForRef.current !== summary) {
+      generateCorrectionSuggestion(summary);
+    }
+  }, [isComplete, summary]);
+
+  const generateCorrectionSuggestion = async (rootCauseSummary: string) => {
+    correctionGeneratedForRef.current = rootCauseSummary;
+    setCorrectionLoading(true);
+    try {
+      const result = await callFiveWhyAI(buildCorrectionPrompt(ncDescription, rootCauseSummary));
+      setCorrectionSuggestion(result.trim());
+    } catch (e: any) {
+      console.error('Düzeltici faaliyet önerisi alınamadı:', e);
+    } finally {
+      setCorrectionLoading(false);
+    }
+  };
 
   const loadDraft = async () => {
     setDraftLoading(true);
@@ -162,6 +188,7 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
         const trimmedSum = sum.trim();
         setSummary(trimmedSum);
         await saveDraft(newSteps, '', trimmedSum);
+        generateCorrectionSuggestion(trimmedSum);
       } else {
         const q = await callFiveWhyAI(buildNextPrompt(ncDescription, newSteps, newSteps.length + 1));
         const question = q.trim();
@@ -188,6 +215,8 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
     setCurrentQuestion(prev.question);
     setCurrentAnswer(prev.answer);
     setSummary('');
+    setCorrectionSuggestion('');
+    correctionGeneratedForRef.current = '';
     setSteps(newSteps);
     setAiError(null);
     saveDraft(newSteps, prev.question, '');
@@ -204,6 +233,7 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
         rca_category: 'five_why',
         rca_description: summary,
         root_cause_summary: summary,
+        corrective_action_suggestion: correctionSuggestion || null,
       };
       steps.forEach((s, i) => {
         payload[`why_${i + 1}_question`] = s.question;
@@ -397,6 +427,22 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
                 <p className="text-[13px] font-semibold text-emerald-900 leading-relaxed">{summary}</p>
               </div>
 
+              {/* Corrective Action Suggestion */}
+              {correctionLoading ? (
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-500">
+                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                  <span className="text-[12px]">Düzeltici faaliyet önerisi hazırlanıyor...</span>
+                </div>
+              ) : correctionSuggestion ? (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
+                    <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Önerilen Düzeltici Faaliyet</span>
+                  </div>
+                  <p className="text-[13px] text-blue-900 leading-relaxed">{correctionSuggestion}</p>
+                </div>
+              ) : null}
+
               {aiError && (
                 <div className="flex items-start gap-2 bg-red-50 border border-red-300 px-3 py-2.5 rounded-lg">
                   <span className="text-red-500 text-[11px] font-bold flex-shrink-0 mt-0.5">Hata:</span>
@@ -415,7 +461,7 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || correctionLoading}
                   className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 transition-all font-semibold text-[12px] disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
