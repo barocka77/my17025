@@ -15,16 +15,16 @@ const PAGE_BOTTOM = 275;
 const TOP_MARGIN = 25;
 
 const SOURCE_LABELS: Record<string, string> = {
-  internal_audit: 'Ic Tetkik',
-  external_audit: 'Dis Tetkik',
-  customer_feedback: 'Musteri Geri Bildirimi',
+  internal_audit: 'İç Tetkik',
+  external_audit: 'Dış Tetkik',
+  customer_feedback: 'Müşteri Geri Bildirimi',
   risk_analysis: 'Risk Analizi',
-  data_control: 'Veri Kontrolu',
-  lak: 'Laboratuvarlar Arasi Karsilastirma (LAK)',
-  pak: 'Personeller Arasi Karsilastirma (PAK)',
-  personnel_observation: 'Personel Gozlemi',
+  data_control: 'Veri Kontrolü',
+  lak: 'Laboratuvarlar Arası Karşılaştırma (LAK)',
+  pak: 'Personeller Arası Karşılaştırma (PAK)',
+  personnel_observation: 'Personel Gözlemi',
   ineffective_df: 'Etkisiz DF',
-  other: 'Diger',
+  other: 'Diğer',
 };
 
 const SOURCE_ABBR: Record<string, string> = {
@@ -41,38 +41,38 @@ const SOURCE_ABBR: Record<string, string> = {
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
-  minor: 'Dusuk',
+  minor: 'Düşük',
   major: 'Orta',
   critical: 'Kritik',
 };
 
 const RECURRENCE_LABELS: Record<string, string> = {
-  low: 'Dusuk',
+  low: 'Düşük',
   medium: 'Orta',
-  high: 'Yuksek',
+  high: 'Yüksek',
 };
 
 const CALIBRATION_LABELS: Record<string, string> = {
   none: 'Etkisi Yok',
-  potential: 'Etkileme Ihtimali',
+  potential: 'Etkileme İhtimali',
   confirmed: 'Etkiledi',
 };
 
 const RCA_CATEGORY_LABELS: Record<string, string> = {
-  human: 'Insan',
-  method: 'Yontem',
+  human: 'İnsan',
+  method: 'Yöntem',
   equipment: 'Ekipman',
   environment: 'Ortam',
   material: 'Materyal',
-  management: 'Yonetim',
+  management: 'Yönetim',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  open: 'Acik',
+  open: 'Açık',
   analysis: 'Analiz',
   action_required: 'Aksiyon Gerekli',
-  monitoring: 'Izlemede',
-  closed: 'Kapali',
+  monitoring: 'İzlemede',
+  closed: 'Kapalı',
 };
 
 const formatDate = (d: string | null | undefined): string => {
@@ -217,7 +217,7 @@ function addImzaliWatermark(doc: jsPDF) {
     doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(72);
     doc.setTextColor(34, 139, 34);
-    doc.text('IMZALI', pw / 2, ph / 2, { align: 'center', angle: 45 });
+    doc.text('İMZALI', pw / 2, ph / 2, { align: 'center', angle: 45 });
     doc.restoreGraphicsState();
   }
 }
@@ -317,7 +317,7 @@ function drawSignatureBoxes(
     doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('IMZA BILGISI', bx + 3, by + 4.5);
+    doc.text('İMZA BİLGİSİ', bx + 3, by + 4.5);
 
     doc.setDrawColor(...BORDER_COLOR);
     doc.setLineWidth(0.1);
@@ -346,7 +346,7 @@ function drawSignatureBoxes(
     lineY += 4;
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('Imza Tarihi:', labelX, lineY);
+    doc.text('İmza Tarihi:', labelX, lineY);
     doc.setFont(FONT_NAME, 'normal');
     doc.setTextColor(...TEXT_DARK);
     doc.text(sig ? formatDateTime(sig.signed_at) : '-', valueX, lineY);
@@ -500,12 +500,12 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   const leftRows = [
     ['NC No', nc.nc_number || '-'],
     ['Tespit Tarihi', formatDate(nc.detection_date)],
-    ['Tespit Noktasi', SOURCE_LABELS[nc.source] || nc.source || '-'],
-    ['Kayit Tarihi', formatDate(nc.created_at)],
+    ['Tespit Noktası', SOURCE_LABELS[nc.source] || nc.source || '-'],
+    ['Kayıt Tarihi', formatDate(nc.created_at)],
   ];
 
   const rightRows = [
-    ['Siddet', SEVERITY_LABELS[nc.severity] || nc.severity || '-'],
+    ['Şiddet', SEVERITY_LABELS[nc.severity] || nc.severity || '-'],
     ['Tekrarlama Riski', RECURRENCE_LABELS[nc.recurrence_risk] || nc.recurrence_risk || '-'],
     ['Kalibrasyon Etkisi', CALIBRATION_LABELS[nc.calibration_impact] || nc.calibration_impact || '-'],
     ['Durum', STATUS_LABELS[nc.status] || nc.status || '-'],
@@ -521,7 +521,7 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   const leftX = margin;
   const rightX = margin + colWidth + gap;
 
-  const leftY = drawSectionHeader(doc, 'UYGUNSUZLUK BILGILERI', y, leftX, colWidth);
+  const leftY = drawSectionHeader(doc, 'UYGUNSUZLUK BİLGİLERİ', y, leftX, colWidth);
   const rightY = drawSectionHeader(doc, 'TANILAMA', y, rightX, colWidth);
 
   const leftStyles = columnTableStyles(colWidth, leftX);
@@ -539,11 +539,11 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
     const sectionH = 9 + estimateTextBlockHeight(doc, 'Uygunsuzluk Tanimi', nc.description || '-', contentWidth);
     y = ensureSectionFits(doc, sectionH, y);
   }
-  y = drawSectionHeader(doc, 'ICERIK', y, margin, contentWidth);
-  y = drawTextBlock(doc, 'Uygunsuzluk Tanimi', nc.description || '-', y, margin, contentWidth);
+  y = drawSectionHeader(doc, 'İÇERİK', y, margin, contentWidth);
+  y = drawTextBlock(doc, 'Uygunsuzluk Tanımı', nc.description || '-', y, margin, contentWidth);
 
   if (nc.identified_by_name) {
-    const rows = [['Uygunsuzlugu Tanimlayan', nc.identified_by_name]];
+    const rows = [['Uygunsuzluğu Tanımlayan', nc.identified_by_name]];
     autoTable(doc, { ...fwStyles, startY: y, body: rows });
     y = (doc as any).lastAutoTable.finalY + 3;
   }
@@ -557,14 +557,14 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   // 3. UYGUNSUZLUGUN ETKISI
   {
     const impactRows = [
-      ['Uygun Olmayan Kalibrasyon', nc.impact_inappropriate_calibration ? 'Evet' : 'Hayir'],
-      ['Kalibrasyon Durdurma Gerekiyor', nc.impact_requires_stoppage ? 'Evet' : 'Hayir'],
-      ['Tekrarlama Ihtimali', nc.impact_recurrence_possible ? 'Evet' : 'Hayir'],
-      ['DF Acilmasi Gerekiyor', nc.impact_requires_extended_analysis ? 'Evet' : 'Hayir'],
+      ['Uygun Olmayan Kalibrasyon', nc.impact_inappropriate_calibration ? 'Evet' : 'Hayır'],
+      ['Kalibrasyon Durdurma Gerekiyor', nc.impact_requires_stoppage ? 'Evet' : 'Hayır'],
+      ['Tekrarlama İhtimali', nc.impact_recurrence_possible ? 'Evet' : 'Hayır'],
+      ['DF Açılması Gerekiyor', nc.impact_requires_extended_analysis ? 'Evet' : 'Hayır'],
     ];
     const sectionH = 9 + estimateTableHeight(impactRows.length) + 2;
     y = ensureSectionFits(doc, sectionH, y);
-    y = drawSectionHeader(doc, 'UYGUNSUZLUGUN ETKISI', y, margin, contentWidth, AMBER_COLOR);
+    y = drawSectionHeader(doc, 'UYGUNSUZLUĞUN ETKİSİ', y, margin, contentWidth, AMBER_COLOR);
     autoTable(doc, { ...fwStyles, startY: y, body: impactRows });
     y = (doc as any).lastAutoTable.finalY + 6;
   }
@@ -572,13 +572,13 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   // 4. DUZELTME FAALIYETI
   {
     const correctionRows = [
-      ['Duzeltme Aciklamasi', nc.correction_action || '-'],
+      ['Düzeltme Açıklaması', nc.correction_action || '-'],
       ['Sorumlu', nc.correction_responsible_name || nc.correction_responsible || '-'],
       ['Termin Tarihi', formatDate(nc.correction_deadline)],
     ];
     const sectionH = 9 + estimateTableHeight(correctionRows.length) + 2;
     y = ensureSectionFits(doc, sectionH, y);
-    y = drawSectionHeader(doc, 'DUZELTME FAALIYETI', y, margin, contentWidth);
+    y = drawSectionHeader(doc, 'DÜZELTME FAALİYETİ', y, margin, contentWidth);
     autoTable(doc, { ...fwStyles, startY: y, body: correctionRows });
     y = (doc as any).lastAutoTable.finalY + 6;
   }
@@ -595,13 +595,13 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
 
     const sectionH = 9 + estimateTableHeight(rcaRows.length + 1) + 4;
     y = ensureSectionFits(doc, sectionH, y);
-    y = drawSectionHeader(doc, 'KOK NEDEN ANALIZI', y, margin, contentWidth);
+    y = drawSectionHeader(doc, 'KÖK NEDEN ANALİZİ', y, margin, contentWidth);
 
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin },
       theme: 'plain' as const,
-      head: [['#', 'Kategori', 'Aciklama']],
+      head: [['#', 'Kategori', 'Açıklama']],
       body: rcaRows,
       styles: {
         font: FONT_NAME,
@@ -630,10 +630,10 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   // 6. PLANLAMA VE AKSIYON (DÜZELTİCİ FAALİYETLER)
   {
     const statusMap: Record<string, string> = {
-      'Planlandı': 'Planlandi',
-      'İşlemde': 'Islemde',
-      'Tamamlandı': 'Tamamlandi',
-      'Kapalı': 'Kapali',
+      'Planlandı': 'Planlandı',
+      'İşlemde': 'İşlemde',
+      'Tamamlandı': 'Tamamlandı',
+      'Kapalı': 'Kapalı',
     };
 
     const caRows = correctiveActions.length > 0
@@ -650,7 +650,7 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
 
     const sectionH = 9 + estimateTableHeight(caRows.length + 1) + 4;
     y = ensureSectionFits(doc, sectionH, y);
-    y = drawSectionHeader(doc, 'DUZELTICI FAALIYETLER', y, margin, contentWidth, TEAL_COLOR);
+    y = drawSectionHeader(doc, 'DÜZELTİCİ FAALİYETLER', y, margin, contentWidth, TEAL_COLOR);
 
     autoTable(doc, {
       startY: y,
@@ -700,7 +700,7 @@ export const generateNcPDF = async (options: GenerateNcPdfOptions) => {
   );
 
   if (hasAnySignature) {
-    const eNotice = 'Bu dokuman elektronik ortamda imzalanmistir. Imza kayitlari sistem veritabaninda dogrulanabilir.';
+    const eNotice = 'Bu doküman elektronik ortamda imzalanmıştır. İmza kayıtları sistem veritabanında doğrulanabilir.';
     doc.setFont(FONT_NAME, 'normal');
     doc.setFontSize(6.5);
     const textLeftOffset = 12;

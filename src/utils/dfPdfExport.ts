@@ -20,30 +20,30 @@ const LOGO_WIDTH = 28;
 const LOGO_HEIGHT = 20;
 
 const SOURCE_LABELS: Record<string, string> = {
-  internal_audit: 'Ic Tetkik',
-  external_audit: 'Dis Tetkik',
-  customer_feedback: 'Musteri Geri Bildirimi',
+  internal_audit: 'İç Tetkik',
+  external_audit: 'Dış Tetkik',
+  customer_feedback: 'Müşteri Geri Bildirimi',
   risk_analysis: 'Risk Analizi',
-  personnel_observation: 'Personel Gozlemi',
-  data_control: 'Veri Kontrolu',
-  lak: 'Laboratuvarlar Arasi Karsilastirma (LAK)',
-  pak: 'Personeller Arasi Karsilastirma (PAK)',
+  personnel_observation: 'Personel Gözlemi',
+  data_control: 'Veri Kontrolü',
+  lak: 'Laboratuvarlar Arası Karşılaştırma (LAK)',
+  pak: 'Personeller Arası Karşılaştırma (PAK)',
   ineffective_df: 'Etkisiz DF',
-  other: 'Diger',
+  other: 'Diğer',
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
-  minor: 'Dusuk',
+  minor: 'Düşük',
   major: 'Orta',
   critical: 'Kritik',
 };
 
 const CA_STATUS_LABELS: Record<string, string> = {
-  open: 'Acik',
-  'Planlandı': 'Planlandi',
-  'İşlemde': 'Islemde',
-  'Tamamlandı': 'Tamamlandi',
-  'Kapalı': 'Kapali',
+  open: 'Açık',
+  'Planlandı': 'Planlandı',
+  'İşlemde': 'İşlemde',
+  'Tamamlandı': 'Tamamlandı',
+  'Kapalı': 'Kapalı',
 };
 
 const TURKISH_MAP: Record<string, string> = {
@@ -64,7 +64,7 @@ const formatDate = (d: string | null | undefined): string => {
 };
 
 function yesNo(val: boolean | null | undefined): string {
-  return val ? 'Evet' : 'Hayir';
+  return val ? 'Evet' : 'Hayır';
 }
 
 async function registerFonts(doc: jsPDF) {
@@ -228,7 +228,7 @@ function drawAnalysisTeamBoxes(
     doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('ANALIZ EKIBI UYESI', bx + 3, by + 4.5);
+    doc.text('ANALİZ EKİBİ ÜYESİ', bx + 3, by + 4.5);
 
     doc.setDrawColor(...BORDER_COLOR);
     doc.setLineWidth(0.1);
@@ -240,7 +240,7 @@ function drawAnalysisTeamBoxes(
 
     const fields = [
       { label: 'Ad Soyad:', value: member.full_name },
-      { label: 'Gorev:', value: member.job_title || '-' },
+      { label: 'Görev:', value: member.job_title || '-' },
     ];
     for (const f of fields) {
       doc.setFont(FONT_NAME, 'bold');
@@ -256,7 +256,7 @@ function drawAnalysisTeamBoxes(
     doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('Imza:', lx, ly);
+    doc.text('İmza:', lx, ly);
     doc.setDrawColor(190, 200, 215);
     doc.setLineWidth(0.15);
     doc.line(vx, ly, bx + boxWidth - 4, ly);
@@ -339,7 +339,7 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
   await registerFonts(doc);
 
   const docCode = 'FR.14';
-  const docName = 'Duzeltici Faaliyet Formu';
+  const docName = 'Düzeltici Faaliyet Formu';
   const revNo = '01';
   const revDate = '17.03.2026';
 
@@ -392,8 +392,8 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
     const leftRows = [
       ['NC No', nc.nc_number || '-'],
       ['Tespit Tarihi', formatDate(nc.detection_date)],
-      ['Tespit Noktasi', SOURCE_LABELS[nc.source] || nc.source || '-'],
-      ['Siddet', SEVERITY_LABELS[nc.severity] || nc.severity || '-'],
+      ['Tespit Noktası', SOURCE_LABELS[nc.source] || nc.source || '-'],
+      ['Şiddet', SEVERITY_LABELS[nc.severity] || nc.severity || '-'],
     ];
     const rightRows = [
       ['DF No', ca.ca_number || '-'],
@@ -408,8 +408,8 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
 
     const lx = margin;
     const rx = margin + colWidth + gap;
-    const ly = drawSectionHeader(doc, 'UYGUNSUZLUK BILGILERI', y, lx, colWidth);
-    const ry = drawSectionHeader(doc, 'FAALIYET BILGILERI', y, rx, colWidth);
+    const ly = drawSectionHeader(doc, 'UYGUNSUZLUK BİLGİLERİ', y, lx, colWidth);
+    const ry = drawSectionHeader(doc, 'FAALİYET BİLGİLERİ', y, rx, colWidth);
 
     autoTable(doc, { ...columnTableStyles(colWidth, lx), startY: ly, body: leftRows });
     const lfy = (doc as any).lastAutoTable.finalY;
@@ -424,27 +424,27 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
     const sh = 9 + estimateTextBlockHeight(doc, 'Uygunsuzluk Tanimi', nc.description || '-', contentWidth);
     y = ensureSectionFits(doc, sh, y);
   }
-  y = drawSectionHeader(doc, 'ICERIK', y, margin, contentWidth);
-  y = drawTextBlock(doc, 'Uygunsuzluk Tanimi', nc.description || '-', y, margin, contentWidth);
+  y = drawSectionHeader(doc, 'İÇERİK', y, margin, contentWidth);
+  y = drawTextBlock(doc, 'Uygunsuzluk Tanımı', nc.description || '-', y, margin, contentWidth);
 
   // 3. KARAR VERILEN FAALIYET
   {
     const sh = 9 + estimateTextBlockHeight(doc, 'Karar Verilen Faaliyet', ca.action_description || '-', contentWidth);
     y = ensureSectionFits(doc, sh, y);
   }
-  y = drawSectionHeader(doc, 'KARAR VERILEN FAALIYET', y, margin, contentWidth, TEAL_COLOR);
+  y = drawSectionHeader(doc, 'KARAR VERİLEN FAALİYET', y, margin, contentWidth, TEAL_COLOR);
   y = drawTextBlock(doc, 'Karar Verilen Faaliyet', ca.action_description || '-', y, margin, contentWidth);
 
   // 4. MUSTERI ETKISI
   {
     const rows = [
-      ['Etkilenen Musteri Var Mi', yesNo(ca.df_customer_affected)],
-      ['Musteri Bilgilendirildi Mi', yesNo(ca.df_customer_notified)],
-      ['Rapor Geri Cagrisi Gerekiyor Mu', yesNo(ca.df_report_recall)],
+      ['Etkilenen Müşteri Var mı', yesNo(ca.df_customer_affected)],
+      ['Müşteri Bilgilendirildi mi', yesNo(ca.df_customer_notified)],
+      ['Rapor Geri Çağrısı Gerekiyor mu', yesNo(ca.df_report_recall)],
     ];
     const sh = 9 + estimateTableHeight(rows.length) + 2;
     y = ensureSectionFits(doc, sh, y);
-    y = drawSectionHeader(doc, 'MUSTERI ETKISI', y, margin, contentWidth, AMBER_COLOR);
+    y = drawSectionHeader(doc, 'MÜŞTERİ ETKİSİ', y, margin, contentWidth, AMBER_COLOR);
     autoTable(doc, { ...fwStyles, startY: y, body: rows });
     y = (doc as any).lastAutoTable.finalY + 6;
   }
@@ -452,13 +452,13 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
   // 5. FAALIYET TAKIBI
   {
     const rows: string[][] = [
-      ['Faaliyet Yerine Getirildi Mi', yesNo(ca.action_fulfilled)],
+      ['Faaliyet Yerine Getirildi mi', yesNo(ca.action_fulfilled)],
       ['Tamamlanma Tarihi', formatDate(ca.fulfillment_date)],
-      ['Etkinlik Izleme Bitis Tarihi', formatDate(ca.monitoring_period)],
+      ['Etkinlik İzleme Bitiş Tarihi', formatDate(ca.monitoring_period)],
     ];
     const sh = 9 + estimateTableHeight(rows.length) + 2;
     y = ensureSectionFits(doc, sh, y);
-    y = drawSectionHeader(doc, 'FAALIYET TAKIBI', y, margin, contentWidth, GREEN_COLOR);
+    y = drawSectionHeader(doc, 'FAALİYET TAKİBİ', y, margin, contentWidth, GREEN_COLOR);
     autoTable(doc, { ...fwStyles, startY: y, body: rows });
     y = (doc as any).lastAutoTable.finalY + 6;
   }
@@ -466,20 +466,20 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
   // 6. YENIDEN OLUSMA TAKIBI
   {
     const rows: string[][] = [
-      ['Uygunsuzluk Gorulemedi Mi', yesNo(ca.no_recurrence_observed)],
-      ['Gorulememe Tarihi', formatDate(ca.no_recurrence_date)],
-      ['Uygunsuzluk Tekrar Etti Mi', yesNo(ca.recurrence_observed)],
+      ['Uygunsuzluk Görülemedi mi', yesNo(ca.no_recurrence_observed)],
+      ['Görülememe Tarihi', formatDate(ca.no_recurrence_date)],
+      ['Uygunsuzluk Tekrar Etti mi', yesNo(ca.recurrence_observed)],
       ['Tekrar Tarihi', formatDate(ca.recurrence_date)],
     ];
     const sh = 9 + estimateTableHeight(rows.length) + 2;
     y = ensureSectionFits(doc, sh, y);
     const color = ca.recurrence_observed ? RED_COLOR : PRIMARY_COLOR;
-    y = drawSectionHeader(doc, 'YENIDEN OLUSMA TAKIBI', y, margin, contentWidth, color);
+    y = drawSectionHeader(doc, 'YENİDEN OLUŞMA TAKİBİ', y, margin, contentWidth, color);
     autoTable(doc, { ...fwStyles, startY: y, body: rows });
     y = (doc as any).lastAutoTable.finalY + 6;
 
     if (ca.recurrence_observed) {
-      const notice = 'Duzeltici faaliyet sonrasinda uygunsuzluk tekrar etmistir. Takip NC kaydina bakiniz.';
+      const notice = 'Düzeltici faaliyet sonrasında uygunsuzluk tekrar etmiştir. Takip NC kaydına bakınız.';
       const lines = doc.splitTextToSize(notice, contentWidth - 8);
       const nh = lines.length * 3 + 6;
       y = ensureSpace(doc, nh + 4, y);
@@ -495,7 +495,7 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
     }
 
     if (ca.no_recurrence_observed && !ca.recurrence_observed) {
-      const notice = 'Duzeltici faaliyet etkin bulunmustur. Uygunsuzluk izleme sureci tamamlanmistir.';
+      const notice = 'Düzeltici faaliyet etkin bulunmuştur. Uygunsuzluk izleme süreci tamamlanmıştır.';
       const lines = doc.splitTextToSize(notice, contentWidth - 8);
       const nh = lines.length * 3 + 6;
       y = ensureSpace(doc, nh + 4, y);
@@ -517,7 +517,7 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
     const rows = Math.ceil(analysisTeam.length / perRow);
     const sh = 9 + rows * 34 + 2;
     y = ensureSectionFits(doc, sh, y);
-    y = drawSectionHeader(doc, 'ANALIZ EKIBI ONAY / IMZALAR', y, margin, contentWidth);
+    y = drawSectionHeader(doc, 'ANALİZ EKİBİ ONAY / İMZALAR', y, margin, contentWidth);
     y = drawAnalysisTeamBoxes(doc, analysisTeam, y, margin, contentWidth);
   }
 

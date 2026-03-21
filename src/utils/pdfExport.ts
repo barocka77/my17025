@@ -28,12 +28,25 @@ const getStatusLabel = (status: string): string => {
   return statusLabels[status] || status;
 };
 
+const FONT_NAME = 'Roboto';
+
+async function registerFonts(doc: jsPDF) {
+  const { ROBOTO_REGULAR, ROBOTO_BOLD } = await import('./robotoFontData');
+  doc.addFileToVFS('Roboto-Regular.ttf', ROBOTO_REGULAR);
+  doc.addFileToVFS('Roboto-Bold.ttf', ROBOTO_BOLD);
+  doc.addFont('Roboto-Regular.ttf', FONT_NAME, 'normal');
+  doc.addFont('Roboto-Bold.ttf', FONT_NAME, 'bold');
+  doc.setFont(FONT_NAME, 'normal');
+}
+
 export const generateFR35PDF = async (equipment: EquipmentData, docMeta?: DocumentMeta) => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   });
+
+  await registerFonts(doc);
 
   const revNo = docMeta?.rev_no || '';
   const revDate = docMeta?.revizyon_tarihi ? formatRevDate(docMeta.revizyon_tarihi) : '';
@@ -44,7 +57,7 @@ export const generateFR35PDF = async (equipment: EquipmentData, docMeta?: Docume
 
   let yPosition = 20;
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(FONT_NAME, 'bold');
   doc.setFontSize(18);
   doc.text(docMeta?.dokuman_adi || 'CİHAZ BİLGİ FORMU', pageWidth / 2, yPosition, { align: 'center' });
 
@@ -61,10 +74,10 @@ export const generateFR35PDF = async (equipment: EquipmentData, docMeta?: Docume
     }
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(FONT_NAME, 'bold');
     doc.text(label, margin, yPosition);
 
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFont(FONT_NAME, bold ? 'bold' : 'normal');
     doc.setFontSize(11);
     const valueText = value || '-';
     doc.text(valueText, margin + 60, yPosition);
@@ -82,7 +95,7 @@ export const generateFR35PDF = async (equipment: EquipmentData, docMeta?: Docume
     doc.setFillColor(240, 240, 240);
     doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
 
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(12);
     doc.text(title, margin + 2, yPosition);
 
@@ -112,7 +125,7 @@ export const generateFR35PDF = async (equipment: EquipmentData, docMeta?: Docume
   yPosition += 20;
   doc.setLineWidth(0.3);
   doc.line(margin, yPosition, margin + 70, yPosition);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(FONT_NAME, 'normal');
   doc.setFontSize(9);
   doc.text('Tarih ve İmza', margin, yPosition + 5);
 

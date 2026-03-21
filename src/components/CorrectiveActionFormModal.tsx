@@ -320,7 +320,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
             <FileText className="w-5 h-5 text-blue-200" />
             <div>
               <div className="text-xs text-blue-200 font-medium">
-                {isEdit ? 'DÜZELTİCİ FAALİYET DÜZENLE' : 'DÜZELTİCİ FAALİYET FORMU'}
+                {'DÜZELTİCİ FAALİYET FORMU'}
               </div>
               <div className="text-sm font-bold leading-tight">
                 {isEdit && existingCA?.ca_number ? existingCA.ca_number : nc.nc_number}

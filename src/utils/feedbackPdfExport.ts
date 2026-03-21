@@ -304,7 +304,7 @@ function addImzaliWatermark(doc: jsPDF) {
     const cx = pw / 2;
     const cy = ph / 2;
 
-    doc.text('IMZALI', cx, cy, {
+    doc.text('İMZALI', cx, cy, {
       align: 'center',
       angle: 45,
     });
@@ -426,7 +426,7 @@ function drawSignatureBoxes(
     doc.setFont(FONT_NAME, 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('IMZA BILGISI', bx + 3, by + 4.5);
+    doc.text('İMZA BİLGİSİ', bx + 3, by + 4.5);
 
     if (isSigned && sig) {
       const iconX = bx + boxWidth - 8;
@@ -467,7 +467,7 @@ function drawSignatureBoxes(
     lineY += 4;
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('Imza Tarihi:', labelX, lineY);
+    doc.text('İmza Tarihi:', labelX, lineY);
     doc.setFont(FONT_NAME, 'normal');
     doc.setTextColor(...TEXT_DARK);
     doc.text(sig ? formatDateTime(sig.signed_at) : '-', valueX, lineY);
@@ -581,7 +581,7 @@ export const generateFeedbackPDF = async (
   const leftRows = [
     ['Form Tarihi', formatDate(data.form_date)],
     ['Bildirim No', data.application_no || '-'],
-    ['Iletisim Kanali', data.communication_channel || '-'],
+    ['İletişim Kanalı', data.communication_channel || '-'],
     ['Geri Bildr. Alan', data.received_by || '-'],
   ];
 
@@ -602,8 +602,8 @@ export const generateFeedbackPDF = async (
   const leftX = margin;
   const rightX = margin + colWidth + gap;
 
-  const leftY = drawSectionHeader(doc, 'BASVURU BILGILERI', y, leftX, colWidth);
-  const rightY = drawSectionHeader(doc, 'GERI BILDIRIM SAHIBI', y, rightX, colWidth);
+  const leftY = drawSectionHeader(doc, 'BAŞVURU BİLGİLERİ', y, leftX, colWidth);
+  const rightY = drawSectionHeader(doc, 'GERİ BİLDİRİM SAHİBİ', y, rightX, colWidth);
 
   const leftStyles = columnTableStyles(colWidth, leftX);
   autoTable(doc, { ...leftStyles, startY: leftY, body: leftRows });
@@ -622,8 +622,8 @@ export const generateFeedbackPDF = async (
     const sectionHeight = 9 + estimateTextBlockHeight(doc, 'Konu (Detayli Aciklama)', data.content_details || '-', contentWidth);
     y = ensureSectionFits(doc, sectionHeight, y);
   }
-  y = drawSectionHeader(doc, 'ICERIK', y, margin, contentWidth);
-  y = drawTextBlock(doc, 'Konu (Detayli Aciklama)', data.content_details || '-', y, margin, contentWidth);
+  y = drawSectionHeader(doc, 'İÇERİK', y, margin, contentWidth);
+  y = drawTextBlock(doc, 'Konu (Detaylı Açıklama)', data.content_details || '-', y, margin, contentWidth);
 
   // 3. IZAHAT
   {
@@ -635,31 +635,31 @@ export const generateFeedbackPDF = async (
       + (izahatSigGroup ? estimateSignatureGroupHeight(izahatSigGroup) : 0);
     y = ensureSectionFits(doc, izahatSectionHeight, y);
 
-    y = drawSectionHeader(doc, 'IZAHAT', y, margin, contentWidth);
+    y = drawSectionHeader(doc, 'İZAHAT', y, margin, contentWidth);
 
     autoTable(doc, { ...fwStyles, startY: y, body: izahatRows });
     y = (doc as any).lastAutoTable.finalY + 3;
-    y = drawTextBlock(doc, 'Bildirim Muhatabi Izahati', data.izahat_text || '-', y, margin, contentWidth);
+    y = drawTextBlock(doc, 'Bildirim Muhatabi İzahatı', data.izahat_text || '-', y, margin, contentWidth);
 
     if (izahatSigGroup) {
-      y = drawSignatureSectionLabel(doc, 'Izahat Sahibi Imzasi', y, margin);
+      y = drawSignatureSectionLabel(doc, 'İzahat Sahibi İmzası', y, margin);
       y = drawSignatureBoxes(doc, izahatSigGroup, y, margin, contentWidth);
     }
   }
 
   // 4. SORUMLULUK KARARI
   const validityMap: Record<string, string> = {
-    'Geçerli/Uygun': 'KABUL / Gecerli / Uygun',
-    'Geçersiz/Uygun Değil': 'RET / Gecersiz / Uygun Degil',
+    'Geçerli/Uygun': 'KABUL / Geçerli / Uygun',
+    'Geçersiz/Uygun Değil': 'RET / Geçersiz / Uygun Değil',
   };
-  const validityLabel = validityMap[data.validation_status || ''] || data.validation_status || 'Degerlendirmede';
+  const validityLabel = validityMap[data.validation_status || ''] || data.validation_status || 'Değerlendirmede';
   const evalRows = [
-    ['Bildirim Turu', data.feedback_type || '-'],
-    ['Gecerlilik Karari', validityLabel],
-    ['DF Gereksinimi', data.requires_capa ? 'Evet' : 'Hayir'],
+    ['Bildirim Türü', data.feedback_type || '-'],
+    ['Geçerlilik Kararı', validityLabel],
+    ['DF Gereksinimi', data.requires_capa ? 'Evet' : 'Hayır'],
   ];
   if (data.requires_capa && data.capa_no) {
-    evalRows.push(['DF Numarasi', data.capa_no]);
+    evalRows.push(['DF Numarası', data.capa_no]);
   }
 
   const feedbackSigGroup = signatureGroups.find((g) => g.moduleKey === 'customer_feedback');
@@ -676,20 +676,20 @@ export const generateFeedbackPDF = async (
   y = (doc as any).lastAutoTable.finalY + 3;
 
   if (data.evaluation) {
-    y = drawTextBlock(doc, 'Degerlendirme Notlari', data.evaluation, y, margin, contentWidth);
+    y = drawTextBlock(doc, 'Değerlendirme Notları', data.evaluation, y, margin, contentWidth);
   }
 
   if (feedbackSigGroup) {
-    y = drawSignatureSectionLabel(doc, 'Karar Verici Imzasi', y, margin);
+    y = drawSignatureSectionLabel(doc, 'Karar Verici İmzası', y, margin);
     y = drawSignatureBoxes(doc, feedbackSigGroup, y, margin, contentWidth);
   }
 
   // 5. PLANLAMA VE AKSIYON
   {
     const statusMap: Record<string, string> = {
-      'Planlandı': 'Planlandi',
+      'Planlandı': 'Planlandı',
       'Devam Ediyor': 'Devam Ediyor',
-      'Tamamlandı': 'Tamamlandi',
+      'Tamamlandı': 'Tamamlandı',
     };
 
     const actionTableRows = actions.length > 0
@@ -708,7 +708,7 @@ export const generateFeedbackPDF = async (
     const actionSectionHeight = 9 + estimateTableHeight(actionTableRows.length + 1) + 4 + actionSigHeight;
     y = ensureSectionFits(doc, actionSectionHeight, y);
 
-    y = drawSectionHeader(doc, 'PLANLAMA VE AKSIYON', y, margin, contentWidth);
+    y = drawSectionHeader(doc, 'PLANLAMA VE AKSİYON', y, margin, contentWidth);
 
     autoTable(doc, {
       startY: y,
@@ -758,7 +758,7 @@ export const generateFeedbackPDF = async (
     if (data.closure_date) {
       doc.setFont(FONT_NAME, 'normal');
       doc.setFontSize(7);
-      const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
+      const closureNotice = 'Bu geri bildirim resmi olarak kapatılmıştır. Alınan önlemlerin etkinliği doğrulanmış olup, laboratuvarın kalite sistemine sağladığı katkı için ilgili tüm taraflara teşekkür edilir.';
       const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
       closureNoticeHeight = noticeLines.length * 3 + 6 + 4;
     }
@@ -775,13 +775,13 @@ export const generateFeedbackPDF = async (
     autoTable(doc, { ...fwStyles, startY: y, body: closureRows });
     y = (doc as any).lastAutoTable.finalY + 3;
 
-    y = drawTextBlock(doc, 'Kapatma Notlari', data.closure_notes || '-', y, margin, contentWidth);
+    y = drawTextBlock(doc, 'Kapatma Notları', data.closure_notes || '-', y, margin, contentWidth);
 
     if (data.closure_date) {
       doc.setFont(FONT_NAME, 'normal');
       doc.setFontSize(7);
       doc.setTextColor(...TEXT_MUTED);
-      const closureNotice = 'Bu geri bildirim resmi olarak kapatilmistir. Alinan onlemlerin etkinligi dogrulanmis olup, laboratuvarin kalite sistemine sagladigi katki icin ilgili tum taraflara tesekkur edilir.';
+      const closureNotice = 'Bu geri bildirim resmi olarak kapatılmıştır. Alınan önlemlerin etkinliği doğrulanmış olup, laboratuvarın kalite sistemine sağladığı katkı için ilgili tüm taraflara teşekkür edilir.';
       const noticeLines = doc.splitTextToSize(closureNotice, contentWidth - 8);
       const noticeHeight = noticeLines.length * 3 + 6;
 
@@ -794,7 +794,7 @@ export const generateFeedbackPDF = async (
     }
 
     if (closureSigGroup) {
-      y = drawSignatureSectionLabel(doc, 'Kapatan Yetkili Imzasi', y, margin);
+      y = drawSignatureSectionLabel(doc, 'Kapatan Yetkili İmzası', y, margin);
       y = drawSignatureBoxes(doc, closureSigGroup, y, margin, contentWidth);
     }
   }
@@ -804,7 +804,7 @@ export const generateFeedbackPDF = async (
   );
 
   if (hasAnySignature) {
-    const eNotice = 'Bu dokuman elektronik ortamda imzalanmistir. Imza kayitlari sistem veritabaninda dogrulanabilir.';
+    const eNotice = 'Bu doküman elektronik ortamda imzalanmıştır. İmza kayıtları sistem veritabanında doğrulanabilir.';
     doc.setFont(FONT_NAME, 'normal');
     doc.setFontSize(6.5);
     const textLeftOffset = 12;
