@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CheckCircle, ChevronRight, RotateCcw, Save, Loader2, Info } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { CheckCircle, ChevronRight, RotateCcw, Save, Loader2, Info, CloudOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface WhyStep {
@@ -49,17 +49,97 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
   const [aiError, setAiError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(true);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const userIdRef = useRef<string | null>(null);
 
   const currentStep = steps.length + 1;
   const isComplete = steps.length === 5 && summary !== '';
+
+  useEffect(() => {
+    loadDraft();
+  }, [ncId]);
+
+  const loadDraft = async () => {
+    setDraftLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      userIdRef.current = user.id;
+
+      const { data } = await supabase
+        .from('five_why_drafts')
+        .select('*')
+        .eq('nonconformity_id', ncId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        const loadedSteps: WhyStep[] = data.steps ?? [];
+        if (loadedSteps.length > 0 || data.current_question) {
+          setSteps(loadedSteps);
+          setCurrentQuestion(data.current_question ?? '');
+          setSummary(data.summary ?? '');
+          setStarted(true);
+          setDraftRestored(true);
+        }
+      }
+    } catch (e) {
+      console.error('Taslak yüklenemedi:', e);
+    } finally {
+      setDraftLoading(false);
+    }
+  };
+
+  const saveDraft = async (
+    draftSteps: WhyStep[],
+    draftQuestion: string,
+    draftSummary: string
+  ) => {
+    if (!userIdRef.current) return;
+    setAutoSaving(true);
+    try {
+      await supabase.from('five_why_drafts').upsert(
+        {
+          nonconformity_id: ncId,
+          user_id: userIdRef.current,
+          steps: draftSteps,
+          current_question: draftQuestion,
+          summary: draftSummary,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'nonconformity_id,user_id' }
+      );
+    } catch (e) {
+      console.error('Taslak kayıt hatası:', e);
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  const deleteDraft = async () => {
+    if (!userIdRef.current) return;
+    try {
+      await supabase
+        .from('five_why_drafts')
+        .delete()
+        .eq('nonconformity_id', ncId)
+        .eq('user_id', userIdRef.current);
+    } catch (e) {
+      console.error('Taslak silinemedi:', e);
+    }
+  };
 
   const handleStart = async () => {
     setAiLoading(true);
     setAiError(null);
     try {
       const q = await callFiveWhyAI(buildNextPrompt(ncDescription, [], 1));
-      setCurrentQuestion(q.trim());
+      const question = q.trim();
+      setCurrentQuestion(question);
       setStarted(true);
+      await saveDraft([], question, '');
     } catch (e: any) {
       setAiError(e.message);
     } finally {
@@ -79,10 +159,14 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
     try {
       if (newSteps.length === 5) {
         const sum = await callFiveWhyAI(buildSummaryPrompt(ncDescription, newSteps));
-        setSummary(sum.trim());
+        const trimmedSum = sum.trim();
+        setSummary(trimmedSum);
+        await saveDraft(newSteps, '', trimmedSum);
       } else {
         const q = await callFiveWhyAI(buildNextPrompt(ncDescription, newSteps, newSteps.length + 1));
-        setCurrentQuestion(q.trim());
+        const question = q.trim();
+        setCurrentQuestion(question);
+        await saveDraft(newSteps, question, '');
       }
     } catch (e: any) {
       setAiError(e.message);
@@ -96,14 +180,17 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
       setStarted(false);
       setCurrentQuestion('');
       setCurrentAnswer('');
+      saveDraft([], '', '');
       return;
     }
     const prev = steps[steps.length - 1];
+    const newSteps = steps.slice(0, -1);
     setCurrentQuestion(prev.question);
     setCurrentAnswer(prev.answer);
     setSummary('');
-    setSteps(steps.slice(0, -1));
+    setSteps(newSteps);
     setAiError(null);
+    saveDraft(newSteps, prev.question, '');
   };
 
   const handleSave = async () => {
@@ -124,6 +211,7 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
       });
       const { error } = await supabase.from('nonconformity_root_causes').insert([payload]);
       if (error) throw error;
+      await deleteDraft();
       setSaved(true);
       setTimeout(() => onSaved(), 1500);
     } catch (e: any) {
@@ -135,6 +223,15 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
   };
 
   const progressPercent = isComplete ? 100 : ((steps.length) / 5) * 100;
+
+  if (draftLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-8 text-slate-400">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-[12px]">Yükleniyor...</span>
+      </div>
+    );
+  }
 
   if (saved) {
     return (
@@ -152,11 +249,25 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
       {/* NC Description */}
       <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl p-3.5">
         <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">Uygunsuzluk</p>
           <p className="text-[12px] text-blue-800 leading-relaxed">{ncDescription || 'Açıklama girilmemiş'}</p>
         </div>
+        {autoSaving && (
+          <div className="flex items-center gap-1 flex-shrink-0 text-slate-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span className="text-[9px]">Kaydediliyor</span>
+          </div>
+        )}
       </div>
+
+      {/* Draft restored banner */}
+      {draftRestored && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <CloudOff className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+          <p className="text-[11px] text-amber-700 font-medium">Kaldığınız yerden devam ediyorsunuz</p>
+        </div>
+      )}
 
       {!started ? (
         <div className="flex flex-col items-center gap-3 py-6">
@@ -287,7 +398,10 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
               </div>
 
               {aiError && (
-                <p className="text-[11px] text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{aiError}</p>
+                <div className="flex items-start gap-2 bg-red-50 border border-red-300 px-3 py-2.5 rounded-lg">
+                  <span className="text-red-500 text-[11px] font-bold flex-shrink-0 mt-0.5">Hata:</span>
+                  <p className="text-[11px] text-red-700 leading-relaxed">{aiError}</p>
+                </div>
               )}
 
               <div className="flex gap-2">
