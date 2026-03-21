@@ -207,7 +207,7 @@ export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNa
     try {
       const { data: rows, error: err } = await supabase
         .from('nonconformities')
-        .select('*')
+        .select('*, corrective_actions(ca_number)')
         .order('nc_number', { ascending: true });
       if (err) throw err;
       setData(rows || []);
@@ -509,6 +509,7 @@ export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNa
                         {col.label}<SortIcon col={col.key} />
                       </th>
                     ))}
+                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">DF No</th>
                     {isManager && (
                       <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase tracking-wide w-28">İşlemler</th>
                     )}
@@ -542,6 +543,19 @@ export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNa
                             {st.icon}
                             {st.label}
                           </span>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {Array.isArray(item.corrective_actions) && item.corrective_actions.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {item.corrective_actions.map((ca: any, idx: number) => (
+                                <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                  {ca.ca_number}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-gray-400">—</span>
+                          )}
                         </td>
                         {isManager && (
                           <td className="px-3 py-2 text-right whitespace-nowrap">
