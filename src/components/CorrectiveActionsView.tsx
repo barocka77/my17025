@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, Link, FileDown, Trash2 } from 'lucide-react';
+import { ClipboardCheck, CheckCircle2, Clock, ChevronRight, FileDown, Trash2, FolderOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateDfPDF } from '../utils/dfPdfExport';
+import CorrectiveActionFormModal from './CorrectiveActionFormModal';
 
 const caStatusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   Planlandı: { label: 'Planlandı', className: 'bg-gray-100 text-gray-800 border-gray-200', icon: <Clock className="w-2.5 h-2.5" /> },
@@ -20,6 +21,7 @@ export default function CorrectiveActionsView() {
   const [sortKey, setSortKey] = useState<string>('planned_completion_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [dfPdfExporting, setDfPdfExporting] = useState<string | null>(null);
+  const [modalCA, setModalCA] = useState<any | null>(null);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -63,7 +65,7 @@ export default function CorrectiveActionsView() {
       const [{ data: rows, error: err }, { data: profileRows }] = await Promise.all([
         supabase
           .from('corrective_actions')
-          .select('*, nonconformities(nc_number, detection_date, source, description, severity, status)')
+          .select('*, nonconformities(id, nc_number, detection_date, source, description, severity, status, recurrence_risk, calibration_impact)')
           .order('planned_completion_date', { ascending: false, nullsFirst: false })
           .order('ca_number', { ascending: false }),
         supabase.rpc('get_all_profiles'),
@@ -150,10 +152,6 @@ export default function CorrectiveActionsView() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div>
             <h1 className="text-xl md:text-3xl font-light text-gray-900">Düzeltici Faaliyetler</h1>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-              <Link className="w-3 h-3" />
-              Düzeltici faaliyetler yalnızca Uygunsuzluk Analizi üzerinden açılabilir.
-            </p>
           </div>
         </div>
       </div>
@@ -239,6 +237,13 @@ export default function CorrectiveActionsView() {
                         <td className="px-3 py-2 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
                             <button
+                              onClick={() => setModalCA(item)}
+                              title="DF Kartını Aç"
+                              className="inline-flex items-center gap-0.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+                            >
+                              <FolderOpen className="w-3 h-3" />
+                            </button>
+                            <button
                               onClick={() => handleDfPdfExport(item)}
                               disabled={dfPdfExporting === item.id}
                               title="PDF İndir"
@@ -275,6 +280,23 @@ export default function CorrectiveActionsView() {
         )}
       </div>
 
+      {modalCA && modalCA.nonconformities && (
+        <CorrectiveActionFormModal
+          nc={{
+            id: modalCA.nonconformities.id,
+            nc_number: modalCA.nonconformities.nc_number || '-',
+            detection_date: modalCA.nonconformities.detection_date || '',
+            source: modalCA.nonconformities.source || '',
+            description: modalCA.nonconformities.description || '',
+            severity: modalCA.nonconformities.severity || '',
+            recurrence_risk: modalCA.nonconformities.recurrence_risk || '',
+            calibration_impact: modalCA.nonconformities.calibration_impact || '',
+          }}
+          existingCA={modalCA}
+          onClose={() => setModalCA(null)}
+          onSaved={() => { setModalCA(null); fetchData(); }}
+        />
+      )}
     </div>
   );
 }

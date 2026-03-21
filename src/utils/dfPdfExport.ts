@@ -310,8 +310,6 @@ export interface DfCaData {
   action_fulfilled?: boolean;
   fulfillment_date?: string;
   status?: string;
-  nonconformity_cost?: string;
-  root_cause_processes?: string;
   monitoring_period?: string;
   closure_date?: string;
   effectiveness_evaluation_date?: string;
@@ -451,38 +449,28 @@ export const generateDfPDF = async (options: GenerateDfPdfOptions): Promise<void
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // 5. SONUCLARIN DEGERLENDIRILMESI
+  // 5. FAALIYET TAKIBI
   {
     const rows: string[][] = [
       ['Faaliyet Yerine Getirildi Mi', yesNo(ca.action_fulfilled)],
+      ['Tamamlanma Tarihi', formatDate(ca.fulfillment_date)],
+      ['Etkinlik Izleme Bitis Tarihi', formatDate(ca.monitoring_period)],
     ];
-    if (ca.action_fulfilled) {
-      rows.push(['Tamamlanma Tarihi', formatDate(ca.fulfillment_date)]);
-      rows.push(['Uygunsuzluk Maliyeti', ca.nonconformity_cost || '-']);
-      rows.push(['Kok Neden Prosesleri', ca.root_cause_processes || '-']);
-      rows.push(['Etkinlik Izleme Bitis Tarihi', formatDate(ca.monitoring_period)]);
-    }
     const sh = 9 + estimateTableHeight(rows.length) + 2;
     y = ensureSectionFits(doc, sh, y);
-    y = drawSectionHeader(doc, 'SONUCLARIN DEGERLENDIRILMESI', y, margin, contentWidth, GREEN_COLOR);
+    y = drawSectionHeader(doc, 'FAALIYET TAKIBI', y, margin, contentWidth, GREEN_COLOR);
     autoTable(doc, { ...fwStyles, startY: y, body: rows });
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
   // 6. YENIDEN OLUSMA TAKIBI
   {
-    const rows: string[][] = [];
-    if (ca.no_recurrence_observed) {
-      rows.push(['Uygunsuzluk Gorulemedi', 'Evet']);
-      rows.push(['Gorulememe Tarihi', formatDate(ca.no_recurrence_date)]);
-    }
-    if (ca.recurrence_observed) {
-      rows.push(['Uygunsuzluk Tekrar Etti', 'Evet']);
-      rows.push(['Tekrar Tarihi', formatDate(ca.recurrence_date)]);
-    }
-    if (rows.length === 0) {
-      rows.push(['DF Sonrasi Durum', 'Henuz Izleme Yapilmadi']);
-    }
+    const rows: string[][] = [
+      ['Uygunsuzluk Gorulemedi Mi', yesNo(ca.no_recurrence_observed)],
+      ['Gorulememe Tarihi', formatDate(ca.no_recurrence_date)],
+      ['Uygunsuzluk Tekrar Etti Mi', yesNo(ca.recurrence_observed)],
+      ['Tekrar Tarihi', formatDate(ca.recurrence_date)],
+    ];
     const sh = 9 + estimateTableHeight(rows.length) + 2;
     y = ensureSectionFits(doc, sh, y);
     const color = ca.recurrence_observed ? RED_COLOR : PRIMARY_COLOR;

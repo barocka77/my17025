@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, FileText, Save, CheckSquare, Square, AlertTriangle, ArrowRight, Users } from 'lucide-react';
+import { X, FileText, Save, CheckSquare, Square, AlertTriangle, ArrowRight, Users, FileDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { generateDfPDF } from '../utils/dfPdfExport';
 
 interface NonconformityData {
   id: string;
@@ -99,8 +100,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [reportRecall, setReportRecall] = useState(existingCA?.df_report_recall ?? false);
   const [actionFulfilled, setActionFulfilled] = useState(existingCA?.action_fulfilled ?? false);
   const [fulfillmentDate, setFulfillmentDate] = useState(existingCA?.fulfillment_date || '');
-  const [nonconformityCost, setNonconformityCost] = useState(existingCA?.nonconformity_cost || '');
-  const [rootCauseProcesses, setRootCauseProcesses] = useState(existingCA?.root_cause_processes || '');
   const [monitoringPeriod, setMonitoringPeriod] = useState(existingCA?.monitoring_period || '');
   const [closureDate, setClosureDate] = useState(existingCA?.closure_date || '');
   const [effectivenessEvaluationDate, setEffectivenessEvaluationDate] = useState(existingCA?.effectiveness_evaluation_date || '');
@@ -110,6 +109,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [recurrenceDate, setRecurrenceDate] = useState(existingCA?.recurrence_date || '');
   const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
   const [analysisTeam, setAnalysisTeam] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
@@ -147,8 +147,6 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
         action_fulfilled: actionFulfilled,
         planned_completion_date: plannedDate || null,
         fulfillment_date: fulfillmentDate || null,
-        nonconformity_cost: nonconformityCost || null,
-        root_cause_processes: rootCauseProcesses || null,
         monitoring_period: monitoringPeriod || null,
         closure_date: closureDate || null,
         effectiveness_evaluation_date: effectivenessEvaluationDate || null,
@@ -217,6 +215,58 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
     }
   };
 
+  const handlePdfExport = async () => {
+    setPdfExporting(true);
+    try {
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('name, logo_url')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const resolvedResponsible = profiles.find(p => p.id === responsibleName)?.full_name || responsibleName || '-';
+
+      await generateDfPDF({
+        nc: {
+          nc_number: nc.nc_number,
+          detection_date: nc.detection_date,
+          source: nc.source,
+          description: nc.description,
+          severity: nc.severity,
+          status: '',
+        },
+        ca: {
+          id: existingCA?.id || '',
+          ca_number: existingCA?.ca_number,
+          action_description: actionDecision,
+          responsible_user: resolvedResponsible,
+          planned_completion_date: plannedDate,
+          df_customer_affected: customerAffected,
+          df_customer_notified: customerNotified,
+          df_report_recall: reportRecall,
+          action_fulfilled: actionFulfilled,
+          fulfillment_date: fulfillmentDate,
+          status: existingCA?.status,
+          monitoring_period: monitoringPeriod,
+          closure_date: closureDate,
+          effectiveness_evaluation_date: effectivenessEvaluationDate,
+          no_recurrence_observed: noRecurrenceObserved,
+          no_recurrence_date: noRecurrenceDate,
+          recurrence_observed: recurrenceObserved,
+          recurrence_date: recurrenceDate,
+        },
+        analysisTeam: analysisTeam.map(m => ({ full_name: m.full_name, job_title: m.job_title })),
+        logoUrl: orgData?.logo_url,
+        organizationName: orgData?.name,
+      });
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
   if (followUpNcNumber) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
@@ -279,6 +329,20 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
           </div>
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
+              onClick={handlePdfExport}
+              disabled={pdfExporting}
+              title="PDF İndir"
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white px-3 py-1.5 rounded-lg transition-all text-xs font-semibold disabled:opacity-50"
+            >
+              {pdfExporting ? (
+                <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <FileDown className="w-3.5 h-3.5" />
+              )}
+              PDF
+            </button>
+            <button
               type="submit"
               form="ca-form"
               disabled={saving}
@@ -328,7 +392,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
               {/* Section: Uygunsuzluk Analizi ve Faaliyet Seçimi */}
               <div className="border border-blue-200 rounded-xl overflow-hidden">
                 <div className="bg-blue-600 text-white px-4 py-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Uygunsuzluk Analizi ve Faaliyet Seçimi</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Faaliyet Seçimi</span>
                 </div>
                 <div className="p-4 space-y-4">
                   {error && (
@@ -403,7 +467,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
               {/* Section: Sonuçların Değerlendirilmesi */}
               <div className={`border rounded-xl overflow-hidden transition-all ${actionFulfilled ? 'border-green-300' : 'border-slate-200'}`}>
                 <div className={`px-4 py-2 flex items-center justify-between transition-all ${actionFulfilled ? 'bg-green-700' : 'bg-slate-600'} text-white`}>
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Sonuçların Değerlendirilmesi</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Faaliyet Takibi</span>
                   {actionFulfilled && (
                     <span className="flex items-center gap-1 text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">
                       <CheckSquare className="w-3 h-3" />
@@ -446,39 +510,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                       Bu bölüm, faaliyet yerine getirildi olarak işaretlendiğinde doldurulabilir hale gelir.
                     </p>
                   )}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-[10px] font-semibold uppercase tracking-wide mb-1 ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Uygunsuzluk Maliyeti
-                      </label>
-                      {actionFulfilled ? (
-                        <input
-                          type="text"
-                          value={nonconformityCost}
-                          onChange={e => setNonconformityCost(e.target.value)}
-                          placeholder="Örn: 1.500 TL"
-                          className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        />
-                      ) : (
-                        <p className="text-[12px] text-slate-300 mt-0.5">—</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className={`block text-[10px] font-semibold uppercase tracking-wide mb-1 ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Kök Neden Prosesleri
-                      </label>
-                      {actionFulfilled ? (
-                        <input
-                          type="text"
-                          value={rootCauseProcesses}
-                          onChange={e => setRootCauseProcesses(e.target.value)}
-                          placeholder="Uygunsuzluğun yaşandığı proses adı..."
-                          className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        />
-                      ) : (
-                        <p className="text-[12px] text-slate-300 mt-0.5">—</p>
-                      )}
-                    </div>
+                  <div className="max-w-xs">
                     <div>
                       <label className={`block text-[10px] font-semibold uppercase tracking-wide mb-1 ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
                         Faaliyetin Etkinliğini İzleme Bitiş Tarihi
