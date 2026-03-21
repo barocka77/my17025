@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Edit2, Trash2, Save, StickyNote } from 'lucide-react';
+import { X, Plus, CreditCard as Edit2, Trash2, Save, StickyNote } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -63,7 +63,7 @@ export default function PersonalNotepad() {
     const words = firstSentence
       .split(/\s+/)
       .map(w => w.replace(/[^a-zA-ZÇçĞğİıÖöŞşÜü0-9]/g, ''))
-      .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
+      .filter(w => w.length > 2 && !stopWords.has(w.toLocaleLowerCase('tr-TR')));
 
     if (words.length === 0) {
       return firstSentence.slice(0, 50) || 'Başlıksız Not';
@@ -71,7 +71,7 @@ export default function PersonalNotepad() {
 
     const keyWords = words.slice(0, 5);
     const title = keyWords.join(' ');
-    return title.charAt(0).toUpperCase() + title.slice(1);
+    return title.charAt(0).toLocaleUpperCase('tr-TR') + title.slice(1);
   };
 
   const createNote = async () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, ChevronUp, ChevronDown, UserCircle2, Eye, UserPlus, X, EyeOff, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Users, ChevronUp, ChevronDown, CircleUser as UserCircle2, Eye, UserPlus, X, EyeOff, Loader2, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import TableLayout from './TableLayout';
@@ -29,7 +29,7 @@ interface PersonnelListViewProps {
 
 function AcademicTitleBadge({ title }: { title: string | null }) {
   if (!title) return <span className="text-gray-400 text-xs">-</span>;
-  const lower = title.toLowerCase();
+  const lower = title.toLocaleLowerCase('tr-TR');
   let color = 'bg-gray-100 text-gray-700 border-gray-200';
   if (lower.includes('müh') || lower.includes('mühendis')) color = 'bg-blue-100 text-blue-800 border-blue-200';
   else if (lower.includes('dr') || lower.includes('doç') || lower.includes('prof')) color = 'bg-teal-100 text-teal-800 border-teal-200';
@@ -77,7 +77,7 @@ const avatarColors = ['bg-blue-500', 'bg-teal-500', 'bg-orange-500', 'bg-rose-50
 const getColor = (id: string) => avatarColors[id.charCodeAt(0) % avatarColors.length];
 const getInitials = (name: string | null) => {
   if (!name) return '?';
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  return name.split(' ').map(w => w[0]).join('').toLocaleUpperCase('tr-TR').slice(0, 2);
 };
 
 type AppRole = 'admin' | 'quality_manager' | 'personnel' | 'super_admin';

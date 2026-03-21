@@ -139,10 +139,10 @@ export default function NonconformitiesView() {
   const filteredData = useMemo(() => {
     return data.filter(item => {
       if (searchText) {
-        const q = searchText.toLowerCase();
+        const q = searchText.toLocaleLowerCase('tr-TR');
         const matchesSearch =
-          (item.nc_number || '').toLowerCase().includes(q) ||
-          (item.description || '').toLowerCase().includes(q);
+          (item.nc_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
+          (item.description || '').toLocaleLowerCase('tr-TR').includes(q);
         if (!matchesSearch) return false;
       }
       if (filterStatus && item.status !== filterStatus) return false;

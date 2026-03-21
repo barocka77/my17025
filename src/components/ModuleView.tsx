@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Eye, Filter, CheckCircle2, AlertCircle, Clock, Wrench, Activity } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, X, Save, Eye, Filter, CheckCircle2, AlertCircle, Clock, Wrench, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Module } from '../types/modules';
 import EquipmentFormModal from './EquipmentFormModal';
@@ -291,7 +291,7 @@ export default function ModuleView({ module, userRole, autoOpenRecordId, onRecor
               <form onSubmit={handleSubmit} className="p-4 space-y-3">
                 {columns.map(col => (
                   <div key={col}>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{col.replace(/_/g, ' ').toUpperCase()}</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{col.replace(/_/g, ' ').toLocaleUpperCase('tr-TR')}</label>
                     <input
                       type="text"
                       value={formData[col] || ''}

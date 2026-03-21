@@ -80,12 +80,12 @@ export default function DocumentMasterListView() {
     let filtered = [...documents];
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLocaleLowerCase('tr-TR');
       filtered = filtered.filter(
         (d) =>
-          (d.dokuman_kodu || '').toLowerCase().includes(q) ||
-          (d.dokuman_adi || '').toLowerCase().includes(q) ||
-          (d.rev_no || '').toLowerCase().includes(q) ||
+          (d.dokuman_kodu || '').toLocaleLowerCase('tr-TR').includes(q) ||
+          (d.dokuman_adi || '').toLocaleLowerCase('tr-TR').includes(q) ||
+          (d.rev_no || '').toLocaleLowerCase('tr-TR').includes(q) ||
           String(d.sira_no).includes(q)
       );
     }

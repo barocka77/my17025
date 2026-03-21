@@ -24,10 +24,10 @@ export default function Login({ redirectTo: redirectToProp }: LoginProps) {
     if (!domain) return false;
 
     // Allow Gmail for testing purposes
-    if (domain.toLowerCase() === 'gmail.com') return true;
+    if (domain.toLocaleLowerCase('tr-TR') === 'gmail.com') return true;
 
     const restrictedDomains = ['yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'];
-    return !restrictedDomains.includes(domain.toLowerCase());
+    return !restrictedDomains.includes(domain.toLocaleLowerCase('tr-TR'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

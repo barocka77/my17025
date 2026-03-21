@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  ArrowLeft, Save, Edit2, X, Plus, Trash2,
-  BookOpen, Phone, Calendar, GraduationCap,
-  Briefcase, Award, MapPin, Clock, CheckCircle, AlertCircle
-} from 'lucide-react';
+import { ArrowLeft, Save, CreditCard as Edit2, X, Plus, Trash2, BookOpen, Phone, Calendar, GraduationCap, Briefcase, Award, MapPin, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import TrainingFormModal from './TrainingFormModal';
@@ -44,7 +40,7 @@ interface PersonnelDetailViewProps {
 
 function AcademicTitleBadge({ title }: { title: string | null }) {
   if (!title) return <span className="text-slate-400 text-xs">Belirtilmemiş</span>;
-  const lower = title.toLowerCase();
+  const lower = title.toLocaleLowerCase('tr-TR');
   let color = 'bg-slate-100 text-slate-600 border-slate-200';
   if (lower.includes('müh') || lower.includes('mühendis')) color = 'bg-blue-50 text-blue-700 border-blue-200';
   else if (lower.includes('dr') || lower.includes('doç') || lower.includes('prof')) color = 'bg-teal-50 text-teal-700 border-teal-200';
@@ -232,7 +228,7 @@ export default function PersonnelDetailView({ profileId, onBack }: PersonnelDeta
 
   const getInitials = (name: string | null) => {
     if (!name) return '?';
-    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    return name.split(' ').map(w => w[0]).join('').toLocaleUpperCase('tr-TR').slice(0, 2);
   };
 
   const avatarColors = ['bg-blue-500', 'bg-teal-500', 'bg-orange-500', 'bg-rose-500', 'bg-violet-500', 'bg-cyan-500'];

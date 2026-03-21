@@ -28,7 +28,7 @@ export default function DocumentSelectModal({ isOpen, moduleKey, onSelect, onClo
   }, [isOpen]);
 
   useEffect(() => {
-    const q = search.toLowerCase().trim();
+    const q = search.toLocaleLowerCase('tr-TR').trim();
     if (!q) {
       setFiltered(documents);
       return;
@@ -36,8 +36,8 @@ export default function DocumentSelectModal({ isOpen, moduleKey, onSelect, onClo
     setFiltered(
       documents.filter(
         (d) =>
-          d.dokuman_kodu.toLowerCase().includes(q) ||
-          d.dokuman_adi.toLowerCase().includes(q)
+          d.dokuman_kodu.toLocaleLowerCase('tr-TR').includes(q) ||
+          d.dokuman_adi.toLocaleLowerCase('tr-TR').includes(q)
       )
     );
   }, [search, documents]);

@@ -240,7 +240,7 @@ const CustomerFeedbackDetailView = ({ isOpen, onClose, data, onDataChange }: Det
   const handlePrint = () => window.print();
 
   const getFileIcon = (path: string) => {
-    if (path.toLowerCase().endsWith('.pdf')) return <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />;
+    if (path.toLocaleLowerCase('tr-TR').endsWith('.pdf')) return <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />;
     return <Image className="w-4 h-4 text-blue-500 flex-shrink-0" />;
   };
 

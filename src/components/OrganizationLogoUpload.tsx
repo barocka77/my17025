@@ -107,7 +107,7 @@ export default function OrganizationLogoUpload() {
     setUploading(true);
 
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const ext = file.name.split('.').pop()?.toLocaleLowerCase('tr-TR') || 'png';
       const filePath = `${org.id}/logo.${ext}`;
 
       const { error: uploadError } = await supabase.storage
