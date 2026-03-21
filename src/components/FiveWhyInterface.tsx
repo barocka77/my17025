@@ -13,30 +13,13 @@ interface Props {
   onSaved: () => void;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
 async function callFiveWhyAI(prompt: string): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token ?? SUPABASE_ANON_KEY;
-
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/five-why-ai`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Apikey': SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({ prompt }),
+  const { data, error } = await supabase.functions.invoke('ai-proxy', {
+    body: { prompt },
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Bağlantı hatası' }));
-    throw new Error(err.error ?? 'API hatası');
-  }
-
-  const data = await res.json();
-  return data.result ?? '';
+  if (error) throw new Error(error.message ?? 'API hatası');
+  if (data?.error) throw new Error(data.error);
+  return data?.result ?? '';
 }
 
 function buildNextPrompt(ncDescription: string, steps: WhyStep[], nextStepNumber: number): string {
