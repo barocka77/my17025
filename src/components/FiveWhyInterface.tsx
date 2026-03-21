@@ -125,9 +125,10 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
       const { error } = await supabase.from('nonconformity_root_causes').insert([payload]);
       if (error) throw error;
       setSaved(true);
-      onSaved();
+      setTimeout(() => onSaved(), 1500);
     } catch (e: any) {
-      setAiError(e.message);
+      console.error('5Why kayıt hatası:', e);
+      setAiError(e.message || e.details || e.hint || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setSaving(false);
     }
@@ -231,7 +232,10 @@ export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props
                   placeholder="Cevabınızı buraya yazın..."
                 />
                 {aiError && (
-                  <p className="text-[11px] text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{aiError}</p>
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-300 px-3 py-2.5 rounded-lg">
+                    <span className="text-red-500 text-[11px] font-bold flex-shrink-0 mt-0.5">Hata:</span>
+                    <p className="text-[11px] text-red-700 leading-relaxed">{aiError}</p>
+                  </div>
                 )}
                 <div className="flex gap-2">
                   <button
