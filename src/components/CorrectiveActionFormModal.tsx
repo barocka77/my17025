@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, FileText, Save, CheckSquare, Square, AlertTriangle, ArrowRight, Users, FileDown, CheckCircle2, ClipboardCheck, Info } from 'lucide-react';
+import {
+  X, FileText, Save, CheckSquare, Square, AlertTriangle,
+  ArrowRight, FileDown, CheckCircle2, PenLine, Clock,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateDfPDF } from '../utils/dfPdfExport';
+import SignaturesSection from './SignaturesSection';
 
 interface NonconformityData {
   id: string;
@@ -57,8 +61,8 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 const TABS = [
-  { id: 'karar', label: 'Faaliyet Kararı' },
-  { id: 'takip', label: 'Faaliyet Takibi' },
+  { id: 'karar',    label: 'Faaliyet Kararı' },
+  { id: 'takip',   label: 'Faaliyet Takibi' },
   { id: 'etkinlik', label: 'Etkinlik Değerlendirmesi' },
   { id: 'imzalar', label: 'İmzalar' },
 ];
@@ -72,7 +76,9 @@ function CheckboxRow({ label, value, onChange }: { label: string; value: boolean
           type="button"
           onClick={() => onChange(false)}
           className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold border transition-all ${
-            !value ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'
+            !value
+              ? 'bg-slate-700 text-white border-slate-700'
+              : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'
           }`}
         >
           <Square className="w-3 h-3" />
@@ -82,7 +88,9 @@ function CheckboxRow({ label, value, onChange }: { label: string; value: boolean
           type="button"
           onClick={() => onChange(true)}
           className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold border transition-all ${
-            value ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-400 border-slate-200 hover:border-red-300 hover:text-red-500'
+            value
+              ? 'bg-red-600 text-white border-red-600'
+              : 'bg-white text-slate-400 border-slate-200 hover:border-red-300 hover:text-red-500'
           }`}
         >
           <CheckSquare className="w-3 h-3" />
@@ -93,30 +101,96 @@ function CheckboxRow({ label, value, onChange }: { label: string; value: boolean
   );
 }
 
+interface StepCardProps {
+  step: number;
+  title: string;
+  description: string;
+  checked: boolean;
+  onToggle: () => void;
+  dateValue: string;
+  onDateChange: (v: string) => void;
+  dateLabel: string;
+  disabled?: boolean;
+}
+
+function StepCard({ step, title, description, checked, onToggle, dateValue, onDateChange, dateLabel, disabled }: StepCardProps) {
+  return (
+    <div
+      className={`rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+        disabled
+          ? 'opacity-40 pointer-events-none border-slate-200 bg-white'
+          : checked
+          ? 'border-green-300 bg-green-50/30'
+          : 'border-slate-200 bg-white hover:border-slate-300'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
+          checked ? 'bg-green-600' : 'bg-slate-50 hover:bg-slate-100'
+        }`}
+      >
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 transition-colors ${
+          checked ? 'bg-white/20 text-white' : 'bg-white border border-slate-300 text-slate-500'
+        }`}>
+          {checked ? <CheckCircle2 className="w-4 h-4 text-white" /> : step}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[12px] font-bold leading-tight ${checked ? 'text-white' : 'text-slate-700'}`}>{title}</p>
+          <p className={`text-[10px] mt-0.5 ${checked ? 'text-green-100' : 'text-slate-500'}`}>{description}</p>
+        </div>
+        {checked
+          ? <CheckSquare className="w-4 h-4 text-white flex-shrink-0" />
+          : <Square className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+      </button>
+
+      <div className={`px-4 py-3 flex items-center gap-3 border-t ${checked ? 'border-green-200' : 'border-slate-100'}`}>
+        <Clock className={`w-3.5 h-3.5 flex-shrink-0 ${checked ? 'text-green-600' : 'text-slate-300'}`} />
+        <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${checked ? 'text-slate-600' : 'text-slate-400'}`}>
+          {dateLabel}
+        </span>
+        <input
+          type="date"
+          value={dateValue}
+          onChange={e => onDateChange(e.target.value)}
+          disabled={!checked}
+          onClick={e => e.stopPropagation()}
+          className={`ml-auto text-[11px] border rounded-lg px-2.5 py-1.5 transition-all ${
+            checked
+              ? 'border-green-300 focus:ring-2 focus:ring-green-400 focus:border-transparent bg-white text-slate-700'
+              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onSaved }: Props) {
   const isEdit = !!existingCA;
-  const [activeTab, setActiveTab] = useState('karar');
-  const [actionDecision, setActionDecision] = useState(existingCA?.action_description || '');
-  const [plannedDate, setPlannedDate] = useState(existingCA?.planned_completion_date || '');
-  const [responsibleName, setResponsibleName] = useState(existingCA?.responsible_user || '');
-  const [customerAffected, setCustomerAffected] = useState(existingCA?.df_customer_affected ?? false);
-  const [customerNotified, setCustomerNotified] = useState(existingCA?.df_customer_notified ?? false);
-  const [reportRecall, setReportRecall] = useState(existingCA?.df_report_recall ?? false);
-  const [actionFulfilled, setActionFulfilled] = useState(existingCA?.action_fulfilled ?? false);
-  const [fulfillmentDate, setFulfillmentDate] = useState(existingCA?.fulfillment_date || '');
-  const [monitoringPeriod, setMonitoringPeriod] = useState(existingCA?.monitoring_period || '');
-  const [closureDate, setClosureDate] = useState(existingCA?.closure_date || '');
+  const [activeTab, setActiveTab]                               = useState<string>('karar');
+  const [actionDecision, setActionDecision]                     = useState(existingCA?.action_description || '');
+  const [plannedDate, setPlannedDate]                           = useState(existingCA?.planned_completion_date || '');
+  const [responsibleName, setResponsibleName]                   = useState(existingCA?.responsible_user || '');
+  const [customerAffected, setCustomerAffected]                 = useState(existingCA?.df_customer_affected ?? false);
+  const [customerNotified, setCustomerNotified]                 = useState(existingCA?.df_customer_notified ?? false);
+  const [reportRecall, setReportRecall]                         = useState(existingCA?.df_report_recall ?? false);
+  const [actionFulfilled, setActionFulfilled]                   = useState(existingCA?.action_fulfilled ?? false);
+  const [fulfillmentDate, setFulfillmentDate]                   = useState(existingCA?.fulfillment_date || '');
+  const [monitoringPeriod, setMonitoringPeriod]                 = useState(existingCA?.monitoring_period || '');
+  const [closureDate, setClosureDate]                           = useState(existingCA?.closure_date || '');
   const [effectivenessEvaluationDate, setEffectivenessEvaluationDate] = useState(existingCA?.effectiveness_evaluation_date || '');
-  const [noRecurrenceObserved, setNoRecurrenceObserved] = useState(existingCA?.no_recurrence_observed ?? false);
-  const [noRecurrenceDate, setNoRecurrenceDate] = useState(existingCA?.no_recurrence_date || '');
-  const [recurrenceObserved, setRecurrenceObserved] = useState(existingCA?.recurrence_observed ?? false);
-  const [recurrenceDate, setRecurrenceDate] = useState(existingCA?.recurrence_date || '');
-  const [followUpNcNumber, setFollowUpNcNumber] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [pdfExporting, setPdfExporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
-  const [analysisTeam, setAnalysisTeam] = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [noRecurrenceObserved, setNoRecurrenceObserved]         = useState(existingCA?.no_recurrence_observed ?? false);
+  const [noRecurrenceDate, setNoRecurrenceDate]                 = useState(existingCA?.no_recurrence_date || '');
+  const [recurrenceObserved, setRecurrenceObserved]             = useState(existingCA?.recurrence_observed ?? false);
+  const [recurrenceDate, setRecurrenceDate]                     = useState(existingCA?.recurrence_date || '');
+  const [followUpNcNumber, setFollowUpNcNumber]                 = useState<string | null>(null);
+  const [saving, setSaving]                                     = useState(false);
+  const [pdfExporting, setPdfExporting]                         = useState(false);
+  const [error, setError]                                       = useState<string | null>(null);
+  const [profiles, setProfiles]                                 = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
+  const [analysisTeam, setAnalysisTeam]                         = useState<{ id: string; full_name: string; job_title: string | null }[]>([]);
 
   useEffect(() => {
     supabase.rpc('get_personnel_list').then(({ data }) => {
@@ -318,12 +392,13 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
 
   const labelCls = 'block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1';
   const inputCls = 'w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white';
+  const activeTabIndex = TABS.findIndex(t => t.id === activeTab);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-0 md:p-4">
       <div className="bg-white md:rounded-xl shadow-2xl w-full h-full md:h-auto md:max-h-[92vh] max-w-3xl flex flex-col overflow-hidden">
 
-        {/* Fixed Header */}
+        {/* ── Fixed Header ── */}
         <div className="flex-shrink-0 bg-[#1e293b] px-5 py-4 md:rounded-t-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />
@@ -341,11 +416,9 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
               disabled={pdfExporting}
               className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-1.5 rounded-lg transition-all text-[11px] font-semibold disabled:opacity-50"
             >
-              {pdfExporting ? (
-                <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <FileDown className="w-3.5 h-3.5" />
-              )}
+              {pdfExporting
+                ? <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+                : <FileDown className="w-3.5 h-3.5" />}
               PDF
             </button>
             <button
@@ -357,13 +430,17 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
               <Save className="w-3.5 h-3.5" />
               {saving ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
-            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-700"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Fixed Summary Bar */}
+        {/* ── Fixed Summary Bar ── */}
         <div className="flex-shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-2.5 grid grid-cols-4 gap-4">
           <div>
             <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">NC No</p>
@@ -389,9 +466,9 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex-shrink-0 border-b border-slate-200 bg-white px-4 overflow-x-auto">
-          <div className="flex gap-0 min-w-max">
+        {/* ── Tab Navigation ── */}
+        <div className="flex-shrink-0 border-b border-slate-200 bg-white overflow-x-auto">
+          <div className="flex min-w-max px-2">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -409,344 +486,294 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
           </div>
         </div>
 
-        {/* Tab Content */}
+        {/* ── Form wraps scrollable content + footer ── */}
         <form id="ca-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto">
-            <div className="p-5">
 
-              {/* Tab 1: Faaliyet Kararı */}
-              {activeTab === 'karar' && (
-                <div className="space-y-5">
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">{error}</div>
-                  )}
+            {/* ────────────────────────────────────────────────
+                TAB 1: Faaliyet Kararı
+            ──────────────────────────────────────────────── */}
+            {activeTab === 'karar' && (
+              <div className="p-5 space-y-5">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">{error}</div>
+                )}
 
+                <div>
+                  <label className={labelCls}>
+                    Karar Verilen Faaliyet <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={actionDecision}
+                    onChange={e => setActionDecision(e.target.value)}
+                    rows={5}
+                    required
+                    className={`${inputCls} resize-none`}
+                    placeholder="Alınan kararı ve planlanan faaliyeti açıklayınız..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelCls}>
-                      Karar Verilen Faaliyet <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={actionDecision}
-                      onChange={e => setActionDecision(e.target.value)}
-                      rows={5}
-                      required
-                      className={`${inputCls} resize-none`}
-                      placeholder="Alınan kararı ve planlanan faaliyeti açıklayınız..."
+                    <label className={labelCls}>Planlanan Tamamlanma Tarihi</label>
+                    <input
+                      type="date"
+                      value={plannedDate}
+                      onChange={e => setPlannedDate(e.target.value)}
+                      className={inputCls}
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Planlanan Tamamlanma Tarihi</label>
-                      <input
-                        type="date"
-                        value={plannedDate}
-                        onChange={e => setPlannedDate(e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Faaliyete Karar Veren Yetkili</label>
-                      <select
-                        value={responsibleName}
-                        onChange={e => setResponsibleName(e.target.value)}
-                        className={inputCls}
-                      >
-                        <option value="">-- Seçiniz --</option>
-                        {profiles.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Müşteri Etki Değerlendirmesi</span>
-                    </div>
-                    <div className="px-4 py-1">
-                      <CheckboxRow
-                        label="Uygunsuzluktan etkilenen müşteri var mı?"
-                        value={customerAffected}
-                        onChange={setCustomerAffected}
-                      />
-                      <CheckboxRow
-                        label="Varsa bilgilendirildi mi?"
-                        value={customerNotified}
-                        onChange={setCustomerNotified}
-                      />
-                      <CheckboxRow
-                        label="Verilen bir raporun geri çağrılması gerekiyor mu?"
-                        value={reportRecall}
-                        onChange={setReportRecall}
-                      />
-                    </div>
+                  <div>
+                    <label className={labelCls}>Faaliyete Karar Veren Yetkili</label>
+                    <select
+                      value={responsibleName}
+                      onChange={e => setResponsibleName(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">-- Seçiniz --</option>
+                      {profiles.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              )}
 
-              {/* Tab 2: Faaliyet Takibi */}
-              {activeTab === 'takip' && (
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Adım Adım Faaliyet Takibi</p>
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Müşteri Etki Değerlendirmesi</span>
+                  </div>
+                  <div className="px-4 py-1">
+                    <CheckboxRow
+                      label="Uygunsuzluktan etkilenen müşteri var mı?"
+                      value={customerAffected}
+                      onChange={setCustomerAffected}
+                    />
+                    <CheckboxRow
+                      label="Varsa bilgilendirildi mi?"
+                      value={customerNotified}
+                      onChange={setCustomerNotified}
+                    />
+                    <CheckboxRow
+                      label="Verilen bir raporun geri çağrılması gerekiyor mu?"
+                      value={reportRecall}
+                      onChange={setReportRecall}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
-                  {/* Card 1: Action Fulfilled */}
-                  <div className={`rounded-xl border-2 transition-all overflow-hidden ${actionFulfilled ? 'border-green-300 bg-green-50/40' : 'border-slate-200 bg-white'}`}>
-                    <div className={`px-4 py-3 flex items-center justify-between transition-all ${actionFulfilled ? 'bg-green-600' : 'bg-slate-100'}`}>
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setActionFulfilled(v => !v)}
-                          className="flex-shrink-0"
-                        >
-                          {actionFulfilled
-                            ? <CheckSquare className="w-5 h-5 text-white" />
-                            : <Square className="w-5 h-5 text-slate-400" />}
-                        </button>
-                        <span className={`text-[12px] font-bold ${actionFulfilled ? 'text-white' : 'text-slate-600'}`}>
-                          İlgili Faaliyet Yerine Getirilmiştir
-                        </span>
-                      </div>
-                      {actionFulfilled && (
-                        <CheckCircle2 className="w-4 h-4 text-green-200 flex-shrink-0" />
-                      )}
+            {/* ────────────────────────────────────────────────
+                TAB 2: Faaliyet Takibi
+            ──────────────────────────────────────────────── */}
+            {activeTab === 'takip' && (
+              <div className="p-5 space-y-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pb-1">
+                  Adım Adım Faaliyet Takibi
+                </p>
+
+                {/* Step 1 */}
+                <StepCard
+                  step={1}
+                  title="İlgili Faaliyet Yerine Getirilmiştir"
+                  description="Planlanan düzeltici faaliyet tamamlandı olarak işaretleyin"
+                  checked={actionFulfilled}
+                  onToggle={() => setActionFulfilled(v => !v)}
+                  dateValue={fulfillmentDate}
+                  onDateChange={setFulfillmentDate}
+                  dateLabel="Tamamlanma Tarihi"
+                />
+
+                {/* Step 2 */}
+                <StepCard
+                  step={2}
+                  title="Faaliyet Sonrası Uygunsuzluk Gözlemlenmemiştir"
+                  description="Belirtilen süre içinde tekrar uygunsuzluk gözlemlenmedi"
+                  checked={noRecurrenceObserved}
+                  onToggle={() => setNoRecurrenceObserved(v => !v)}
+                  dateValue={noRecurrenceDate}
+                  onDateChange={setNoRecurrenceDate}
+                  dateLabel="Gözlem Tarihi"
+                  disabled={!actionFulfilled}
+                />
+
+                {/* Step 3 — informational */}
+                <div className={`rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+                  !actionFulfilled ? 'opacity-40 border-slate-200' : 'border-slate-300'
+                } bg-white`}>
+                  <div className="flex items-center gap-3 px-4 py-3.5 bg-slate-50">
+                    <div className="w-7 h-7 rounded-full bg-white border border-slate-300 flex items-center justify-center text-[11px] font-black text-slate-500 flex-shrink-0">
+                      <PenLine className="w-3.5 h-3.5" />
                     </div>
-                    <div className="px-4 py-3 flex items-center gap-3">
-                      <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${actionFulfilled ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Tamamlanma Tarihi
-                      </span>
-                      <input
-                        type="date"
-                        value={fulfillmentDate}
-                        onChange={e => setFulfillmentDate(e.target.value)}
-                        disabled={!actionFulfilled}
-                        className={`px-3 py-1.5 text-[11px] border rounded-lg transition-all ${
-                          actionFulfilled
-                            ? 'border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white'
-                            : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                        }`}
-                      />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-slate-700 leading-tight">Analiz Ekibi Onayı Tamamlandı</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">İmzalar sekmesinden onay ve imza işlemlerini tamamlayın</p>
                     </div>
                   </div>
-
-                  {/* Card 2: No Recurrence */}
-                  <div className={`rounded-xl border-2 transition-all overflow-hidden ${!actionFulfilled ? 'opacity-50 pointer-events-none' : ''} ${noRecurrenceObserved ? 'border-green-300 bg-green-50/40' : 'border-slate-200 bg-white'}`}>
-                    <div className={`px-4 py-3 flex items-center justify-between transition-all ${noRecurrenceObserved ? 'bg-green-600' : 'bg-slate-100'}`}>
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setNoRecurrenceObserved(v => !v)}
-                          className="flex-shrink-0"
-                        >
-                          {noRecurrenceObserved
-                            ? <CheckSquare className="w-5 h-5 text-white" />
-                            : <Square className="w-5 h-5 text-slate-400" />}
-                        </button>
-                        <span className={`text-[12px] font-bold ${noRecurrenceObserved ? 'text-white' : 'text-slate-600'}`}>
-                          Faaliyet Sonrası Uygunsuzluk Gözlemlenmemiştir
-                        </span>
-                      </div>
-                      {noRecurrenceObserved && (
-                        <CheckCircle2 className="w-4 h-4 text-green-200 flex-shrink-0" />
-                      )}
-                    </div>
-                    <div className="px-4 py-3 flex items-center gap-3">
-                      <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${noRecurrenceObserved ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Gözlem Tarihi
-                      </span>
-                      <input
-                        type="date"
-                        value={noRecurrenceDate}
-                        onChange={e => setNoRecurrenceDate(e.target.value)}
-                        disabled={!noRecurrenceObserved}
-                        className={`px-3 py-1.5 text-[11px] border rounded-lg transition-all ${
-                          noRecurrenceObserved
-                            ? 'border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white'
-                            : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
+                  <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400">Bu adım kayıt oluşturulduktan sonra tamamlanabilir</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('imzalar')}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      İmzalar Sekmesine Git
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+                </div>
+              </div>
+            )}
 
-                  {/* Card 3: Signatures info */}
-                  <div className={`rounded-xl border-2 border-dashed transition-all overflow-hidden ${!actionFulfilled ? 'opacity-50' : ''} border-slate-300 bg-slate-50`}>
-                    <div className="px-4 py-3 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                        <ClipboardCheck className="w-4 h-4 text-slate-500" />
+            {/* ────────────────────────────────────────────────
+                TAB 3: Etkinlik Değerlendirmesi
+            ──────────────────────────────────────────────── */}
+            {activeTab === 'etkinlik' && (
+              <div className="p-5 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Etkinlik Değerlendirme Tarihi</label>
+                    <input
+                      type="date"
+                      value={effectivenessEvaluationDate}
+                      onChange={e => setEffectivenessEvaluationDate(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Faaliyetin Etkinliğini İzleme Bitiş Tarihi</label>
+                    <input
+                      type="date"
+                      value={monitoringPeriod}
+                      onChange={e => setMonitoringPeriod(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Kapanma Tarihi</label>
+                    <input
+                      type="date"
+                      value={closureDate}
+                      onChange={e => setClosureDate(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-4 space-y-3">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tekrarlama Durumu</p>
+
+                  <div className={`rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+                    recurrenceObserved ? 'border-red-300 bg-red-50/20' : 'border-slate-200 bg-white'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => setRecurrenceObserved(v => !v)}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
+                        recurrenceObserved ? 'bg-red-600' : 'bg-slate-50 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                        recurrenceObserved ? 'bg-white/20' : 'bg-white border border-slate-300'
+                      }`}>
+                        {recurrenceObserved
+                          ? <CheckSquare className="w-4 h-4 text-white" />
+                          : <Square className="w-4 h-4 text-slate-400" />}
                       </div>
                       <div className="flex-1">
-                        <p className="text-[12px] font-bold text-slate-600">Analiz Ekibi Onayı ve İmzalar</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          İmzalar için{' '}
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab('imzalar')}
-                            className="text-blue-600 font-semibold hover:underline"
-                          >
-                            İmzalar sekmesine
-                          </button>{' '}
-                          gidin
+                        <p className={`text-[12px] font-bold ${recurrenceObserved ? 'text-white' : 'text-slate-700'}`}>
+                          Düzeltici Faaliyet Sonrası Uygunsuzluk Tekrar Etmektedir
+                        </p>
+                        <p className={`text-[10px] mt-0.5 ${recurrenceObserved ? 'text-red-100' : 'text-slate-500'}`}>
+                          İşaretlenirse kaydet butonuna basıldığında otomatik NC oluşturulur
+                        </p>
+                      </div>
+                    </button>
+                    <div className={`px-4 py-3 flex items-center gap-3 border-t ${recurrenceObserved ? 'border-red-200' : 'border-slate-100'}`}>
+                      <Clock className={`w-3.5 h-3.5 flex-shrink-0 ${recurrenceObserved ? 'text-red-500' : 'text-slate-300'}`} />
+                      <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${recurrenceObserved ? 'text-slate-600' : 'text-slate-400'}`}>
+                        Tekrar Tarihi
+                      </span>
+                      <input
+                        type="date"
+                        value={recurrenceDate}
+                        onChange={e => setRecurrenceDate(e.target.value)}
+                        disabled={!recurrenceObserved}
+                        onClick={e => e.stopPropagation()}
+                        className={`ml-auto text-[11px] border rounded-lg px-2.5 py-1.5 transition-all ${
+                          recurrenceObserved
+                            ? 'border-red-300 focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white text-slate-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {recurrenceObserved && (
+                    <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[11px] font-bold text-amber-800">Tekrar uygunsuzluk tespit edildi</p>
+                        <p className="text-[11px] text-amber-700 mt-0.5">
+                          Kaydet butonuna basıldığında yeni NC kaydı otomatik oluşturulacaktır.
                         </p>
                       </div>
                     </div>
-                  </div>
-
-                  {!actionFulfilled && (
-                    <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                      <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-amber-700">
-                        Faaliyet tamamlandığında "İlgili Faaliyet Yerine Getirilmiştir" adımını işaretleyerek devam edin.
-                      </p>
-                    </div>
                   )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Tab 3: Etkinlik Değerlendirmesi */}
-              {activeTab === 'etkinlik' && (
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Etkinlik Değerlendirme Tarihi</label>
-                      <input
-                        type="date"
-                        value={effectivenessEvaluationDate}
-                        onChange={e => setEffectivenessEvaluationDate(e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Faaliyetin Etkinliğini İzleme Bitiş Tarihi</label>
-                      <input
-                        type="date"
-                        value={monitoringPeriod}
-                        onChange={e => setMonitoringPeriod(e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Kapanma Tarihi</label>
-                      <input
-                        type="date"
-                        value={closureDate}
-                        onChange={e => setClosureDate(e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
+            {/* ────────────────────────────────────────────────
+                TAB 4: İmzalar
+            ──────────────────────────────────────────────── */}
+            {activeTab === 'imzalar' && (
+              <div className="p-5">
+                {existingCA?.id ? (
+                  <SignaturesSection
+                    moduleKey="corrective_actions"
+                    recordId={existingCA.id}
+                    title="Düzeltici Faaliyet İmzaları"
+                  />
+                ) : (
+                  <div className="text-center py-14 border-2 border-dashed border-slate-200 rounded-xl">
+                    <PenLine className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                    <p className="text-[12px] font-semibold text-slate-500">İmza işlemleri için önce kaydedin</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Kaydı oluşturduktan sonra bu sekmeden imzalanabilir.</p>
+                    <button
+                      type="submit"
+                      form="ca-form"
+                      disabled={saving}
+                      className="mt-4 inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-[11px] font-semibold transition-all disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      {saving ? 'Kaydediliyor...' : 'Şimdi Kaydet'}
+                    </button>
                   </div>
+                )}
+              </div>
+            )}
 
-                  <div className="border-t border-slate-100 pt-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tekrarlama Durumu</p>
-
-                    <div className={`rounded-xl border-2 transition-all overflow-hidden ${recurrenceObserved ? 'border-red-300' : 'border-slate-200'}`}>
-                      <div className={`px-4 py-3 flex items-center justify-between transition-all ${recurrenceObserved ? 'bg-red-600' : 'bg-slate-100'}`}>
-                        <div className="flex items-center gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() => setRecurrenceObserved(v => !v)}
-                            className="flex-shrink-0"
-                          >
-                            {recurrenceObserved
-                              ? <CheckSquare className="w-5 h-5 text-white" />
-                              : <Square className="w-5 h-5 text-slate-400" />}
-                          </button>
-                          <span className={`text-[12px] font-bold ${recurrenceObserved ? 'text-white' : 'text-slate-600'}`}>
-                            Düzeltici Faaliyet Sonrası Uygunsuzluk Tekrar Etmektedir
-                          </span>
-                        </div>
-                      </div>
-                      <div className="px-4 py-3 flex items-center gap-3">
-                        <span className={`text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${recurrenceObserved ? 'text-slate-600' : 'text-slate-400'}`}>
-                          Tekrar Tarihi
-                        </span>
-                        <input
-                          type="date"
-                          value={recurrenceDate}
-                          onChange={e => setRecurrenceDate(e.target.value)}
-                          disabled={!recurrenceObserved}
-                          className={`px-3 py-1.5 text-[11px] border rounded-lg transition-all ${
-                            recurrenceObserved
-                              ? 'border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    {recurrenceObserved && (
-                      <div className="mt-3 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-[11px] font-bold text-red-800">Tekrar uygunsuzluk tespit edildi</p>
-                          <p className="text-[11px] text-red-700 mt-0.5">
-                            Yeni NC kaydı otomatik oluşturulacaktır. Kaydettiğinizde bu işlem gerçekleşir.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: İmzalar */}
-              {activeTab === 'imzalar' && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-slate-400" />
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Analiz Ekibi Onayı ve İmzalar</p>
-                  </div>
-                  {analysisTeam.length > 0 ? (
-                    <div className="space-y-2">
-                      {analysisTeam.map(member => (
-                        <div key={member.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-3">
-                          <div>
-                            <p className="text-[12px] font-semibold text-slate-700">{member.full_name}</p>
-                            {member.job_title && (
-                              <p className="text-[10px] text-slate-400 mt-0.5">{member.job_title}</p>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-400 italic bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
-                            Faaliyet kaydedildikten sonra imzalanabilir
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl">
-                      <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-[11px] text-slate-400">Bu uygunsuzluğa henüz analiz ekibi atanmamış.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
           </div>
 
-          {/* Fixed Footer */}
+          {/* ── Fixed Footer ── */}
           <div className="flex-shrink-0 border-t border-slate-200 bg-white px-5 py-3 flex items-center justify-between md:rounded-b-xl">
             <div className="flex items-center gap-2">
-              {activeTab !== TABS[0].id && (
+              {activeTabIndex > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    const idx = TABS.findIndex(t => t.id === activeTab);
-                    if (idx > 0) setActiveTab(TABS[idx - 1].id);
-                  }}
+                  onClick={() => setActiveTab(TABS[activeTabIndex - 1].id)}
                   className="px-3 py-1.5 text-[11px] font-semibold text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                   ← Geri
                 </button>
               )}
-              {activeTab !== TABS[TABS.length - 1].id && (
+              {activeTabIndex < TABS.length - 1 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    const idx = TABS.findIndex(t => t.id === activeTab);
-                    if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id);
-                  }}
+                  onClick={() => setActiveTab(TABS[activeTabIndex + 1].id)}
                   className="px-3 py-1.5 text-[11px] font-semibold text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                   İleri →
@@ -762,6 +789,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );
