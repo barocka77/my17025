@@ -100,9 +100,10 @@ interface NonconformitiesViewProps {
   autoOpenRecordId?: string | null;
   onNcOpened?: () => void;
   onNavigateToFeedback?: (fbId: string) => void;
+  onNavigateToCA?: (caId: string) => void;
 }
 
-export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNavigateToFeedback }: NonconformitiesViewProps = {}) {
+export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNavigateToFeedback, onNavigateToCA }: NonconformitiesViewProps = {}) {
   const { role } = useAuth();
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
 
@@ -207,7 +208,7 @@ export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNa
     try {
       const { data: rows, error: err } = await supabase
         .from('nonconformities')
-        .select('*, corrective_actions(ca_number)')
+        .select('*, corrective_actions(id, ca_number)')
         .order('nc_number', { ascending: true });
       if (err) throw err;
       setData(rows || []);
@@ -548,9 +549,19 @@ export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNa
                           {Array.isArray(item.corrective_actions) && item.corrective_actions.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {item.corrective_actions.map((ca: any, idx: number) => (
-                                <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                  {ca.ca_number}
-                                </span>
+                                onNavigateToCA ? (
+                                  <button
+                                    key={idx}
+                                    onClick={e => { e.stopPropagation(); onNavigateToCA(ca.id); }}
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors cursor-pointer"
+                                  >
+                                    {ca.ca_number}
+                                  </button>
+                                ) : (
+                                  <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                    {ca.ca_number}
+                                  </span>
+                                )
                               ))}
                             </div>
                           ) : (

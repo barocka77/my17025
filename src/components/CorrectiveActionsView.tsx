@@ -16,7 +16,12 @@ const caStatusConfig: Record<string, { label: string; className: string; icon: R
   Kapalı: { label: 'Kapalı', className: 'bg-green-100 text-green-800 border-green-200', icon: <CheckCircle2 className="w-2.5 h-2.5" /> },
 };
 
-export default function CorrectiveActionsView() {
+interface CorrectiveActionsViewProps {
+  autoOpenCaId?: string | null;
+  onCaOpened?: () => void;
+}
+
+export default function CorrectiveActionsView({ autoOpenCaId, onCaOpened }: CorrectiveActionsViewProps = {}) {
   const { role } = useAuth();
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
 
@@ -63,6 +68,16 @@ export default function CorrectiveActionsView() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (autoOpenCaId && data.length > 0) {
+      const ca = data.find(item => item.id === autoOpenCaId);
+      if (ca && ca.nonconformities) {
+        setModalCA(ca);
+        if (onCaOpened) onCaOpened();
+      }
+    }
+  }, [autoOpenCaId, data]);
 
   const fetchData = async () => {
     setLoading(true);

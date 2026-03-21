@@ -39,6 +39,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [autoOpenRecordId, setAutoOpenRecordId] = useState<string | null>(null);
   const [autoOpenNcId, setAutoOpenNcId] = useState<string | null>(null);
+  const [autoOpenCaId, setAutoOpenCaId] = useState<string | null>(null);
   const [permissionDeniedToast, setPermissionDeniedToast] = useState(false);
 
   const handleModuleSelect = (module: Module) => {
@@ -190,6 +191,19 @@ function App() {
     if (fbModule) {
       setAutoOpenRecordId(fbId);
       setActiveModule(fbModule);
+      setShowAdminPanel(false);
+      setShowActionTracking(false);
+      setShowNotepad(false);
+      setIsMobileMenuOpen(false);
+      setSidebarCollapsed(true);
+    }
+  };
+
+  const handleNavigateToCA = (caId: string) => {
+    const caModule = sections.flatMap(s => s.modules).find(m => m.id === 'corrective_actions');
+    if (caModule) {
+      setAutoOpenCaId(caId);
+      setActiveModule(caModule);
       setShowAdminPanel(false);
       setShowActionTracking(false);
       setShowNotepad(false);
@@ -395,9 +409,9 @@ function App() {
           ) : activeModule.id === 'risks_opportunities' ? (
             <RisksOpportunitiesView />
           ) : activeModule.id === 'nonconformities' ? (
-            <NonconformitiesView autoOpenRecordId={autoOpenNcId} onNcOpened={() => setAutoOpenNcId(null)} onNavigateToFeedback={handleNavigateToFeedback} />
+            <NonconformitiesView autoOpenRecordId={autoOpenNcId} onNcOpened={() => setAutoOpenNcId(null)} onNavigateToFeedback={handleNavigateToFeedback} onNavigateToCA={handleNavigateToCA} />
           ) : activeModule.id === 'corrective_actions' ? (
-            <CorrectiveActionsView />
+            <CorrectiveActionsView autoOpenCaId={autoOpenCaId} onCaOpened={() => setAutoOpenCaId(null)} />
           ) : activeModule.id === 'equipment_hardware' ? (
             <ModuleView module={activeModule} userRole={role} autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
           ) : (
