@@ -40,7 +40,7 @@ function buildSummaryPrompt(ncDescription: string, steps: WhyStep[]): string {
 }
 
 function buildCorrectionPrompt(ncDescription: string, rootCauseSummary: string): string {
-  return `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${ncDescription}\n\n5 Why analizi sonucunda tespit edilen kök neden:\n${rootCauseSummary}\n\nBu kök nedeni ortadan kaldırmak için somut ve uygulanabilir bir düzeltici faaliyet önerisi yaz.\n- Tek paragraf, maksimum 3 cümle\n- Açık ve uygulanabilir adımlar içersin\n- ISO 17025 gerekliliklerine uygun olsun\n- Sadece öneriyi yaz, başka hiçbir şey yazma.`;
+  return `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${ncDescription}\n\n5 Why analizi sonucunda tespit edilen kök neden:\n${rootCauseSummary}\n\nBu kök nedeni ortadan kaldırmak için somut bir düzeltici faaliyet önerisi yaz.\n\nKurallar:\n- Kesinlikle 'meli', 'malı', 'gerekir', 'edilmeli' gibi ifadeler KULLANMA\n- Bunun yerine 'yapılabilir', 'güncellenebilir', 'eklenebilir', 'düzenlenebilir', 'belirlenebilir' gibi edilebilir/yapılabilir ifadeler kullan\n- Tek paragraf, maksimum 3 cümle\n- ISO 17025 gerekliliklerine uygun olsun\n- Sadece öneriyi yaz, başka hiçbir şey yazma.`;
 }
 
 export default function FiveWhyInterface({ ncId, ncDescription, onSaved }: Props) {
