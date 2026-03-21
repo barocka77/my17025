@@ -8,9 +8,10 @@ import CustomerFeedbackDetailView from './CustomerFeedbackDetailView';
 interface CustomerFeedbackViewProps {
   autoOpenRecordId?: string | null;
   onRecordOpened?: () => void;
+  onNavigateToNC?: (ncId: string) => void;
 }
 
-const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeedbackViewProps) => {
+const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened, onNavigateToNC }: CustomerFeedbackViewProps) => {
   const { role } = useAuth();
   const isAdmin = role === 'admin' || role === 'super_admin';
 
@@ -715,6 +716,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
         }}
         onSuccess={fetchFeedbacks}
         editData={editData}
+        onNavigateToNC={onNavigateToNC}
       />
 
       <CustomerFeedbackDetailView
@@ -730,6 +732,7 @@ const CustomerFeedbackView = ({ autoOpenRecordId, onRecordOpened }: CustomerFeed
           fetchFeedbacks(showDeleted);
           fetchLockedRecords();
         }}
+        onNavigateToNC={onNavigateToNC}
       />
     </div>
   );

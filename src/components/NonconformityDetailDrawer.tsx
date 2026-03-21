@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
   AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench, FileDown, GitBranch,
+  Link2, ExternalLink,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -81,9 +82,10 @@ interface Props {
   ncId: string;
   onClose: () => void;
   onRefresh: () => void;
+  onNavigateToFeedback?: (fbId: string) => void;
 }
 
-export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: Props) {
+export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, onNavigateToFeedback }: Props) {
   const { role } = useAuth();
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
 
@@ -669,6 +671,26 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh }: 
                       )}
                     </div>
                   </div>
+
+                  {/* Linked GB Badge */}
+                  {nc.linked_gb_id && nc.linked_gb_number && (
+                    <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Link2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-[9px] font-bold text-blue-500 uppercase tracking-wider">Bağlı Geri Bildirim</p>
+                          <button
+                            type="button"
+                            onClick={() => onNavigateToFeedback && onNavigateToFeedback(nc.linked_gb_id)}
+                            className="inline-flex items-center gap-1 text-[12px] font-bold text-blue-700 hover:text-blue-900 hover:underline transition-colors mt-0.5"
+                          >
+                            {nc.linked_gb_number}
+                            <ExternalLink className="w-3 h-3 opacity-60" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* 2-col grid: Tekrar Riski | Kalibrasyon Etkisi */}
                   <div className="grid grid-cols-2 gap-4">

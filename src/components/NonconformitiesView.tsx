@@ -96,7 +96,13 @@ interface NcFormData {
 }
 
 
-export default function NonconformitiesView() {
+interface NonconformitiesViewProps {
+  autoOpenRecordId?: string | null;
+  onNcOpened?: () => void;
+  onNavigateToFeedback?: (fbId: string) => void;
+}
+
+export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNavigateToFeedback }: NonconformitiesViewProps = {}) {
   const { role } = useAuth();
   const isManager = role === 'admin' || role === 'super_admin' || role === 'quality_manager';
 
@@ -178,6 +184,13 @@ export default function NonconformitiesView() {
     fetchData();
     fetchProfiles();
   }, []);
+
+  useEffect(() => {
+    if (autoOpenRecordId) {
+      setSelectedNcId(autoOpenRecordId);
+      if (onNcOpened) onNcOpened();
+    }
+  }, [autoOpenRecordId]);
 
   const fetchProfiles = async () => {
     try {
@@ -747,6 +760,7 @@ export default function NonconformitiesView() {
           ncId={selectedNcId}
           onClose={() => setSelectedNcId(null)}
           onRefresh={fetchData}
+          onNavigateToFeedback={onNavigateToFeedback}
         />
       )}
     </div>

@@ -38,6 +38,7 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [autoOpenRecordId, setAutoOpenRecordId] = useState<string | null>(null);
+  const [autoOpenNcId, setAutoOpenNcId] = useState<string | null>(null);
   const [permissionDeniedToast, setPermissionDeniedToast] = useState(false);
 
   const handleModuleSelect = (module: Module) => {
@@ -168,6 +169,32 @@ function App() {
         setIsMobileMenuOpen(false);
         setSidebarCollapsed(true);
       }
+    }
+  };
+
+  const handleNavigateToNC = (ncId: string) => {
+    const ncModule = sections.flatMap(s => s.modules).find(m => m.id === 'nonconformities');
+    if (ncModule) {
+      setAutoOpenNcId(ncId);
+      setActiveModule(ncModule);
+      setShowAdminPanel(false);
+      setShowActionTracking(false);
+      setShowNotepad(false);
+      setIsMobileMenuOpen(false);
+      setSidebarCollapsed(true);
+    }
+  };
+
+  const handleNavigateToFeedback = (fbId: string) => {
+    const fbModule = sections.flatMap(s => s.modules).find(m => m.id === 'customer_feedback');
+    if (fbModule) {
+      setAutoOpenRecordId(fbId);
+      setActiveModule(fbModule);
+      setShowAdminPanel(false);
+      setShowActionTracking(false);
+      setShowNotepad(false);
+      setIsMobileMenuOpen(false);
+      setSidebarCollapsed(true);
     }
   };
 
@@ -352,7 +379,7 @@ function App() {
           </div>
         ) : activeModule ? (
           activeModule.id === 'customer_feedback' ? (
-            <CustomerFeedbackView autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
+            <CustomerFeedbackView autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} onNavigateToNC={handleNavigateToNC} />
           ) : activeModule.id === 'internal_audits' ? (
             <InternalAuditsView />
           ) : activeModule.id === 'management_reviews' ? (
@@ -368,7 +395,7 @@ function App() {
           ) : activeModule.id === 'risks_opportunities' ? (
             <RisksOpportunitiesView />
           ) : activeModule.id === 'nonconformities' ? (
-            <NonconformitiesView />
+            <NonconformitiesView autoOpenRecordId={autoOpenNcId} onNcOpened={() => setAutoOpenNcId(null)} onNavigateToFeedback={handleNavigateToFeedback} />
           ) : activeModule.id === 'corrective_actions' ? (
             <CorrectiveActionsView />
           ) : activeModule.id === 'equipment_hardware' ? (

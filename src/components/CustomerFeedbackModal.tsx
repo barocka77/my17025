@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2, ShieldCheck, Info } from 'lucide-react';
+import { X, AlertTriangle, Lightbulb, MessageSquare, Flag, Save, ChevronDown, Upload, FileText, Image, Loader2, AlertCircle, ExternalLink, Lock, Plus, Trash2, ShieldCheck, Info, Link2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignaturesSection from './SignaturesSection';
@@ -24,9 +24,10 @@ interface CustomerFeedbackModalProps {
   onClose: () => void;
   onSuccess: () => void;
   editData?: any;
+  onNavigateToNC?: (ncId: string) => void;
 }
 
-const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: CustomerFeedbackModalProps) => {
+const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData, onNavigateToNC }: CustomerFeedbackModalProps) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('kayit');
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,11 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hasSorumlulukSig, setHasSorumlulukSig] = useState(false);
   const [hasClosureSig, setHasClosureSig] = useState(false);
+  const [linkedNcId, setLinkedNcId] = useState<string | null>(null);
+  const [linkedNcNumber, setLinkedNcNumber] = useState<string | null>(null);
+  const [creatingNc, setCreatingNc] = useState(false);
+  const [ncToast, setNcToast] = useState<string | null>(null);
+  const [createNcOnSave, setCreateNcOnSave] = useState(false);
 
   const isLocked = !!(editData?.is_locked);
 
@@ -138,13 +144,18 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
         closure_notes: editData.closure_notes || '',
       });
 
+      setLinkedNcId(editData.linked_nc_id || null);
+      setLinkedNcNumber(editData.linked_nc_number || null);
+
       (async () => {
         const { data: freshRow } = await supabase
           .from('feedback_records')
-          .select('attachments')
+          .select('attachments, linked_nc_id, linked_nc_number')
           .eq('id', editData.id)
           .maybeSingle();
         setAttachments(freshRow?.attachments || []);
+        if (freshRow?.linked_nc_id) setLinkedNcId(freshRow.linked_nc_id);
+        if (freshRow?.linked_nc_number) setLinkedNcNumber(freshRow.linked_nc_number);
 
         const { data: actionsData } = await supabase
           .from('feedback_actions')
@@ -194,9 +205,49 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
       });
       setAttachments([]);
       setActions([]);
+      setLinkedNcId(null);
+      setLinkedNcNumber(null);
+      setCreateNcOnSave(false);
     }
     setUploadError(null);
   }, [editData, isOpen]);
+
+  const handleCreateNc = async (fbId: string, appNo: string, contentDetails: string) => {
+    if (linkedNcId) return;
+    setCreatingNc(true);
+    try {
+      const { data: ncData, error: ncError } = await supabase
+        .from('nonconformities')
+        .insert([{
+          description: `Geri Bildirim kaydından otomatik oluşturuldu. GB No: ${appNo} | İçerik: ${contentDetails}`,
+          source: 'customer_feedback',
+          detection_date: new Date().toISOString().split('T')[0],
+          severity: 'minor',
+          recurrence_risk: 'low',
+          calibration_impact: 'none',
+          status: 'open',
+          linked_gb_id: fbId,
+          linked_gb_number: appNo,
+        }])
+        .select('id, nc_number')
+        .maybeSingle();
+      if (ncError) throw ncError;
+      if (ncData) {
+        await supabase.from('feedback_records').update({
+          linked_nc_id: ncData.id,
+          linked_nc_number: ncData.nc_number,
+        }).eq('id', fbId);
+        setLinkedNcId(ncData.id);
+        setLinkedNcNumber(ncData.nc_number);
+        setNcToast(ncData.nc_number);
+        setTimeout(() => setNcToast(null), 4500);
+      }
+    } catch (err: any) {
+      alert('Uygunsuzluk kaydı oluşturulamadı: ' + (err.message || ''));
+    } finally {
+      setCreatingNc(false);
+    }
+  };
 
   const calculateRiskLevel = (probability: string, severity: string): string => {
     const probMap: Record<string, number> = {
@@ -382,6 +433,19 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
             await supabase.from('feedback_actions').insert({ ...payload, feedback_id: recordId });
           }
         }
+      }
+
+      if (createNcOnSave && recordId && !linkedNcId) {
+        const { data: freshFb } = await supabase
+          .from('feedback_records')
+          .select('application_no')
+          .eq('id', recordId)
+          .maybeSingle();
+        await handleCreateNc(
+          recordId,
+          freshFb?.application_no || formData.application_no || '',
+          formData.content_details || '',
+        );
       }
 
       const izahatByChanged = formData.izahat_by && formData.izahat_by !== (editData?.izahat_by || '');
@@ -752,42 +816,66 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
                   </div>
 
                   <div>
-                    <label className={labelCls}>Düzeltici Faaliyet (DF) Gerekiyor mu?</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { value: true, label: 'Evet', color: 'red' },
-                        { value: false, label: 'Hayır', color: 'green' },
-                      ].map(({ value, label, color }) => (
-                        <div key={label}>
+                    <label className={labelCls}>Uygunsuzluk Kaydı Açılacak mı?</label>
+                    {linkedNcId && linkedNcNumber ? (
+                      <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] text-slate-500 mb-0.5">Bağlı Uygunsuzluk Kaydı</p>
                           <button
                             type="button"
-                            onClick={() => setFormData({ ...formData, requires_capa: value })}
-                            className={`w-full p-3 rounded-lg border-2 transition-all text-[11px] font-semibold ${
-                              formData.requires_capa === value
-                                ? color === 'red' ? 'border-red-500 bg-red-50 text-red-900' : 'border-green-500 bg-green-50 text-green-900'
+                            onClick={() => onNavigateToNC && onNavigateToNC(linkedNcId)}
+                            className="inline-flex items-center gap-1.5 text-[12px] font-bold text-blue-700 hover:text-blue-900 hover:underline transition-colors"
+                          >
+                            <Link2 className="w-3.5 h-3.5" />
+                            {linkedNcNumber}
+                            <ExternalLink className="w-3 h-3 opacity-60" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editData?.id) {
+                                handleCreateNc(editData.id, formData.application_no || '', formData.content_details || '');
+                              } else {
+                                setCreateNcOnSave(true);
+                              }
+                            }}
+                            disabled={creatingNc}
+                            className={`w-full p-3 rounded-lg border-2 transition-all text-[11px] font-semibold disabled:opacity-60 ${
+                              createNcOnSave
+                                ? 'border-red-500 bg-red-50 text-red-900'
                                 : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
                             }`}
                           >
-                            {label}
+                            {creatingNc ? (
+                              <span className="flex items-center justify-center gap-1.5">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Oluşturuluyor...
+                              </span>
+                            ) : 'Evet'}
                           </button>
-                          {formData.requires_capa === value && (
-                            <p className={`mt-1.5 text-[10px] ${color === 'red' ? 'text-red-600' : 'text-green-700'}`}>
-                              {value ? 'Bildirim uygunsuzluk ve DF formuna devredilerek kapatılır.' : 'Düzeltme Faaliyeti bu form üzerinde takip edilir.'}
-                            </p>
+                          {createNcOnSave && !editData && (
+                            <p className="mt-1.5 text-[10px] text-red-600">Kayıt kaydedilirken NC otomatik oluşturulacak.</p>
                           )}
                         </div>
-                      ))}
-                    </div>
-                    {formData.requires_capa && (
-                      <div className="mt-3">
-                        <label className={labelCls}>DF Numarası</label>
-                        <input
-                          type="text"
-                          value={formData.capa_no}
-                          onChange={(e) => setFormData({ ...formData, capa_no: e.target.value })}
-                          className={inputCls}
-                          placeholder="DF-2024-001"
-                        />
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setCreateNcOnSave(false)}
+                            className={`w-full p-3 rounded-lg border-2 transition-all text-[11px] font-semibold ${
+                              !createNcOnSave
+                                ? 'border-green-500 bg-green-50 text-green-900'
+                                : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
+                            }`}
+                          >
+                            Hayır
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1147,6 +1235,12 @@ const CustomerFeedbackModal = ({ isOpen, onClose, onSuccess, editData }: Custome
           <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-5 py-3 bg-red-600 text-white text-[11px] font-semibold rounded-lg shadow-lg">
             <Lock className="w-4 h-4 flex-shrink-0" />
             Kilitli kayıt güncellenemez.
+          </div>
+        )}
+        {ncToast && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-5 py-3 bg-green-700 text-white text-[11px] font-semibold rounded-lg shadow-lg">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            Uygunsuzluk kaydı oluşturuldu: {ncToast}
           </div>
         )}
       </div>
