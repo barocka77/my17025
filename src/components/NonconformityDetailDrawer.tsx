@@ -950,7 +950,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 {/* Method Selection Cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <button
-                    onClick={() => setRcaMethod(rcaMethod === 'fishbone' ? null : 'fishbone')}
+                    onClick={() => { setRcaMethod('fishbone'); setRcaModalOpen(true); }}
                     className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all text-left ${
                       rcaMethod === 'fishbone'
                         ? 'border-slate-700 bg-slate-700 text-white shadow-md'
