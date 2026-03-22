@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
   AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench, FileDown, GitBranch,
-  Link2, ExternalLink, Network, Layers,
+  Link2, ExternalLink, Network, Layers, Sparkles, RefreshCw, Loader2,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -102,6 +102,8 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
   const [rcaSaving, setRcaSaving] = useState(false);
   const [rcaError, setRcaError] = useState<string | null>(null);
   const [rcaMethod, setRcaMethod] = useState<'fishbone' | '5why' | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
 
   const [caList, setCaList] = useState<any[]>([]);
   const [caLoading, setCaLoading] = useState(true);
@@ -341,6 +343,39 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       fetchRca();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchAiSuggestions = async (category: string) => {
+    setAiSuggestionsLoading(true);
+    setAiSuggestions([]);
+    try {
+      const categoryLabel = RCA_CATEGORY_LABELS[category] || category;
+      const prompt = `Sen bir ISO 17025 kalite uzmanısın. Balık kılçığı (Ishikawa) analizi yapıyorsun.\n\nUygunsuzluk: ${nc?.description || ''}\nKategori: ${categoryLabel}\n\nBu kategori için bu uygunsuzluğun olası nedenlerini listele.\n- 4 öneri ver\n- Her öneri maksimum 10 kelime\n- Her öneri yeni satırda, sadece tire (-) ile başlasın\n- Başka hiçbir şey yazma, sadece 4 öneriyi yaz`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-proxy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      if (data.result) {
+        const lines = data.result
+          .split('\n')
+          .map((l: string) => l.trim())
+          .filter((l: string) => l.startsWith('-'))
+          .map((l: string) => l.replace(/^-\s*/, '').trim())
+          .filter(Boolean);
+        setAiSuggestions(lines);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAiSuggestionsLoading(false);
     }
   };
 
@@ -950,7 +985,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 {/* Method Selection Cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <button
-                    onClick={() => { setRcaMethod('fishbone'); setRcaModalOpen(true); }}
+                    onClick={() => { setRcaMethod('fishbone'); setRcaModalOpen(true); setAiSuggestions([]); }}
                     className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all text-left ${
                       rcaMethod === 'fishbone'
                         ? 'border-slate-700 bg-slate-700 text-white shadow-md'
@@ -1260,7 +1295,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 <AlertTriangle className="w-4 h-4" />
                 <span className="font-bold text-sm">Kök Neden Ekle</span>
               </div>
-              <button onClick={() => { setRcaModalOpen(false); setRcaError(null); }} className="hover:bg-white/20 p-1.5 rounded-lg transition-colors">
+              <button onClick={() => { setRcaModalOpen(false); setRcaError(null); setAiSuggestions([]); }} className="hover:bg-white/20 p-1.5 rounded-lg transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1272,7 +1307,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Kategori</label>
                 <select
                   value={rcaCategory}
-                  onChange={e => setRcaCategory(e.target.value)}
+                  onChange={e => { setRcaCategory(e.target.value); setAiSuggestions([]); }}
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 >
                   {RCA_CATEGORY_OPTIONS.map(opt => (
@@ -1281,7 +1316,34 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Açıklama</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wide">Açıklama</label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => fetchAiSuggestions(rcaCategory)}
+                      disabled={aiSuggestionsLoading}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-md border border-violet-300 text-violet-600 hover:bg-violet-50 hover:border-violet-400 transition-all text-[10px] font-semibold disabled:opacity-60"
+                    >
+                      {aiSuggestionsLoading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      {aiSuggestionsLoading ? 'Yükleniyor...' : 'AI Önerisi Al'}
+                    </button>
+                    {aiSuggestions.length > 0 && !aiSuggestionsLoading && (
+                      <button
+                        type="button"
+                        onClick={() => fetchAiSuggestions(rcaCategory)}
+                        className="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                        title="Yenile"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <textarea
                   value={rcaDescription}
                   onChange={e => setRcaDescription(e.target.value)}
@@ -1290,6 +1352,25 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                   className="w-full px-3 py-2 text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
                   placeholder="Kök neden açıklamasını girin..."
                 />
+                {aiSuggestions.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {aiSuggestions.map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setRcaDescription(prev =>
+                            prev ? `${prev}\n${suggestion}` : suggestion
+                          );
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-all text-[10px] font-medium leading-none"
+                      >
+                        <Plus className="w-2.5 h-2.5 flex-shrink-0" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 pt-1">
                 <button
@@ -1302,7 +1383,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setRcaModalOpen(false); setRcaError(null); }}
+                  onClick={() => { setRcaModalOpen(false); setRcaError(null); setAiSuggestions([]); }}
                   className="flex-1 bg-slate-100 text-slate-700 px-4 py-2.5 rounded-lg hover:bg-slate-200 transition-colors font-semibold text-xs"
                 >
                   İptal
