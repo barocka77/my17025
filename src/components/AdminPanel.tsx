@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2, Pencil } from 'lucide-react';
+import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2, Pencil, FileText } from 'lucide-react';
+import { downloadTechnicalReport } from '../utils/generateTechnicalReport';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import OrganizationLogoUpload from './OrganizationLogoUpload';
@@ -380,6 +381,32 @@ export default function AdminPanel() {
 
         <div className="mt-8">
           <OrganizationLogoUpload />
+        </div>
+
+        <div className="mt-8 bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-slate-700" />
+              <h2 className="text-lg font-semibold text-slate-800">Sistem Raporları</h2>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800 mb-1">Teknik Durum Raporu</h3>
+                <p className="text-sm text-slate-500 max-w-lg">
+                  Tüm modüller, bileşenler, veritabanı tabloları, güvenlik sorunları ve yapılacaklar listesini kapsayan kapsamlı teknik analiz raporu. HTML formatında indirilir, tarayıcıdan PDF olarak kaydedilebilir.
+                </p>
+              </div>
+              <button
+                onClick={downloadTechnicalReport}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap flex-shrink-0"
+              >
+                <FileText className="w-4 h-4" />
+                Raporu İndir (HTML)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
