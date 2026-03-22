@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2, Pencil, FileText } from 'lucide-react';
+import { Users, Shield, ChevronDown, Check, AlertCircle, UserPlus, X, Eye, EyeOff, Loader2, Pencil, FileText, StickyNote } from 'lucide-react';
 import { downloadTechnicalReport } from '../utils/generateTechnicalReport';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,8 @@ interface UserProfile {
   full_name: string | null;
   role: AppRole;
   created_at: string;
+  approved: boolean;
+  feature_notepad: boolean;
 }
 
 interface UserForm {
@@ -28,11 +30,44 @@ interface EditUserForm extends UserForm {
 
 const EMPTY_FORM: UserForm = { email: '', password: '', full_name: '', role: 'personnel' };
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 ${
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+      } ${checked ? 'bg-emerald-500' : 'bg-slate-300'}`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          checked ? 'translate-x-4' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  );
+}
+
 export default function AdminPanel() {
   const { role: currentUserRole } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [updatingAccessId, setUpdatingAccessId] = useState<string | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -77,6 +112,29 @@ export default function AdminPanel() {
       fetchUsers();
     }
     setUpdatingUserId(null);
+  };
+
+  const updateUserAccess = async (
+    userId: string,
+    field: 'approved' | 'feature_notepad',
+    value: boolean
+  ) => {
+    setUpdatingAccessId(userId);
+    const params =
+      field === 'approved'
+        ? { target_user_id: userId, new_approved: value }
+        : { target_user_id: userId, new_feature_notepad: value };
+
+    const { error } = await supabase.rpc('update_user_access', params);
+
+    if (error) {
+      showToast('Erişim güncellenirken hata oluştu', 'error');
+    } else {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, [field]: value } : u))
+      );
+    }
+    setUpdatingAccessId(null);
   };
 
   const createUser = async () => {
@@ -284,6 +342,11 @@ export default function AdminPanel() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Kayıt Tarihi
                   </th>
+                  {(currentUserRole === 'admin' || currentUserRole === 'super_admin') && (
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      Erişim
+                    </th>
+                  )}
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     İşlemler
                   </th>
@@ -308,6 +371,38 @@ export default function AdminPanel() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-600">{formatDate(user.created_at)}</div>
                     </td>
+                    {(currentUserRole === 'admin' || currentUserRole === 'super_admin') && (
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-2.5 min-w-[160px]">
+                          <div className="flex items-center gap-2.5">
+                            <ToggleSwitch
+                              checked={user.approved}
+                              onChange={(v) => updateUserAccess(user.id, 'approved', v)}
+                              disabled={updatingAccessId === user.id}
+                              label="Sistem Onayı"
+                            />
+                            <span className={`text-xs font-medium ${user.approved ? 'text-emerald-700' : 'text-slate-500'}`}>
+                              Sistem Onayı
+                            </span>
+                            {updatingAccessId === user.id && (
+                              <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            <ToggleSwitch
+                              checked={user.feature_notepad}
+                              onChange={(v) => updateUserAccess(user.id, 'feature_notepad', v)}
+                              disabled={updatingAccessId === user.id}
+                              label="Not Defteri Erişimi"
+                            />
+                            <span className={`text-xs font-medium flex items-center gap-1 ${user.feature_notepad ? 'text-amber-700' : 'text-slate-500'}`}>
+                              <StickyNote className="w-3 h-3" />
+                              Not Defteri
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {(currentUserRole === 'admin' || currentUserRole === 'super_admin') && (
