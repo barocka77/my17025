@@ -20,7 +20,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeModule, showAdminPanel, showActionTracking, showNotepad, onModuleSelect, onAdminPanelSelect, onHomeSelect, onActionTrackingSelect, onNotepadSelect, isLocked = false, collapsed, onToggleCollapse }: SidebarProps) {
-  const { user, role, signOut, loading } = useAuth();
+  const { user, role, featureNotepad, signOut, loading } = useAuth();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [showLogoutToast, setShowLogoutToast] = useState(false);
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null);
@@ -31,13 +31,6 @@ export default function Sidebar({ activeModule, showAdminPanel, showActionTracki
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isQualityManager = role === 'quality_manager';
   const isManager = isAdmin || isQualityManager;
-  const canAccessNotes = user?.email === 'toztoprakbaraka@gmail.com' || user?.email === 'oosmanozturk06@gmail.com';
-
-  useEffect(() => {
-    if (!loading && user && !role) {
-      console.warn('User is authenticated but role is null');
-    }
-  }, [role, isAdmin, isManager, user, loading]);
 
   useEffect(() => {
     if (activeModule) {
@@ -130,7 +123,7 @@ export default function Sidebar({ activeModule, showAdminPanel, showActionTracki
 
         <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
           {/* Notepad */}
-          {!loading && canAccessNotes && (
+          {!loading && featureNotepad && (
             <button
               onClick={onNotepadSelect}
               onMouseEnter={(e) => showTooltip('Notlarım', e)}

@@ -19,12 +19,12 @@ import Login from './components/Login';
 import VerifySignature from './components/VerifySignature';
 import { Module } from './types/modules';
 import { sections } from './config/modules';
-import { Microscope, Menu, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Microscope, Menu, X, AlertCircle, ChevronLeft, ChevronRight, Clock, LogOut } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { useCompliance } from './contexts/ComplianceContext';
 
 function App() {
-  const { user, role, loading } = useAuth();
+  const { user, role, featureNotepad, isApproved, loading, signOut } = useAuth();
   const { isLocked, criticalItemsCount, loading: complianceLoading } = useCompliance();
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [isVerifyPage, setIsVerifyPage] = useState(() => window.location.hash === '#verify-signature');
@@ -93,8 +93,7 @@ function App() {
   };
 
   const handleNotepadSelect = () => {
-    const canAccessNotes = user?.email === 'toztoprakbaraka@gmail.com' || user?.email === 'oosmanozturk06@gmail.com';
-    if (canAccessNotes) {
+    if (featureNotepad) {
       setShowNotepad(true);
       setActiveModule(null);
       setShowAdminPanel(false);
@@ -317,6 +316,32 @@ function App() {
     const resolvedRedirect = redirectTo || (pathMatch ? `/feedback/${pathMatch[1]}` : null);
 
     return <Login redirectTo={resolvedRedirect} />;
+  }
+
+  if (!isApproved) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">Hesabınız Onay Bekliyor</h2>
+          <p className="text-sm text-slate-600 mb-2 leading-relaxed">
+            Hesabınız başarıyla oluşturuldu. Sisteme erişmek için bir yöneticinin hesabınızı onaylaması gerekmektedir.
+          </p>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6 leading-relaxed">
+            Onay işlemi tamamlandığında giriş yapabilirsiniz. Lütfen yöneticinizle iletişime geçin.
+          </p>
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Çıkış Yap
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
