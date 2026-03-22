@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   X, Plus, Save, AlertTriangle, ClipboardCheck, ShieldCheck,
   AlertCircle, CheckCircle2, Clock, Trash2, Users, Activity, Wrench, FileDown, GitBranch,
-  Link2, ExternalLink,
+  Link2, ExternalLink, Network, Layers,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -957,7 +957,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                         : 'border-slate-200 bg-white hover:border-slate-400 hover:shadow-sm'
                     }`}
                   >
-                    <span className="text-2xl">🐟</span>
+                    <Network className={`w-6 h-6 ${rcaMethod === 'fishbone' ? 'text-white' : 'text-slate-600'}`} />
                     <span className={`text-[11px] font-bold ${rcaMethod === 'fishbone' ? 'text-white' : 'text-slate-700'}`}>
                       Balık Kılçığı
                     </span>
@@ -974,7 +974,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                         : 'border-slate-200 bg-white hover:border-slate-400 hover:shadow-sm'
                     }`}
                   >
-                    <span className="text-2xl">❓</span>
+                    <Layers className={`w-6 h-6 ${rcaMethod === '5why' ? 'text-white' : 'text-slate-600'}`} />
                     <span className={`text-[11px] font-bold ${rcaMethod === '5why' ? 'text-white' : 'text-slate-700'}`}>
                       5 Why (5 Neden)
                     </span>
@@ -983,19 +983,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                     </span>
                   </button>
                 </div>
-
-                {/* Balık Kılçığı: Ekle button */}
-                {rcaMethod === 'fishbone' && (
-                  <div className="mb-4">
-                    <button
-                      onClick={() => setRcaModalOpen(true)}
-                      className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-[11px] font-semibold"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Ekle
-                    </button>
-                  </div>
-                )}
 
                 {/* 5 Why Interface */}
                 {rcaMethod === '5why' && (
@@ -1013,14 +1000,14 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                   <div className="flex items-center justify-center h-20">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-600" />
                   </div>
-                ) : rcaList.length === 0 ? (
+                ) : rcaMethod && rcaList.filter(i => i.rca_method === rcaMethod || (rcaMethod === 'fishbone' && i.rca_method !== '5why')).length === 0 ? (
                   <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
                     <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-slate-200" />
                     <p className="text-[11px] text-slate-400">Henüz kök neden analizi eklenmemiş</p>
                   </div>
-                ) : (
+                ) : !rcaMethod ? null : (
                   <div className="space-y-2">
-                    {rcaList.map(item => (
+                    {rcaList.filter(i => i.rca_method === rcaMethod || (rcaMethod === 'fishbone' && i.rca_method !== '5why')).map(item => (
                       item.rca_method === '5why' ? (
                         <div key={item.id} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-start gap-3 hover:border-emerald-300 transition-colors">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200 whitespace-nowrap mt-0.5">
