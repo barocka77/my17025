@@ -552,7 +552,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'general', label: 'Genel Bilgi', icon: <ClipboardCheck className="w-3.5 h-3.5" /> },
     { key: 'impact', label: 'Uygunsuzluk Etki', icon: <Activity className="w-3.5 h-3.5" /> },
-    { key: 'analysis', label: 'Analiz', icon: <AlertTriangle className="w-3.5 h-3.5" />, count: rcaList.length },
+    { key: 'analysis', label: 'Analiz', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
     { key: 'actions', label: 'Düzeltici Faaliyetler', icon: <Wrench className="w-3.5 h-3.5" />, count: caList.length },
     { key: 'signatures', label: 'İmzalar', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
   ];
