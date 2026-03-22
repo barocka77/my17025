@@ -105,6 +105,12 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
 
+  const [fishboneDfSuggestion, setFishboneDfSuggestion] = useState<string | null>(null);
+  const [fishboneDfLoading, setFishboneDfLoading] = useState(false);
+  const [fishboneDfCreating, setFishboneDfCreating] = useState(false);
+  const [fishboneDfToast, setFishboneDfToast] = useState<string | null>(null);
+  const [fishboneDfCreatedCaNumber, setFishboneDfCreatedCaNumber] = useState<string | null>(null);
+
   const [caList, setCaList] = useState<any[]>([]);
   const [caLoading, setCaLoading] = useState(true);
   const [caModalOpen, setCaModalOpen] = useState(false);
@@ -376,6 +382,66 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       console.error(err);
     } finally {
       setAiSuggestionsLoading(false);
+    }
+  };
+
+  const fetchFishboneDfSuggestion = async () => {
+    const fishboneItems = rcaList.filter(i => i.rca_method !== '5why');
+    if (fishboneItems.length === 0) {
+      alert('DF önerisi alabilmek için önce en az bir Balık Kılçığı kategorisi doldurulmalıdır.');
+      return;
+    }
+    setFishboneDfLoading(true);
+    setFishboneDfSuggestion(null);
+    setFishboneDfCreatedCaNumber(null);
+    setFishboneDfToast(null);
+    try {
+      const categoriesText = fishboneItems
+        .map(i => `${RCA_CATEGORY_LABELS[i.rca_category] || i.rca_category}: ${i.rca_description}`)
+        .join('\n');
+      const prompt = `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${nc?.description || ''}\n\nKök neden analizi (Balık Kılçığı):\n${categoriesText}\n\nBu kök nedenlere dayalı olarak tek bir düzeltici faaliyet önerisi yaz.\nKurallar:\n- 2-3 cümle\n- 'meli', 'malı', 'gerekir' ifadeleri KULLANMA\n- 'yapılır', 'güncellenir', 'eklenir', 'düzenlenir' gibi ifadeler kullan\n- Somut ve uygulanabilir olsun\n- ISO 17025 gerekliliklerine uygun olsun\n- Sadece öneriyi yaz, başka hiçbir şey yazma`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-proxy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      if (data.result) {
+        setFishboneDfSuggestion(data.result.trim());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFishboneDfLoading(false);
+    }
+  };
+
+  const createDfFromFishboneSuggestion = async () => {
+    if (!fishboneDfSuggestion?.trim()) return;
+    setFishboneDfCreating(true);
+    try {
+      const { data, error } = await supabase
+        .from('corrective_actions')
+        .insert([{ nonconformity_id: ncId, action_description: fishboneDfSuggestion.trim() }])
+        .select('ca_number')
+        .maybeSingle();
+      if (error) throw error;
+      const caNum = data?.ca_number || '';
+      setFishboneDfCreatedCaNumber(caNum);
+      setFishboneDfToast(caNum);
+      setFishboneDfSuggestion(null);
+      fetchCa();
+      onRefresh();
+      setTimeout(() => setFishboneDfToast(null), 4000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFishboneDfCreating(false);
     }
   };
 
@@ -1077,6 +1143,100 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                     ))}
                   </div>
                 )}
+
+                {/* Fishbone DF Suggestion */}
+                {rcaMethod === 'fishbone' && !rcaLoading && (
+                  <div className="mt-4">
+                    {!fishboneDfSuggestion && !fishboneDfCreatedCaNumber && (
+                      <button
+                        type="button"
+                        onClick={fetchFishboneDfSuggestion}
+                        disabled={fishboneDfLoading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400 transition-all text-[11px] font-semibold disabled:opacity-60"
+                      >
+                        {fishboneDfLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        {fishboneDfLoading ? 'Önerisi hazırlanıyor...' : 'DF Önerisi Al'}
+                      </button>
+                    )}
+
+                    {fishboneDfSuggestion !== null && (
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Önerilen Düzeltici Faaliyet</span>
+                          <button
+                            type="button"
+                            onClick={fetchFishboneDfSuggestion}
+                            disabled={fishboneDfLoading}
+                            className="ml-auto flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 transition-colors disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${fishboneDfLoading ? 'animate-spin' : ''}`} />
+                            Yenile
+                          </button>
+                        </div>
+                        <textarea
+                          value={fishboneDfSuggestion}
+                          onChange={e => setFishboneDfSuggestion(e.target.value)}
+                          rows={4}
+                          className="w-full px-3 py-2.5 text-[12px] border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all resize-none bg-white text-slate-800 leading-relaxed"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setFishboneDfSuggestion(null); setFishboneDfCreatedCaNumber(null); }}
+                            className="px-3 py-2 rounded-lg border border-slate-300 text-slate-600 text-[11px] font-semibold hover:bg-slate-50 transition-all"
+                          >
+                            İptal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={createDfFromFishboneSuggestion}
+                            disabled={fishboneDfCreating || !fishboneDfSuggestion?.trim()}
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all font-semibold text-[11px] disabled:opacity-60"
+                          >
+                            {fishboneDfCreating ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Oluşturuluyor...
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3.5 h-3.5" />
+                                Bu Öneriyle DF Oluştur
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {fishboneDfCreatedCaNumber && !fishboneDfSuggestion && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={fetchFishboneDfSuggestion}
+                          disabled={fishboneDfLoading}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400 transition-all text-[11px] font-semibold disabled:opacity-60"
+                        >
+                          {fishboneDfLoading ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          {fishboneDfLoading ? 'Önerisi hazırlanıyor...' : 'DF Önerisi Al'}
+                        </button>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-[10px] font-bold text-emerald-700">
+                          <CheckCircle2 className="w-3 h-3" />
+                          DF Oluşturuldu: {fishboneDfCreatedCaNumber}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Yayılım Analizi */}
@@ -1478,6 +1638,17 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Fishbone DF Created Toast */}
+      {fishboneDfToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-2.5 bg-emerald-700 text-white px-5 py-3 rounded-2xl shadow-2xl animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-200">Düzeltici Faaliyet Oluşturuldu</p>
+            <p className="text-[13px] font-bold">{fishboneDfToast}</p>
           </div>
         </div>
       )}
