@@ -110,6 +110,8 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
   const [fishboneDfCreating, setFishboneDfCreating] = useState(false);
   const [fishboneDfToast, setFishboneDfToast] = useState<string | null>(null);
   const [fishboneDfCreatedCaNumber, setFishboneDfCreatedCaNumber] = useState<string | null>(null);
+  const [fishboneDfSaving, setFishboneDfSaving] = useState(false);
+  const [fishboneDfSaved, setFishboneDfSaved] = useState(false);
 
   const [caList, setCaList] = useState<any[]>([]);
   const [caLoading, setCaLoading] = useState(true);
@@ -177,6 +179,10 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         setSpreadAnalysis(data.spread_analysis || '');
         setNcReference(data.nc_reference || '');
         setDescriptionText(data.description || '');
+        if (data.df_suggestion) {
+          setFishboneDfSuggestion(data.df_suggestion);
+          setRcaMethod('fishbone');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -442,6 +448,24 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       console.error(err);
     } finally {
       setFishboneDfCreating(false);
+    }
+  };
+
+  const saveFishboneDfSuggestion = async () => {
+    if (!fishboneDfSuggestion?.trim()) return;
+    setFishboneDfSaving(true);
+    try {
+      const { error } = await supabase
+        .from('nonconformities')
+        .update({ df_suggestion: fishboneDfSuggestion.trim() })
+        .eq('id', ncId);
+      if (error) throw error;
+      setFishboneDfSaved(true);
+      setTimeout(() => setFishboneDfSaved(false), 2500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFishboneDfSaving(false);
     }
   };
 
@@ -1187,10 +1211,30 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => { setFishboneDfSuggestion(null); setFishboneDfCreatedCaNumber(null); }}
+                            onClick={async () => {
+                              await supabase.from('nonconformities').update({ df_suggestion: null }).eq('id', ncId);
+                              setFishboneDfSuggestion(null);
+                              setFishboneDfCreatedCaNumber(null);
+                              setFishboneDfSaved(false);
+                            }}
                             className="px-3 py-2 rounded-lg border border-slate-300 text-slate-600 text-[11px] font-semibold hover:bg-slate-50 transition-all"
                           >
                             İptal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={saveFishboneDfSuggestion}
+                            disabled={fishboneDfSaving || !fishboneDfSuggestion?.trim()}
+                            className="flex items-center justify-center gap-1.5 border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-2 rounded-lg font-semibold text-[11px] transition-all disabled:opacity-60"
+                          >
+                            {fishboneDfSaving ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : fishboneDfSaved ? (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            ) : (
+                              <Save className="w-3.5 h-3.5" />
+                            )}
+                            {fishboneDfSaving ? 'Kaydediliyor...' : fishboneDfSaved ? 'Kaydedildi' : 'Kaydet'}
                           </button>
                           <button
                             type="button"
