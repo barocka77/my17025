@@ -121,7 +121,7 @@ async function sendEmailViaResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "onboarding@resend.dev",
+        from: Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@yourdomain.com",
         to: [to],
         subject,
         html: htmlBody,

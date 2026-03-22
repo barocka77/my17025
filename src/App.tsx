@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import ModuleView from './components/ModuleView';
 import CustomerFeedbackView from './components/CustomerFeedbackView';
@@ -41,6 +41,7 @@ function App() {
   const [autoOpenNcId, setAutoOpenNcId] = useState<string | null>(null);
   const [autoOpenCaId, setAutoOpenCaId] = useState<string | null>(null);
   const [permissionDeniedToast, setPermissionDeniedToast] = useState(false);
+  const isPoppingRef = useRef(false);
 
   const handleModuleSelect = (module: Module) => {
     if (isLocked) {
@@ -211,71 +212,78 @@ function App() {
     }
   };
 
-  // Push history state when navigating to a module or admin panel
+  // Push history state when navigating to a module or admin panel.
+  // Skipped during popstate restorations to avoid creating spurious history entries.
   useEffect(() => {
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false;
+      return;
+    }
     if (showAdminPanel) {
-      window.history.pushState(
-        { page: 'admin' },
-        '',
-        '#admin'
-      );
+      window.history.pushState({ page: 'admin' }, '', '#admin');
     } else if (showActionTracking) {
-      window.history.pushState(
-        { page: 'actions' },
-        '',
-        '#actions'
-      );
+      window.history.pushState({ page: 'actions' }, '', '#actions');
     } else if (showNotepad) {
-      window.history.pushState(
-        { page: 'notepad' },
-        '',
-        '#notepad'
-      );
+      window.history.pushState({ page: 'notepad' }, '', '#notepad');
     } else if (activeModule) {
-      window.history.pushState(
-        { module: activeModule.id, page: 'module' },
-        '',
-        `#${activeModule.id}`
-      );
+      window.history.pushState({ page: 'module', module: activeModule.id }, '', `#${activeModule.id}`);
     } else {
-      window.history.replaceState(
-        { page: 'dashboard' },
-        '',
-        '#'
-      );
+      window.history.replaceState({ page: 'dashboard' }, '', '#');
     }
   }, [activeModule, showAdminPanel, showActionTracking, showNotepad]);
 
-  // Handle browser back button
+  // Handle browser back/forward button.
+  // Reads window.location.hash to restore the exact view that was active at that
+  // history entry, rather than always collapsing to dashboard.
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      // If we're in admin panel, action tracking, notepad, or a module, go back to dashboard
-      if (showAdminPanel || showActionTracking || showNotepad || activeModule !== null) {
-        event.preventDefault();
+    if (!window.history.state) {
+      window.history.replaceState({ page: 'dashboard' }, '', '#');
+    }
+
+    const handlePopState = () => {
+      isPoppingRef.current = true;
+
+      const hash = window.location.hash;
+
+      if (hash === '#admin') {
+        setShowAdminPanel(true);
+        setActiveModule(null);
+        setShowActionTracking(false);
+        setShowNotepad(false);
+      } else if (hash === '#actions') {
+        setShowActionTracking(true);
+        setActiveModule(null);
+        setShowAdminPanel(false);
+        setShowNotepad(false);
+      } else if (hash === '#notepad') {
+        setShowNotepad(true);
+        setActiveModule(null);
+        setShowAdminPanel(false);
+        setShowActionTracking(false);
+      } else if (hash && hash !== '#') {
+        const moduleId = hash.slice(1);
+        const module = sections.flatMap(s => s.modules).find(m => m.id === moduleId);
+        if (module) {
+          setActiveModule(module);
+        } else {
+          setActiveModule(null);
+        }
         setShowAdminPanel(false);
         setShowActionTracking(false);
         setShowNotepad(false);
+      } else {
         setActiveModule(null);
-        setIsMobileMenuOpen(false);
+        setShowAdminPanel(false);
+        setShowActionTracking(false);
+        setShowNotepad(false);
       }
-      // If already on dashboard, allow normal back behavior (exit app)
-    };
 
-    // Add initial history state for dashboard on mount
-    if (!window.history.state) {
-      window.history.replaceState(
-        { page: 'dashboard' },
-        '',
-        '#'
-      );
-    }
+      setIsMobileMenuOpen(false);
+    };
 
     window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [activeModule, showAdminPanel, showActionTracking, showNotepad]);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
 
   useEffect(() => {
