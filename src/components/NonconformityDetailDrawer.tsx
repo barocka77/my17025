@@ -399,7 +399,7 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       const categoriesText = fishboneItems
         .map(i => `${RCA_CATEGORY_LABELS[i.rca_category] || i.rca_category}: ${i.rca_description}`)
         .join('\n');
-      const prompt = `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${nc?.description || ''}\n\nKök neden analizi (Balık Kılçığı):\n${categoriesText}\n\nBu kök nedenlere dayalı olarak tek bir düzeltici faaliyet önerisi yaz.\nKurallar:\n- 2-3 cümle\n- 'meli', 'malı', 'gerekir' ifadeleri KULLANMA\n- 'yapılır', 'güncellenir', 'eklenir', 'düzenlenir' gibi ifadeler kullan\n- Somut ve uygulanabilir olsun\n- ISO 17025 gerekliliklerine uygun olsun\n- Sadece öneriyi yaz, başka hiçbir şey yazma`;
+      const prompt = `Sen bir ISO 17025 kalite uzmanısın.\n\nUygunsuzluk: ${nc?.description || ''}\n\nKök neden analizi (Balık Kılçığı):\n${categoriesText}\n\nBu kök nedenlere dayalı olarak tek bir düzeltici faaliyet önerisi yaz.\nKurallar:\n- 2-3 cümle\n- 'meli', 'malı', 'gerekir', 'edilmeli' ifadeleri KULLANMA\n- 'yapılabilir', 'güncellenebilir', 'eklenebilir', 'düzenlenebilir', 'belirlenebilir' gibi edilebilir ifadeler kullan\n- Somut ve uygulanabilir olsun\n- ISO 17025 gerekliliklerine uygun olsun\n- Sadece öneriyi yaz, başka hiçbir şey yazma`;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const response = await fetch(`${supabaseUrl}/functions/v1/ai-proxy`, {
