@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   X, FileText, Save, CheckSquare, Square, AlertTriangle,
   ArrowRight, FileDown, CheckCircle2, PenLine, Clock,
-  Plus, Trash2, ChevronDown,
+  Plus, Trash2,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateDfPDF } from '../utils/dfPdfExport';
+import { PersonnelSelect } from './common/PersonnelSelect';
 import SignaturesSection from './SignaturesSection';
 
 interface NonconformityData {
@@ -596,18 +597,14 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                   </div>
                   <div>
                     <label className={labelCls}>Faaliyete Karar Veren Yetkili</label>
-                    <select
+                    <PersonnelSelect
                       value={responsibleName}
-                      onChange={e => setResponsibleName(e.target.value)}
-                      className={inputCls}
-                    >
-                      <option value="">-- Seçiniz --</option>
-                      {profiles.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setResponsibleName}
+                      valueField="id"
+                      showJobTitle
+                      placeholder="-- Seçiniz --"
+                      className={inputCls.includes('border') ? '' : undefined}
+                    />
                   </div>
                 </div>
 
@@ -672,21 +669,14 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
                           <label className={labelCls}>Sorumlu Kişi</label>
-                          <div className="relative">
-                            <select
-                              value={item.responsible_person}
-                              onChange={e => setActionItems(prev => {
-                                const u = [...prev]; u[idx] = { ...u[idx], responsible_person: e.target.value }; return u;
-                              })}
-                              className={`${inputCls} appearance-none pr-8`}
-                            >
-                              <option value="">-- Personel Seçin --</option>
-                              {profiles.map(p => (
-                                <option key={p.id} value={p.full_name}>{p.full_name}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                          </div>
+                          <PersonnelSelect
+                            value={item.responsible_person}
+                            onChange={val => setActionItems(prev => {
+                              const u = [...prev]; u[idx] = { ...u[idx], responsible_person: val }; return u;
+                            })}
+                            valueField="full_name"
+                            placeholder="-- Personel Seçin --"
+                          />
                         </div>
                         <div>
                           <label className={labelCls}>Termin Tarihi</label>

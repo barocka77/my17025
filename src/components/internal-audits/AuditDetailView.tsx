@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronUp, ClipboardCheck, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { PersonnelSelect } from '../common/PersonnelSelect';
 
 const FINDING_TYPES = [
   { key: 'pending', label: 'Değerlendirilmedi', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
@@ -565,8 +566,13 @@ export default function AuditDetailView({ plan, onBack }: Props) {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Sorumlu Kişi</label>
-                            <input type="text" value={nc.responsible_person} onChange={e => updateNC(nc.id, { responsible_person: e.target.value })}
-                              className="w-full px-2.5 py-1.5 text-[11px] border border-slate-200 rounded-lg bg-white" placeholder="Ad Soyad" />
+                            <PersonnelSelect
+                              value={nc.responsible_person}
+                              onChange={val => updateNC(nc.id, { responsible_person: val })}
+                              valueField="full_name"
+                              size="sm"
+                              placeholder="-- Personel Seçin --"
+                            />
                           </div>
                           <div>
                             <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Hedef Kapanış Tarihi</label>
