@@ -289,9 +289,9 @@ export default function AuditDetailView({ plan, onBack }: Props) {
 
         <div className="flex gap-1 mt-4">
           {([
-            { key: 'questions', label: 'Soru Formu (FR.17)', icon: ClipboardCheck },
-            { key: 'nonconformities', label: 'Uygunsuzluklar (FR.18)', icon: AlertTriangle },
-            { key: 'report', label: 'Tetkik Raporu (FR.41)', icon: FileText },
+            { key: 'questions', label: 'Soru Formu', icon: ClipboardCheck },
+            { key: 'nonconformities', label: 'Uygunsuzluklar', icon: AlertTriangle },
+            { key: 'report', label: 'Tetkik Raporu', icon: FileText },
           ] as const).map(tab => (
             <button
               key={tab.key}
@@ -430,7 +430,7 @@ export default function AuditDetailView({ plan, onBack }: Props) {
                           <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
                             <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                             <p className="text-[11px] text-red-700">
-                              Bu bulgu için "Uygunsuzluklar" sekmesinde FR.18 formu oluşturmanız gerekmektedir.
+                              Bu bulgu için "Uygunsuzluklar" sekmesinde uygunsuzluk formu oluşturmanız gerekmektedir.
                             </p>
                           </div>
                         )}
@@ -448,7 +448,7 @@ export default function AuditDetailView({ plan, onBack }: Props) {
                   className="flex items-center gap-2 bg-slate-700 text-white px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-[12px]"
                 >
                   <FileText className="w-4 h-4" />
-                  Raporu Oluştur / Güncelle (FR.41)
+                  Raporu Oluştur / Güncelle
                 </button>
               </div>
             )}
@@ -629,7 +629,7 @@ export default function AuditDetailView({ plan, onBack }: Props) {
               <>
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="bg-slate-700 text-white px-5 py-3">
-                    <span className="text-[12px] font-bold uppercase tracking-wider">FR.41 — İç Tetkik Raporu</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider">İç Tetkik Raporu</span>
                     <p className="text-[10px] text-slate-400 mt-0.5">PR01.09 / Rev.03</p>
                   </div>
                   <div className="p-5">

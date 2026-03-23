@@ -255,7 +255,7 @@ export default function CustomerSurveyModal({ isOpen, onClose, onSuccess, editDa
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
         <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
           <div>
-            <div className="text-xs text-blue-200 font-semibold uppercase tracking-wide">FR.10 / REV01</div>
+            <div className="text-xs text-blue-200 font-semibold uppercase tracking-wide">Müşteri Memnuniyeti Anketi</div>
             <div className="text-base font-bold mt-0.5">
               {editData ? 'Anketi Düzenle' : 'Yeni Müşteri Anketi'}
             </div>

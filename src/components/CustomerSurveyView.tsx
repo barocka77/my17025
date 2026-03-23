@@ -176,7 +176,7 @@ export default function CustomerSurveyView() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-slate-900">Müşteri Anketleri</h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">ISO 17025 Müşteri Memnuniyeti — FR.10/REV01</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">ISO 17025 Müşteri Memnuniyeti</p>
           </div>
           <button
             onClick={() => { setEditData(undefined); setIsModalOpen(true); }}

@@ -239,8 +239,8 @@ export default function SupplierDetailView({ supplier, onBack }: Props) {
 
         <div className="flex gap-1 mt-4">
           {([
-            { key: 'evaluations', label: `FR.08 — Değerlendirme (${evaluations.length})`, icon: Star },
-            { key: 'orders', label: `FR.09 — Satınalma (${orders.length})`, icon: ShoppingCart },
+            { key: 'evaluations', label: `Değerlendirme (${evaluations.length})`, icon: Star },
+            { key: 'orders', label: `Satınalma (${orders.length})`, icon: ShoppingCart },
           ] as const).map(tab => (
             <button
               key={tab.key}
@@ -262,7 +262,7 @@ export default function SupplierDetailView({ supplier, onBack }: Props) {
         {activeTab === 'evaluations' && (
           <div className="max-w-3xl mx-auto space-y-3">
             <div className="flex justify-between items-center">
-              <p className="text-[11px] text-slate-500">FR.08 — Tedarikçi Değerlendirme Formu (§5.3 kriterleri)</p>
+              <p className="text-[11px] text-slate-500">Tedarikçi Değerlendirme Formu (§5.3 kriterleri)</p>
               <button onClick={addEvaluation}
                 className="flex items-center gap-1.5 bg-orange-600 text-white px-3 py-2 rounded-lg text-[11px] font-semibold hover:bg-orange-700 transition-colors">
                 <Plus className="w-3.5 h-3.5" />
@@ -403,7 +403,7 @@ export default function SupplierDetailView({ supplier, onBack }: Props) {
         {activeTab === 'orders' && (
           <div className="max-w-3xl mx-auto space-y-3">
             <div className="flex justify-between items-center">
-              <p className="text-[11px] text-slate-500">FR.09 — Satınalma Formu (§5.1 satınalma ve girdi kontrol)</p>
+              <p className="text-[11px] text-slate-500">Satınalma Formu (§5.1 satınalma ve girdi kontrol)</p>
               <button onClick={addOrder}
                 className="flex items-center gap-1.5 bg-orange-600 text-white px-3 py-2 rounded-lg text-[11px] font-semibold hover:bg-orange-700 transition-colors">
                 <Plus className="w-3.5 h-3.5" />

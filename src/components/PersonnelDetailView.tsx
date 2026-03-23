@@ -446,7 +446,7 @@ export default function PersonnelDetailView({ profileId, onBack }: PersonnelDeta
                 <BookOpen className="w-4 h-4 text-teal-600" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Eğitim Geçmişi (FR.27)</h3>
+                <h3 className="text-sm font-bold text-slate-900">Eğitim Geçmişi</h3>
                 <p className="text-[11px] text-slate-400">{trainings.length} eğitim kaydı</p>
               </div>
             </div>

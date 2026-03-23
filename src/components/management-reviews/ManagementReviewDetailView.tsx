@@ -201,8 +201,8 @@ export default function ManagementReviewDetailView({ review, onBack }: Props) {
 
         <div className="flex gap-1 mt-4 flex-wrap">
           {([
-            { key: 'agenda', label: 'FR.19 — Değerlendirme Raporu', icon: FileText },
-            { key: 'minutes', label: 'FR.20 — Toplantı Tutanağı', icon: ClipboardList },
+            { key: 'agenda', label: 'Değerlendirme Raporu', icon: FileText },
+            { key: 'minutes', label: 'Toplantı Tutanağı', icon: ClipboardList },
             { key: 'decisions', label: `Kararlar (${decisionStats.total})`, icon: CheckCircle2 },
           ] as const).map(tab => (
             <button
@@ -230,7 +230,7 @@ export default function ManagementReviewDetailView({ review, onBack }: Props) {
         {activeTab === 'agenda' && (
           <div className="max-w-3xl mx-auto space-y-3">
             <p className="text-[11px] text-slate-500">
-              FR.19 — Yönetim Sistemi Değerlendirme Raporu gündem maddeleri (PR01.10 §5.2)
+              Yönetim Sistemi Değerlendirme Raporu gündem maddeleri (PR01.10 §5.2)
             </p>
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="bg-emerald-700 text-white px-5 py-3">
@@ -271,7 +271,7 @@ export default function ManagementReviewDetailView({ review, onBack }: Props) {
         {activeTab === 'minutes' && (
           <div className="max-w-3xl mx-auto space-y-4">
             <p className="text-[11px] text-slate-500">
-              FR.20 — Toplantı Tutanağı (PR01.10 §5.4) — Toplantı çıktıları ve kararlar
+              Toplantı Tutanağı (PR01.10 §5.4) — Toplantı çıktıları ve kararlar
             </p>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

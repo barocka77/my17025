@@ -139,7 +139,7 @@ export default function RisksOpportunitiesView() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div>
             <h1 className="text-xl md:text-3xl font-light text-gray-900">Riskler ve Fırsatlar</h1>
-            <p className="text-xs text-slate-500 mt-1">Risk Değerlendirme Formu — FR.51</p>
+            <p className="text-xs text-slate-500 mt-1">Risk Değerlendirme Formu</p>
           </div>
           <button
             onClick={() => { setEditRecord(null); setModalOpen(true); }}

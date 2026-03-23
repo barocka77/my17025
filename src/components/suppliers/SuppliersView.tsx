@@ -109,7 +109,7 @@ export default function SuppliersView() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-slate-900">Tedarikçiler</h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">PR01.04 Rev.04 — LS.02 Onaylı Tedarikçi Listesi / FR.08 Değerlendirme / FR.09 Satınalma</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">PR01.04 Rev.04 — LS.02 Onaylı Tedarikçi Listesi</p>
           </div>
           <button
             onClick={() => { setEditData(undefined); setIsModalOpen(true); }}

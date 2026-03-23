@@ -246,7 +246,7 @@ export default function RiskFormModal({ record, onClose, onSaved }: Props) {
           <div className="flex items-center gap-2.5">
             <AlertTriangle className="w-5 h-5 text-amber-300" />
             <div>
-              <div className="text-xs text-slate-300 font-medium">RİSK DEĞERLENDİRME FORMU — FR.51</div>
+              <div className="text-xs text-slate-300 font-medium">RİSK DEĞERLENDİRME FORMU</div>
               <div className="text-sm font-bold leading-tight">
                 {isEdit ? `${record!.risk_no} — Düzenle` : 'Yeni Risk Kaydı'}
               </div>

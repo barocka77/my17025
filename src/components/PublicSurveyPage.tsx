@@ -212,7 +212,7 @@ export default function PublicSurveyPage({ token }: Props) {
             </div>
             <div>
               <p className="text-[13px] font-bold text-slate-800">UMS Kalite Elektriksel Kalibrasyon</p>
-              <p className="text-[10px] text-slate-500">Müşteri Memnuniyeti Anketi — FR.10/REV01</p>
+              <p className="text-[10px] text-slate-500">Müşteri Memnuniyeti Anketi</p>
             </div>
           </div>
         </div>

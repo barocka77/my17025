@@ -117,11 +117,11 @@ export default function AuditPlanModal({ isOpen, onClose, onSuccess, editData }:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
-        <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+        <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between flex-shrink-0">
           <div>
-            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">FR.16 — İç Tetkik Planı</div>
+            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">İç Tetkik Planı</div>
             <div className="text-base font-bold mt-0.5">{editData ? 'Planı Düzenle' : 'Yeni İç Tetkik Planı'}</div>
           </div>
           <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg transition-colors">
@@ -129,7 +129,8 @@ export default function AuditPlanModal({ isOpen, onClose, onSuccess, editData }:
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">{error}</div>
           )}
@@ -247,23 +248,25 @@ export default function AuditPlanModal({ isOpen, onClose, onSuccess, editData }:
             />
           </div>
 
-          <div className="flex gap-3 pt-1">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 bg-slate-700 text-white px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm disabled:opacity-60"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? 'Kaydediliyor...' : editData ? 'Güncelle' : 'Planı Kaydet'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-semibold text-sm"
-            >
-              İptal
-            </button>
-          </div>
+        </div>
+
+        <div className="flex gap-3 p-4 border-t border-slate-200 flex-shrink-0 bg-white rounded-b-2xl">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-700 text-white px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm disabled:opacity-60"
+          >
+            <Save className="w-4 h-4" />
+            {loading ? 'Kaydediliyor...' : editData ? 'Güncelle' : 'Planı Kaydet'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-semibold text-sm"
+          >
+            İptal
+          </button>
+        </div>
         </form>
       </div>
     </div>

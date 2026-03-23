@@ -85,7 +85,7 @@ export default function ManagementReviewsView() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-slate-900">Yönetimin Gözden Geçirmesi</h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">PR01.10 Rev.01 — FR.19 / FR.20 — TS EN ISO/IEC 17025 §8.9</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">PR01.10 Rev.01 — TS EN ISO/IEC 17025 §8.9</p>
           </div>
           <button
             onClick={() => { setEditData(undefined); setIsModalOpen(true); }}
