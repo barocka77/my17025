@@ -177,13 +177,14 @@ export default function AuditPlanModal({ isOpen, onClose, onSuccess, editData }:
                 className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wide">Tetkikçi <span className="text-red-500">*</span></label>
               <PersonnelSelect
-                value={form.auditor_name}
-                onChange={v => setForm(p => ({ ...p, auditor_name: v }))}
+                isMulti
+                value={form.auditor_name ? form.auditor_name.split(', ').filter(Boolean) : []}
+                onChange={vals => setForm(p => ({ ...p, auditor_name: vals.join(', ') }))}
                 valueField="full_name"
-                placeholder="-- Tetkikçi Seçin --"
+                placeholder="-- Tetkikçi(ler) Seçin --"
                 showJobTitle
               />
             </div>
