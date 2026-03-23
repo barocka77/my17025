@@ -113,6 +113,17 @@ export default function AuditDetailView({ plan, onBack }: Props) {
     if (!error && data) {
       setNonconformities(prev => [...prev, data]);
       setExpandedNC(data.id);
+
+      await supabase.from('nonconformities').insert([{
+        source: 'internal_audit',
+        source_type: 'internal_audit',
+        source_id: plan.id,
+        detection_date: plan.planned_date || new Date().toISOString().split('T')[0],
+        description: '',
+        severity: 'major',
+        recurrence_risk: 'medium',
+        calibration_impact: 'none',
+      }]);
     }
   };
 

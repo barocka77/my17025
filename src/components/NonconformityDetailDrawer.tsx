@@ -158,7 +158,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       if (error) throw error;
       setProfiles((data || []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title })));
     } catch (err) {
-      console.error(err);
     }
   };
 
@@ -185,7 +184,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         }
       }
     } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -202,7 +200,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       setNc((prev: any) => ({ ...prev, [field]: value }));
       onRefresh();
     } catch (err) {
-      console.error(err);
     } finally {
       setImpactSaving(null);
     }
@@ -225,7 +222,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       setCorrectionEditMode(false);
       onRefresh();
     } catch (err) {
-      console.error(err);
     } finally {
       setCorrectionSaving(false);
     }
@@ -241,7 +237,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       setSpreadEditMode(false);
       onRefresh();
     } catch (err) {
-      console.error(err);
     } finally {
       setSpreadSaving(false);
     }
@@ -257,7 +252,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       setRefEditMode(false);
       onRefresh();
     } catch (err) {
-      console.error(err);
     } finally {
       setRefSaving(false);
     }
@@ -273,7 +267,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       setDescEditMode(false);
       onRefresh();
     } catch (err) {
-      console.error(err);
     } finally {
       setDescSaving(false);
     }
@@ -290,7 +283,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       if (error) throw error;
       setRcaList(data || []);
     } catch (err) {
-      console.error(err);
     } finally {
       setRcaLoading(false);
     }
@@ -319,7 +311,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         setFollowUpNcNumber(null);
       }
     } catch (err) {
-      console.error(err);
     } finally {
       setCaLoading(false);
     }
@@ -354,7 +345,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       if (error) throw error;
       fetchRca();
     } catch (err) {
-      console.error(err);
     }
   };
 
@@ -385,7 +375,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         setAiSuggestions(lines);
       }
     } catch (err) {
-      console.error(err);
     } finally {
       setAiSuggestionsLoading(false);
     }
@@ -421,7 +410,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         setFishboneDfSuggestion(data.result.trim());
       }
     } catch (err) {
-      console.error(err);
     } finally {
       setFishboneDfLoading(false);
     }
@@ -445,7 +433,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       onRefresh();
       setTimeout(() => setFishboneDfToast(null), 4000);
     } catch (err) {
-      console.error(err);
     } finally {
       setFishboneDfCreating(false);
     }
@@ -463,7 +450,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       setFishboneDfSaved(true);
       setTimeout(() => setFishboneDfSaved(false), 2500);
     } catch (err) {
-      console.error(err);
     } finally {
       setFishboneDfSaving(false);
     }
@@ -503,7 +489,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
       fetchCa();
       onRefresh();
     } catch (err) {
-      console.error(err);
     }
   };
 
@@ -580,7 +565,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         isLocked: false,
       });
     } catch (err) {
-      console.error('PDF export error:', err);
     } finally {
       setPdfExporting(false);
     }
@@ -626,7 +610,6 @@ export default function NonconformityDetailDrawer({ ncId, onClose, onRefresh, on
         organizationName: orgData?.name,
       });
     } catch (err) {
-      console.error('DF PDF export error:', err);
     } finally {
       setDfPdfExporting(null);
     }

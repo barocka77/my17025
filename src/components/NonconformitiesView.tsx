@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil, FlaskConical, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Plus, X, Save, AlertTriangle, AlertCircle, CheckCircle2, Clock, Users, Pencil, FlaskConical, Search, SlidersHorizontal, ChevronDown, Link2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import NonconformityDetailDrawer from './NonconformityDetailDrawer';
@@ -525,11 +525,19 @@ export default function NonconformitiesView({ autoOpenRecordId, onNcOpened, onNa
                           {item.nc_number || '-'}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
-                          {item.source ? (
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${(sourceConfig[item.source] || { className: 'bg-gray-100 text-gray-700 border-gray-200' }).className}`}>
-                              {(sourceConfig[item.source] || { label: item.source }).label}
-                            </span>
-                          ) : '-'}
+                          <div className="flex flex-col gap-1">
+                            {item.source ? (
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${(sourceConfig[item.source] || { className: 'bg-gray-100 text-gray-700 border-gray-200' }).className}`}>
+                                {(sourceConfig[item.source] || { label: item.source }).label}
+                              </span>
+                            ) : '-'}
+                            {item.source_id && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                                <Link2 className="w-2.5 h-2.5" />
+                                Kaynak: İç Tetkik
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-[11px] text-gray-600 whitespace-nowrap">
                           {item.detection_date ? new Date(item.detection_date).toLocaleDateString('tr-TR') : '-'}
