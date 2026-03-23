@@ -111,25 +111,40 @@ export default function AuditDetailView({ plan, onBack }: Props) {
       .select()
       .single();
     if (!error && data) {
-      setNonconformities(prev => [...prev, data]);
-      setExpandedNC(data.id);
+      const { data: mainNc } = await supabase
+        .from('nonconformities')
+        .insert([{
+          source: 'internal_audit',
+          source_type: 'internal_audit',
+          source_id: plan.id,
+          detection_date: plan.planned_date || new Date().toISOString().split('T')[0],
+          description: data.description || '',
+          identified_by: data.responsible_person || null,
+          severity: 'major',
+          recurrence_risk: 'medium',
+          calibration_impact: 'none',
+        }])
+        .select('id')
+        .single();
 
-      await supabase.from('nonconformities').insert([{
-        source: 'internal_audit',
-        source_type: 'internal_audit',
-        source_id: plan.id,
-        detection_date: plan.planned_date || new Date().toISOString().split('T')[0],
-        description: '',
-        severity: 'major',
-        recurrence_risk: 'medium',
-        calibration_impact: 'none',
-      }]);
+      setNonconformities(prev => [...prev, { ...data, _mainNcId: mainNc?.id ?? null }]);
+      setExpandedNC(data.id);
     }
   };
 
   const updateNC = async (id: string, changes: any) => {
+    const existing = nonconformities.find(nc => nc.id === id);
     setNonconformities(prev => prev.map(nc => nc.id === id ? { ...nc, ...changes } : nc));
     await supabase.from('internal_audit_nonconformities').update({ ...changes, updated_at: new Date().toISOString() }).eq('id', id);
+
+    if (existing?._mainNcId) {
+      const mainNcPatch: Record<string, unknown> = {};
+      if ('description' in changes) mainNcPatch.description = changes.description;
+      if ('responsible_person' in changes) mainNcPatch.identified_by = changes.responsible_person;
+      if (Object.keys(mainNcPatch).length > 0) {
+        await supabase.from('nonconformities').update(mainNcPatch).eq('id', existing._mainNcId);
+      }
+    }
   };
 
   const deleteNC = async (id: string) => {
