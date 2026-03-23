@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { PersonnelSelect } from '../common/PersonnelSelect';
 
 const ISO_CLAUSES = [
   '4 – Genel Şartlar',
@@ -178,13 +179,12 @@ export default function AuditPlanModal({ isOpen, onClose, onSuccess, editData }:
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wide">Tetkikçi <span className="text-red-500">*</span></label>
-              <input
-                type="text"
+              <PersonnelSelect
                 value={form.auditor_name}
-                onChange={e => setForm(p => ({ ...p, auditor_name: e.target.value }))}
-                className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
-                placeholder="Tetkikçi adı"
-                required
+                onChange={v => setForm(p => ({ ...p, auditor_name: v }))}
+                valueField="full_name"
+                placeholder="-- Tetkikçi Seçin --"
+                showJobTitle
               />
             </div>
             <div>
