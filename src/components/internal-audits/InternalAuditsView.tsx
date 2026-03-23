@@ -34,6 +34,7 @@ export default function InternalAuditsView() {
   const [editData, setEditData] = useState<AuditPlan | undefined>(undefined);
   const [selectedPlan, setSelectedPlan] = useState<AuditPlan | null>(null);
   const [filterYear, setFilterYear] = useState<number | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'planned' | 'in_progress' | 'completed'>('all');
 
   useEffect(() => { fetchPlans(); }, []);
 
@@ -57,7 +58,9 @@ export default function InternalAuditsView() {
   };
 
   const years = [...new Set(plans.map(p => p.audit_year))].sort((a, b) => b - a);
-  const filtered = filterYear === 'all' ? plans : plans.filter(p => p.audit_year === filterYear);
+  const filtered = plans
+    .filter(p => filterYear === 'all' || p.audit_year === filterYear)
+    .filter(p => statusFilter === 'all' || p.status === statusFilter);
 
   const stats = {
     total: plans.length,
@@ -101,34 +104,33 @@ export default function InternalAuditsView() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          <div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-3 text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <ClipboardCheck className="w-4 h-4 opacity-80" />
-              <span className="text-[10px] font-semibold uppercase opacity-80">Toplam</span>
-            </div>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </div>
-          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-3 text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-4 h-4 opacity-80" />
-              <span className="text-[10px] font-semibold uppercase opacity-80">Planlanan</span>
-            </div>
-            <div className="text-2xl font-bold">{stats.planned}</div>
-          </div>
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-3 text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className="w-4 h-4 opacity-80" />
-              <span className="text-[10px] font-semibold uppercase opacity-80">Devam Eden</span>
-            </div>
-            <div className="text-2xl font-bold">{stats.in_progress}</div>
-          </div>
-          <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-3 text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2 className="w-4 h-4 opacity-80" />
-              <span className="text-[10px] font-semibold uppercase opacity-80">Tamamlanan</span>
-            </div>
-            <div className="text-2xl font-bold">{stats.completed}</div>
-          </div>
+          {([
+            { key: 'all',         label: 'Toplam',     count: stats.total,       icon: ClipboardCheck, gradient: 'from-slate-600 to-slate-700' },
+            { key: 'planned',     label: 'Planlanan',  count: stats.planned,     icon: Clock,          gradient: 'from-amber-500 to-orange-600' },
+            { key: 'in_progress', label: 'Devam Eden', count: stats.in_progress, icon: AlertTriangle,  gradient: 'from-blue-600 to-blue-700' },
+            { key: 'completed',   label: 'Tamamlanan', count: stats.completed,   icon: CheckCircle2,   gradient: 'from-green-600 to-emerald-700' },
+          ] as const).map(({ key, label, count, icon: Icon, gradient }) => {
+            const isActive = statusFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setStatusFilter(key)}
+                className={`bg-gradient-to-br ${gradient} rounded-xl p-3 text-white text-left cursor-pointer
+                  transition-all duration-200 select-none
+                  ${isActive
+                    ? 'ring-2 ring-white/60 ring-offset-1 shadow-lg scale-[1.03]'
+                    : 'opacity-75 hover:opacity-100 hover:scale-[1.02]'
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className="w-4 h-4 opacity-80" />
+                  <span className="text-[10px] font-semibold uppercase opacity-80">{label}</span>
+                </div>
+                <div className="text-2xl font-bold">{count}</div>
+              </button>
+            );
+          })}
         </div>
 
         {years.length > 1 && (
@@ -161,8 +163,18 @@ export default function InternalAuditsView() {
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
               <ClipboardCheck className="w-12 h-12 mx-auto mb-3 text-slate-200" />
-              <p className="text-slate-600 font-medium text-sm">Henüz tetkik planı yok</p>
-              <p className="text-slate-400 text-[11px] mt-1">İlk tetkik planını oluşturmak için butonu kullanın</p>
+              {statusFilter === 'all'
+                ? <>
+                    <p className="text-slate-600 font-medium text-sm">Henüz tetkik planı yok</p>
+                    <p className="text-slate-400 text-[11px] mt-1">İlk tetkik planını oluşturmak için butonu kullanın</p>
+                  </>
+                : <>
+                    <p className="text-slate-600 font-medium text-sm">Bu durumda kayıt bulunamadı</p>
+                    <button onClick={() => setStatusFilter('all')} className="mt-2 text-[11px] text-blue-600 hover:underline">
+                      Filtreyi kaldır
+                    </button>
+                  </>
+              }
             </div>
           ) : (
             filtered.map(plan => {
