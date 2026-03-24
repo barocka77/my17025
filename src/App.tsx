@@ -12,6 +12,7 @@ import DocumentMasterListView from './components/DocumentMasterListView';
 import NonconformitiesView from './components/NonconformitiesView';
 import CorrectiveActionsView from './components/CorrectiveActionsView';
 import RisksOpportunitiesView from './components/RisksOpportunitiesView';
+import ScopeView from './components/scope/ScopeView';
 import AdminPanel from './components/AdminPanel';
 import ActionTracking from './components/ActionTracking';
 import PersonalNotepad from './components/PersonalNotepad';
@@ -427,6 +428,8 @@ function App() {
         ) : activeModule ? (
           activeModule.id === 'customer_feedback' ? (
             <CustomerFeedbackView autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} onNavigateToNC={handleNavigateToNC} />
+          ) : activeModule.id === 'accreditation_scope' ? (
+            <ScopeView />
           ) : activeModule.id === 'internal_audits' ? (
             <InternalAuditsView />
           ) : activeModule.id === 'management_reviews' ? (

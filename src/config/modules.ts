@@ -1,4 +1,4 @@
-import { Microscope, FileText, File as FileEdit, Scale, ClipboardList, FileCheck, TestTube, ShoppingCart, Shield, AlertTriangle, ClipboardCheck, MessageCircle, Presentation, XCircle, TrendingUp, Users, Truck, Thermometer, Wrench, FolderOpen, Building2, Target, Files, Archive, Database, BarChart3, ListOrdered } from 'lucide-react';
+import { Microscope, FileText, File as FileEdit, Scale, ClipboardList, FileCheck, TestTube, ShoppingCart, Shield, AlertTriangle, ClipboardCheck, MessageCircle, Presentation, XCircle, TrendingUp, Users, Truck, Thermometer, Wrench, FolderOpen, Building2, Target, Files, Archive, Database, BarChart3, ListOrdered, Award } from 'lucide-react';
 import { Section } from '../types/modules';
 
 export const sections: Section[] = [
@@ -13,6 +13,12 @@ export const sections: Section[] = [
         name: 'Metodlar / KAPSAM',
         table: 'methods_scope',
         icon: FileText,
+      },
+      {
+        id: 'accreditation_scope',
+        name: 'Akreditasyon Kapsamı',
+        table: 'accreditation_scope',
+        icon: Award,
       },
       {
         id: 'requests_proposals',
