@@ -1,94 +1,198 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// ─── Configurable document meta ────────────────────────────────────────────
+const DOC_NO          = 'FR.XX';
+const DOC_REV         = '00';
+const DOC_REV_DATE    = '25.03.2026';
+// ───────────────────────────────────────────────────────────────────────────
+
 export interface ScopeItem {
-  parameter: string;
-  range: string;
-  conditions: string;
+  parameter:   string;
+  range:       string;
+  conditions:  string;
   uncertainty: string;
-  method: string;
+  method:      string;
 }
 
-const FONT_NAME = 'Roboto';
+export interface ScopePDFOptions {
+  logoDataUrl?: string | null;
+  orgName?:     string;
+}
 
-const SLATE_DARK: [number, number, number] = [30, 41, 59];
-const SLATE_MID: [number, number, number] = [71, 85, 105];
-const SLATE_LIGHT: [number, number, number] = [241, 245, 249];
-const BORDER_COLOR: [number, number, number] = [203, 213, 225];
-const WHITE: [number, number, number] = [255, 255, 255];
-const TEXT_DARK: [number, number, number] = [15, 23, 42];
+// ─── Palette ────────────────────────────────────────────────────────────────
+const C_HEADER_BG: [number, number, number] = [22, 36, 71];   // dark navy
+const C_HEADER_FG: [number, number, number] = [255, 255, 255];
+const C_ACCENT:    [number, number, number] = [30, 110, 200];  // blue rule
+const C_ROW_ALT:   [number, number, number] = [245, 247, 251];
+const C_BORDER:    [number, number, number] = [200, 210, 225];
+const C_TEXT_DARK: [number, number, number] = [20, 30, 50];
+const C_TEXT_GREY: [number, number, number] = [100, 115, 135];
+const C_WHITE:     [number, number, number] = [255, 255, 255];
+// ────────────────────────────────────────────────────────────────────────────
+
+const FONT = 'Roboto';
+
+// Page geometry (landscape A4: 297 × 210 mm)
+const M           = 12;       // side margin
+const HEADER_H    = 28;       // header box height (mm)
+const HEADER_TOP  = 8;        // header top Y (mm)
+const FOOTER_Y    = 198;      // footer line Y (mm)
+
+// Header column widths (total usable = 297 - 2*12 = 273 mm)
+const COL_LOGO_W   = 44;
+const COL_MID_W    = 130;
+// right column takes the rest
 
 async function registerFonts(doc: jsPDF) {
   const { ROBOTO_REGULAR, ROBOTO_BOLD } = await import('../robotoFontData');
   doc.addFileToVFS('Roboto-Regular.ttf', ROBOTO_REGULAR);
   doc.addFileToVFS('Roboto-Bold.ttf', ROBOTO_BOLD);
-  doc.addFont('Roboto-Regular.ttf', FONT_NAME, 'normal');
-  doc.addFont('Roboto-Bold.ttf', FONT_NAME, 'bold');
-  doc.setFont(FONT_NAME, 'normal');
+  doc.addFont('Roboto-Regular.ttf', FONT, 'normal');
+  doc.addFont('Roboto-Bold.ttf', FONT, 'bold');
+  doc.setFont(FONT, 'normal');
 }
 
-export async function exportScopePDF(items: ScopeItem[], organizationName = 'UMS Kalite') {
+function drawHeader(
+  doc: jsPDF,
+  pageW: number,
+  orgName: string,
+  logoDataUrl: string | null | undefined,
+) {
+  const x1 = M;
+  const y1 = HEADER_TOP;
+  const totalW = pageW - 2 * M;
+  const h = HEADER_H;
+  const rightColW = totalW - COL_LOGO_W - COL_MID_W;
+
+  // ── outer border ─────────────────────────────────────────────────────────
+  doc.setDrawColor(...C_BORDER);
+  doc.setLineWidth(0.4);
+  doc.rect(x1, y1, totalW, h, 'S');
+
+  // ── logo column ───────────────────────────────────────────────────────────
+  const logoX = x1;
+  const logoColRight = x1 + COL_LOGO_W;
+
+  if (logoDataUrl) {
+    try {
+      const imgPad = 3;
+      doc.addImage(
+        logoDataUrl,
+        logoX + imgPad,
+        y1 + imgPad,
+        COL_LOGO_W - imgPad * 2,
+        h - imgPad * 2,
+        undefined,
+        'FAST',
+      );
+    } catch {
+      // fallback: draw a light placeholder rect with "LOGO" text
+      doc.setFillColor(240, 243, 248);
+      doc.rect(logoX + 1, y1 + 1, COL_LOGO_W - 2, h - 2, 'F');
+      doc.setFont(FONT, 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...C_TEXT_GREY);
+      doc.text('LOGO', logoX + COL_LOGO_W / 2, y1 + h / 2, { align: 'center', baseline: 'middle' });
+    }
+  } else {
+    doc.setFillColor(240, 243, 248);
+    doc.rect(logoX + 1, y1 + 1, COL_LOGO_W - 2, h - 2, 'F');
+    doc.setFont(FONT, 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...C_TEXT_GREY);
+    doc.text('LOGO', logoX + COL_LOGO_W / 2, y1 + h / 2, { align: 'center', baseline: 'middle' });
+  }
+
+  // vertical separator after logo
+  doc.setDrawColor(...C_BORDER);
+  doc.setLineWidth(0.4);
+  doc.line(logoColRight, y1, logoColRight, y1 + h);
+
+  // ── center column: org name + standard ───────────────────────────────────
+  const midX = logoColRight;
+  const midCenterX = midX + COL_MID_W / 2;
+
+  doc.setFont(FONT, 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...C_TEXT_DARK);
+  doc.text(orgName || 'UMS Kalite', midCenterX, y1 + 9, { align: 'center', baseline: 'middle' });
+
+  doc.setFont(FONT, 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...C_TEXT_GREY);
+  doc.text('TS EN ISO/IEC 17025:2017', midCenterX, y1 + 16.5, { align: 'center', baseline: 'middle' });
+
+  doc.setFont(FONT, 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...C_TEXT_GREY);
+  doc.text('Akredite Kalibrasyon Laboratuvarı', midCenterX, y1 + 22.5, { align: 'center', baseline: 'middle' });
+
+  // vertical separator after center
+  const midColRight = midX + COL_MID_W;
+  doc.setDrawColor(...C_BORDER);
+  doc.setLineWidth(0.4);
+  doc.line(midColRight, y1, midColRight, y1 + h);
+
+  // ── right column: document title ─────────────────────────────────────────
+  const rightCenterX = midColRight + rightColW / 2;
+
+  // navy background for the title column
+  doc.setFillColor(...C_HEADER_BG);
+  doc.rect(midColRight + 0.2, y1 + 0.2, rightColW - 0.4, h - 0.4, 'F');
+
+  doc.setFont(FONT, 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...C_HEADER_FG);
+  doc.text('AKREDİTASYON', rightCenterX, y1 + 10, { align: 'center', baseline: 'middle' });
+  doc.text('KAPSAMI', rightCenterX, y1 + 19, { align: 'center', baseline: 'middle' });
+
+  // ── blue accent line below header ─────────────────────────────────────────
+  doc.setFillColor(...C_ACCENT);
+  doc.rect(x1, y1 + h, totalW, 1.2, 'F');
+}
+
+function drawFooter(
+  doc: jsPDF,
+  pageW: number,
+  pageNumber: number,
+  totalPages: number,
+) {
+  // separator line
+  doc.setDrawColor(...C_BORDER);
+  doc.setLineWidth(0.35);
+  doc.line(M, FOOTER_Y, pageW - M, FOOTER_Y);
+
+  const textY = FOOTER_Y + 5;
+
+  // left: document meta
+  doc.setFont(FONT, 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...C_TEXT_GREY);
+  doc.text(
+    `Doküman No: ${DOC_NO}   |   Rev: ${DOC_REV}   |   Revizyon Tarihi: ${DOC_REV_DATE}`,
+    M,
+    textY,
+  );
+
+  // right: page count
+  doc.setFont(FONT, 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(...C_TEXT_GREY);
+  doc.text(`Sayfa ${pageNumber} / ${totalPages}`, pageW - M, textY, { align: 'right' });
+}
+
+export async function exportScopePDF(
+  items: ScopeItem[],
+  options: ScopePDFOptions = {},
+) {
+  const { logoDataUrl, orgName = 'UMS Kalite' } = options;
+
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
 
   await registerFonts(doc);
 
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 12;
-
-  const drawHeader = (pageNumber: number, totalPages: number) => {
-    doc.setFillColor(...SLATE_DARK);
-    doc.rect(0, 0, pageW, 28, 'F');
-
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 28, pageW, 1.5, 'F');
-
-    // ── LOGO PLACEHOLDER ─────────────────────────────────────────────────────
-    // To inject the UMS logo, replace the block below with:
-    //   doc.addImage(UMS_LOGO_BASE64, 'PNG', margin, 4, 28, 20);
-    // where UMS_LOGO_BASE64 is the base64-encoded PNG/JPEG data-URL string.
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(margin, 5, 28, 17, 2, 2, 'S');
-    doc.setFont(FONT_NAME, 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor(200, 200, 200);
-    doc.text('LOGO', margin + 14, 14.5, { align: 'center' });
-    // ─────────────────────────────────────────────────────────────────────────
-
-    doc.setFont(FONT_NAME, 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(...WHITE);
-    doc.text('AKREDİTASYON KAPSAMI', margin + 36, 13);
-
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`${organizationName}  —  TS EN ISO/IEC 17025:2017`, margin + 36, 20);
-
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`Sayfa ${pageNumber} / ${totalPages}`, pageW - margin, 17, { align: 'right' });
-
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    doc.text(`Oluşturulma: ${dateStr}`, pageW - margin, 23, { align: 'right' });
-  };
-
-  const drawFooter = () => {
-    doc.setDrawColor(...BORDER_COLOR);
-    doc.setLineWidth(0.3);
-    doc.line(margin, pageH - 10, pageW - margin, pageH - 10);
-
-    doc.setFont(FONT_NAME, 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...SLATE_MID);
-    doc.text('Bu belge, akredite laboratuvarın onaylı kalibrasyon kapsamını göstermektedir.', margin, pageH - 5);
-    doc.text('Gizlilik: Kurum İçi', pageW - margin, pageH - 5, { align: 'right' });
-  };
-
-  // Pass multi-line text as plain strings; autoTable respects \n with overflow:'linebreak'
   const tableRows = items.map(item => [
     item.parameter,
     item.range,
@@ -99,8 +203,8 @@ export async function exportScopePDF(items: ScopeItem[], organizationName = 'UMS
 
   // Landscape A4 usable width: 297 - 2*12 = 273 mm
   autoTable(doc, {
-    startY: 34,
-    margin: { left: margin, right: margin, bottom: 18 },
+    startY: HEADER_TOP + HEADER_H + 5,
+    margin: { left: M, right: M, bottom: 16 },
     head: [[
       'Ölçüm Büyüklüğü /\nKalibre Edilen Cihazlar',
       'Ölçüm Aralığı',
@@ -110,50 +214,47 @@ export async function exportScopePDF(items: ScopeItem[], organizationName = 'UMS
     ]],
     body: tableRows,
     styles: {
-      font: FONT_NAME,
+      font: FONT,
       fontSize: 8.5,
-      cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-      textColor: TEXT_DARK,
-      lineColor: BORDER_COLOR,
+      cellPadding: { top: 4, bottom: 4, left: 5, right: 5 },
+      textColor: C_TEXT_DARK,
+      lineColor: C_BORDER,
       lineWidth: 0.25,
       overflow: 'linebreak',
       valign: 'top',
     },
     headStyles: {
-      fillColor: SLATE_DARK,
-      textColor: WHITE,
+      fillColor: C_HEADER_BG,
+      textColor: C_WHITE,
       fontStyle: 'bold',
       fontSize: 8,
       halign: 'center',
       valign: 'middle',
-      cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
+      cellPadding: { top: 5, bottom: 5, left: 5, right: 5 },
     },
-    alternateRowStyles: {
-      fillColor: SLATE_LIGHT,
-    },
-    bodyStyles: {
-      fillColor: WHITE,
-    },
+    alternateRowStyles: { fillColor: C_ROW_ALT },
+    bodyStyles: { fillColor: C_WHITE },
     columnStyles: {
-      0: { cellWidth: 62 },
+      0: { cellWidth: 63 },
       1: { cellWidth: 46, halign: 'center' },
       2: { cellWidth: 46, halign: 'center' },
       3: { cellWidth: 52, halign: 'center' },
-      4: { cellWidth: 67 },
+      4: { cellWidth: 66 },
     },
     didDrawPage: () => {
-      const pageNumber: number = (doc as any).internal.getCurrentPageInfo().pageNumber;
-      const totalPages: number = (doc as any).internal.getNumberOfPages();
-      drawHeader(pageNumber, totalPages);
-      drawFooter();
+      const pg: number = (doc as any).internal.getCurrentPageInfo().pageNumber;
+      const total: number = (doc as any).internal.getNumberOfPages();
+      drawHeader(doc, pageW, orgName, logoDataUrl);
+      drawFooter(doc, pageW, pg, total);
     },
   });
 
+  // Redraw all pages so headers/footers are always on top of table content
   const totalPages: number = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    drawHeader(i, totalPages);
-    drawFooter();
+    drawHeader(doc, pageW, orgName, logoDataUrl);
+    drawFooter(doc, pageW, i, totalPages);
   }
 
   const now = new Date();

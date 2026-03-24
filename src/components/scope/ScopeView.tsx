@@ -5,9 +5,31 @@ import { useAuth } from '../../contexts/AuthContext';
 import ScopeFormModal, { type ScopeRow } from './ScopeFormModal';
 import { exportScopePDF } from '../../utils/pdf/scopePdfExport';
 
+interface OrgInfo {
+  name: string;
+  logoUrl: string | null;
+}
+
+async function logoUrlToDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { cache: 'force-cache' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default function ScopeView() {
   const { role } = useAuth();
   const [items, setItems] = useState<ScopeRow[]>([]);
+  const [org, setOrg] = useState<OrgInfo>({ name: 'UMS Kalite', logoUrl: null });
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -18,6 +40,18 @@ export default function ScopeView() {
   const [error, setError] = useState<string | null>(null);
 
   const canEdit = role === 'admin' || role === 'quality_manager' || role === 'super_admin';
+
+  const fetchOrg = useCallback(async () => {
+    const { data } = await supabase
+      .from('organizations')
+      .select('name, logo_url')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      setOrg({ name: data.name || 'UMS Kalite', logoUrl: data.logo_url || null });
+    }
+  }, []);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -35,7 +69,10 @@ export default function ScopeView() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  useEffect(() => {
+    fetchOrg();
+    fetchItems();
+  }, [fetchOrg, fetchItems]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -64,7 +101,8 @@ export default function ScopeView() {
   const handlePDF = async () => {
     setPdfLoading(true);
     try {
-      await exportScopePDF(filtered);
+      const logoDataUrl = org.logoUrl ? await logoUrlToDataUrl(org.logoUrl) : null;
+      await exportScopePDF(filtered, { logoDataUrl, orgName: org.name });
     } finally {
       setPdfLoading(false);
     }
