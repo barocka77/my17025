@@ -71,12 +71,20 @@ export default function ScopeView() {
   };
 
   const filtered = items.filter(item =>
-    [item.parameter, item.method, item.range, item.uncertainty]
-      .some(f => f.toLowerCase().includes(search.toLowerCase()))
+    [item.parameter, item.method, item.range, item.conditions, item.uncertainty]
+      .some(f => (f || '').toLowerCase().includes(search.toLowerCase()))
   );
 
+  const headers = [
+    { label: 'Ölçüm Büyüklüğü /\nKalibre Edilen Cihazlar', key: 'parameter' as const, width: 'w-[18%]' },
+    { label: 'Ölçüm Aralığı', key: 'range' as const, width: 'w-[14%]' },
+    { label: 'Ölçüm Şartları', key: 'conditions' as const, width: 'w-[14%]' },
+    { label: 'Genişletilmiş Ölçüm\nBelirsizliği (k=2)', key: 'uncertainty' as const, width: 'w-[16%]' },
+    { label: 'Açıklamalar /\nKalibrasyon Metodu', key: 'method' as const, width: 'w-[24%]' },
+  ];
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-[1600px] mx-auto">
       {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
@@ -85,11 +93,10 @@ export default function ScopeView() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900">Akreditasyon Kapsamı</h1>
-            <p className="text-[11px] text-slate-500">TS EN ISO/IEC 17025:2017 — Akredite Deney / Ölçüm Kapsamı</p>
+            <p className="text-[11px] text-slate-500">TS EN ISO/IEC 17025:2017 — TÜRKAK Sertifika Kapsamı</p>
           </div>
         </div>
 
-        {/* Stats bar */}
         <div className="mt-4 flex items-center gap-4">
           <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-2 flex items-center gap-2">
             <Award className="w-4 h-4 text-blue-600" />
@@ -111,7 +118,7 @@ export default function ScopeView() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Parametre, metod veya aralık ara..."
+            placeholder="Parametre, metod, aralık veya belirsizlik ara..."
             className="w-full pl-9 pr-4 py-2.5 text-[12px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
           />
         </div>
@@ -144,7 +151,6 @@ export default function ScopeView() {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
@@ -177,16 +183,17 @@ export default function ScopeView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left table-fixed">
               <thead>
                 <tr className="bg-slate-800 text-white">
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide w-10 text-center">#</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide">Ölçülen Büyüklük / Parametre</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide">Deney / Ölçüm Metodu</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide">Ölçüm Aralığı</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide">Genişletilmiş Belirsizlik</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide w-[6%] text-center">#</th>
+                  {headers.map(h => (
+                    <th key={h.key} className={`px-4 py-3 text-[10px] font-semibold uppercase tracking-wide ${h.width} whitespace-pre-line`}>
+                      {h.label}
+                    </th>
+                  ))}
                   {canEdit && (
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-center w-24">İşlem</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide w-[8%] text-center">İşlem</th>
                   )}
                 </tr>
               </thead>
@@ -194,26 +201,29 @@ export default function ScopeView() {
                 {filtered.map((item, idx) => (
                   <tr
                     key={item.id}
-                    className={`border-t border-slate-100 transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
+                    className={`border-t border-slate-100 transition-colors hover:bg-blue-50/40 align-top ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
                   >
                     <td className="px-4 py-3 text-center">
                       <span className="text-[11px] font-semibold text-slate-500">{idx + 1}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-[12px] font-medium text-slate-900 leading-relaxed">{item.parameter}</p>
+                      <p className="text-[11px] font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">{item.parameter || '—'}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-[12px] text-slate-700 leading-relaxed">{item.method}</p>
+                      <p className="text-[11px] text-slate-700 whitespace-pre-wrap leading-relaxed">{item.range || '—'}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-[12px] text-slate-600">{item.range || '—'}</p>
+                      <p className="text-[11px] text-slate-700 whitespace-pre-wrap leading-relaxed">{item.conditions || '—'}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-[12px] text-slate-600">{item.uncertainty || '—'}</p>
+                      <p className="text-[11px] text-slate-700 whitespace-pre-wrap leading-relaxed">{item.uncertainty || '—'}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-[11px] text-slate-600 whitespace-pre-wrap leading-relaxed">{item.method || '—'}</p>
                     </td>
                     {canEdit && (
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-start justify-center gap-1.5 pt-0.5">
                           <button
                             onClick={() => handleOpenEdit(item)}
                             className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
@@ -253,7 +263,7 @@ export default function ScopeView() {
               </div>
             </div>
             <p className="text-[12px] text-slate-700 bg-slate-50 rounded-lg p-3 mb-5 border border-slate-200 leading-relaxed">
-              <span className="font-semibold">{deleteTarget.parameter}</span> kalemini silmek istediğinize emin misiniz?
+              <span className="font-semibold whitespace-pre-wrap">{deleteTarget.parameter}</span> kalemini silmek istediğinize emin misiniz?
             </p>
             <div className="flex gap-3">
               <button

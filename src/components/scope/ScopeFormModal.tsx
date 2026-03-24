@@ -5,9 +5,10 @@ import { supabase } from '../../lib/supabase';
 export interface ScopeRow {
   id: string;
   parameter: string;
-  method: string;
   range: string;
+  conditions: string;
   uncertainty: string;
+  method: string;
   sort_order: number;
 }
 
@@ -20,9 +21,10 @@ interface Props {
 
 const defaultForm = {
   parameter: '',
-  method: '',
   range: '',
+  conditions: '',
   uncertainty: '',
+  method: '',
   sort_order: 0,
 };
 
@@ -36,9 +38,10 @@ export default function ScopeFormModal({ isOpen, onClose, onSuccess, editData }:
       if (editData) {
         setForm({
           parameter: editData.parameter,
-          method: editData.method,
           range: editData.range,
+          conditions: editData.conditions,
           uncertainty: editData.uncertainty,
+          method: editData.method,
           sort_order: editData.sort_order,
         });
       } else {
@@ -48,41 +51,34 @@ export default function ScopeFormModal({ isOpen, onClose, onSuccess, editData }:
     }
   }, [isOpen, editData]);
 
-  const field = (
+  type TextKey = keyof Omit<typeof defaultForm, 'sort_order'>;
+
+  const textField = (
     label: string,
-    key: keyof typeof defaultForm,
+    key: TextKey,
     placeholder: string,
     required = false,
-    multiline = false
+    rows = 3
   ) => (
     <div>
       <label className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wide">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      {multiline ? (
-        <textarea
-          value={String(form[key])}
-          onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-          placeholder={placeholder}
-          rows={3}
-          className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-        />
-      ) : (
-        <input
-          type="text"
-          value={String(form[key])}
-          onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-          placeholder={placeholder}
-          className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-        />
-      )}
+      <textarea
+        value={form[key]}
+        onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-y font-mono"
+      />
+      <p className="text-[10px] text-slate-400 mt-0.5">Enter tuşu ile yeni satır ekleyebilirsiniz.</p>
     </div>
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.parameter.trim() || !form.method.trim()) {
-      setError('Parametre ve metod alanları zorunludur.');
+      setError('Ölçüm Büyüklüğü ve Kalibrasyon Metodu alanları zorunludur.');
       return;
     }
     setLoading(true);
@@ -113,7 +109,7 @@ export default function ScopeFormModal({ isOpen, onClose, onSuccess, editData }:
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[92vh]">
         <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between flex-shrink-0">
           <div>
             <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Akreditasyon Kapsamı</div>
@@ -132,10 +128,41 @@ export default function ScopeFormModal({ isOpen, onClose, onSuccess, editData }:
               <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">{error}</div>
             )}
 
-            {field('Ölçülen Büyüklük / Parametre', 'parameter', 'ör. Uzunluk, Sıcaklık, Basınç...', true, true)}
-            {field('Deney / Ölçüm Metodu', 'method', 'ör. TS EN ISO 9001, ASTM D...', true, true)}
-            {field('Ölçüm Aralığı', 'range', 'ör. 0 – 100 mm', false, false)}
-            {field('Genişletilmiş Belirsizlik', 'uncertainty', 'ör. ±0.05 mm (k=2)', false, false)}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-[11px] text-blue-700 font-medium">
+                Hücre içeriği TÜRKAK sertifikasındaki gibi çok satırlı girilebilir.
+                Enter tuşu ile yeni satır ekleyip PDF'te aynı görünümü elde edebilirsiniz.
+              </p>
+            </div>
+
+            {textField(
+              'Ölçüm Büyüklüğü / Kalibre Edilen Cihazlar',
+              'parameter',
+              'ör. Uzunluk\nKumpas\nMikrometre',
+              true,
+              4
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              {textField('Ölçüm Aralığı', 'range', 'ör. 0 – 150 mm\n0 – 25 mm', false, 4)}
+              {textField('Ölçüm Şartları', 'conditions', 'ör. 20 ± 1 °C\nLaboratuvar Ortamı', false, 4)}
+            </div>
+
+            {textField(
+              'Genişletilmiş Ölçüm Belirsizliği (k=2)',
+              'uncertainty',
+              'ör. ± 3 µm\n± 2 µm',
+              false,
+              4
+            )}
+
+            {textField(
+              'Açıklamalar / Kalibrasyon Metodu',
+              'method',
+              'ör. TS EN ISO 13225\nKarşılaştırma metodu',
+              true,
+              4
+            )}
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wide">Sıra No</label>
@@ -144,7 +171,7 @@ export default function ScopeFormModal({ isOpen, onClose, onSuccess, editData }:
                 value={form.sort_order}
                 onChange={e => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))}
                 min={0}
-                className="w-full px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-28 px-3 py-2 text-[12px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
