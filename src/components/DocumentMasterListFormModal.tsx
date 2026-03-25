@@ -38,6 +38,7 @@ export default function DocumentMasterListFormModal({ isOpen, onClose, onSuccess
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (editData) {
       setForm({
         ...editData,
@@ -45,10 +46,20 @@ export default function DocumentMasterListFormModal({ isOpen, onClose, onSuccess
         revizyon_tarihi: editData.revizyon_tarihi || '',
         guncellik_kontrol_tarihi: editData.guncellik_kontrol_tarihi || '',
       });
+      setError(null);
     } else {
-      setForm(emptyForm);
+      supabase
+        .from('document_master_list')
+        .select('sira_no')
+        .order('sira_no', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          const nextNo = data ? data.sira_no + 1 : 1;
+          setForm({ ...emptyForm, sira_no: nextNo });
+        });
+      setError(null);
     }
-    setError(null);
   }, [editData, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
