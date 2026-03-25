@@ -12,6 +12,7 @@ interface DocumentRecord {
   rev_no: string;
   guncellik_kontrol_tarihi: string;
   aktif: boolean;
+  notlar: string;
 }
 
 interface Props {
@@ -30,6 +31,7 @@ const emptyForm: DocumentRecord = {
   rev_no: '',
   guncellik_kontrol_tarihi: '',
   aktif: true,
+  notlar: '',
 };
 
 export default function DocumentMasterListFormModal({ isOpen, onClose, onSuccess, editData }: Props) {
@@ -77,6 +79,7 @@ export default function DocumentMasterListFormModal({ isOpen, onClose, onSuccess
           rev_no: form.rev_no,
           guncellik_kontrol_tarihi: form.guncellik_kontrol_tarihi || null,
           aktif: form.aktif,
+          notlar: form.notlar,
           updated_at: new Date().toISOString(),
         };
         const { error: updateError } = await supabase
@@ -94,6 +97,7 @@ export default function DocumentMasterListFormModal({ isOpen, onClose, onSuccess
           rev_no: form.rev_no,
           guncellik_kontrol_tarihi: form.guncellik_kontrol_tarihi || null,
           aktif: form.aktif,
+          notlar: form.notlar,
           updated_at: new Date().toISOString(),
         };
         const { error: insertError } = await supabase
@@ -213,6 +217,17 @@ export default function DocumentMasterListFormModal({ isOpen, onClose, onSuccess
                 className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Notlar</label>
+            <textarea
+              value={form.notlar}
+              onChange={(e) => setForm({ ...form, notlar: e.target.value })}
+              rows={3}
+              placeholder="Bu doküman ile ilgili notlarınızı buraya girebilirsiniz..."
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all resize-none"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">

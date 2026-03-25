@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, CreditCard as Edit2, Trash2, Filter, X, RotateCcw, ListOrdered, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,7 @@ interface DocumentRecord {
   rev_no: string;
   guncellik_kontrol_tarihi: string | null;
   aktif: boolean;
+  notlar: string;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +87,7 @@ export default function DocumentMasterListView() {
           (d.dokuman_kodu || '').toLocaleLowerCase('tr-TR').includes(q) ||
           (d.dokuman_adi || '').toLocaleLowerCase('tr-TR').includes(q) ||
           (d.rev_no || '').toLocaleLowerCase('tr-TR').includes(q) ||
+          (d.notlar || '').toLocaleLowerCase('tr-TR').includes(q) ||
           String(d.sira_no).includes(q)
       );
     }
@@ -313,6 +315,12 @@ export default function DocumentMasterListView() {
                     )}
                   </div>
 
+                  {doc.notlar && (
+                    <div className="mt-2 pt-2 border-t border-red-100">
+                      <p className="text-[11px] text-red-600 font-medium leading-relaxed">{doc.notlar}</p>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
                     {!doc.aktif && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-200 text-gray-600 border border-gray-300">
@@ -379,9 +387,9 @@ export default function DocumentMasterListView() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {sortedDocuments.map((doc) => (
+                      <React.Fragment key={doc.id}>
                       <tr
-                        key={doc.id}
-                        className={`transition-colors border-b ${
+                        className={`transition-colors ${doc.notlar ? '' : 'border-b'} ${
                           !doc.aktif
                             ? 'bg-gray-50 opacity-70 border-gray-200'
                             : 'hover:bg-slate-50/50 border-gray-100'
@@ -450,6 +458,16 @@ export default function DocumentMasterListView() {
                           )}
                         </td>
                       </tr>
+                      {doc.notlar && (
+                        <tr
+                          className={`border-b ${!doc.aktif ? 'bg-gray-50 opacity-70 border-gray-200' : 'bg-red-50/40 border-gray-100'}`}
+                        >
+                          <td colSpan={8} className="px-3 pb-1.5 pt-0">
+                            <p className="text-[11px] text-red-600 font-medium leading-relaxed">{doc.notlar}</p>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
