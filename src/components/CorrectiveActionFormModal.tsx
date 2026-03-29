@@ -38,6 +38,8 @@ interface ExistingCA {
   no_recurrence_date?: string;
   recurrence_observed?: boolean;
   recurrence_date?: string;
+  action_assignee_id?: string;
+  action_status?: string;
 }
 
 interface ActionItem {
@@ -182,6 +184,9 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
   const [plannedDate, setPlannedDate]                           = useState(existingCA?.planned_completion_date || '');
   const [responsibleName, setResponsibleName]                   = useState(existingCA?.responsible_user || '');
 
+  const [actionAssigneeId, setActionAssigneeId]                 = useState(existingCA?.action_assignee_id || '');
+  const [actionStatus, setActionStatus]                         = useState(existingCA?.action_status || 'Açık');
+
   const [actionFulfilled, setActionFulfilled]                   = useState(existingCA?.action_fulfilled ?? false);
   const [fulfillmentDate, setFulfillmentDate]                   = useState(existingCA?.fulfillment_date || '');
   const [monitoringPeriod, setMonitoringPeriod]                 = useState(existingCA?.monitoring_period || '');
@@ -288,6 +293,8 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
       const payload: any = {
         action_description: actionDecision,
         responsible_user: responsibleName || null,
+        action_assignee_id: actionAssigneeId || null,
+        action_status: actionStatus,
         action_fulfilled: actionFulfilled,
         planned_completion_date: plannedDate || null,
         fulfillment_date: fulfillmentDate || null,
@@ -587,7 +594,7 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelCls}>Planlanan Tamamlanma Tarihi</label>
+                    <label className={labelCls}>TERMİN TARİHİ</label>
                     <input
                       type="date"
                       value={plannedDate}
@@ -605,6 +612,31 @@ export default function CorrectiveActionFormModal({ nc, existingCA, onClose, onS
                       placeholder="-- Seçiniz --"
                       className={inputCls.includes('border') ? '' : undefined}
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Sorumlu Kişi</label>
+                    <PersonnelSelect
+                      value={actionAssigneeId}
+                      onChange={setActionAssigneeId}
+                      valueField="id"
+                      showJobTitle
+                      placeholder="-- Seçiniz --"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Durum</label>
+                    <select
+                      value={actionStatus}
+                      onChange={e => setActionStatus(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option>Açık</option>
+                      <option>Devam Ediyor</option>
+                      <option>Tamamlandı</option>
+                    </select>
                   </div>
                 </div>
 
