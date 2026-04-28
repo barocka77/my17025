@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, X, Cpu, CheckCircle, AlertCircle, Loader2, Download, Trash2, Camera, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { Upload, X, Cpu, CheckCircle, AlertCircle, Loader2, Download, Trash2, Camera, ChevronDown, ChevronUp, Save, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -207,6 +208,39 @@ export default function VisualCalibrationView() {
 
   const formatVal = (v: number | null | undefined) =>
     v === null || v === undefined ? '—' : v;
+
+  const exportToExcel = () => {
+    if (history.length === 0) return;
+    const rows = history.map((h, i) => ({
+      'Cihaz Etiketi': h.device_label || `Kayıt #${history.length - i}`,
+      'Frekans (Hz)': h.frequency_hz ?? '',
+      'Referans Gerilim (V)': h.voltage_ref ?? '',
+      'L1_U (V)': h.l1.u_v ?? '',
+      'L1_I (A)': h.l1.i_a ?? '',
+      'L1_P (W)': h.l1.p_w ?? '',
+      'L1_Q (var)': h.l1.q_var ?? '',
+      'L1_S (VA)': h.l1.s_va ?? '',
+      'L1_CosΦ': h.l1.cos_phi ?? '',
+      'L2_U (V)': h.l2.u_v ?? '',
+      'L2_I (A)': h.l2.i_a ?? '',
+      'L2_P (W)': h.l2.p_w ?? '',
+      'L2_Q (var)': h.l2.q_var ?? '',
+      'L2_S (VA)': h.l2.s_va ?? '',
+      'L2_CosΦ': h.l2.cos_phi ?? '',
+      'L3_U (V)': h.l3.u_v ?? '',
+      'L3_I (A)': h.l3.i_a ?? '',
+      'L3_P (W)': h.l3.p_w ?? '',
+      'L3_Q (var)': h.l3.q_var ?? '',
+      'L3_S (VA)': h.l3.s_va ?? '',
+      'L3_CosΦ': h.l3.cos_phi ?? '',
+      'Notlar': h.notes,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Kalibrasyon Sonuçları');
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `kalibrasyon_sonuclari_${date}.xlsx`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8">
@@ -518,21 +552,31 @@ export default function VisualCalibrationView() {
             </div>
           )}
 
-          {/* New session button */}
+          {/* New session + Excel export buttons */}
           {saveSuccess && (
-            <button
-              onClick={() => {
-                setImages([]);
-                setResult(null);
-                setSaveSuccess(false);
-                setSaveError(null);
-                setExtractionError(null);
-              }}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 border border-slate-200 hover:border-slate-300 bg-white rounded-xl text-sm font-medium text-slate-600 hover:text-slate-800 transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-              Yeni Analiz Başlat
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={exportToExcel}
+                disabled={history.length === 0}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 border border-green-200 hover:border-green-400 bg-white hover:bg-green-50 rounded-xl text-sm font-medium text-green-700 hover:text-green-900 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel Olarak İndir (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  setImages([]);
+                  setResult(null);
+                  setSaveSuccess(false);
+                  setSaveError(null);
+                  setExtractionError(null);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 border border-slate-200 hover:border-slate-300 bg-white rounded-xl text-sm font-medium text-slate-600 hover:text-slate-800 transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+                Yeni Analiz Başlat
+              </button>
+            </div>
           )}
         </div>
       </div>
