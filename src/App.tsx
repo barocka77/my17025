@@ -13,6 +13,7 @@ import NonconformitiesView from './components/NonconformitiesView';
 import CorrectiveActionsView from './components/CorrectiveActionsView';
 import RisksOpportunitiesView from './components/RisksOpportunitiesView';
 import ScopeView from './components/scope/ScopeView';
+import VisualCalibrationView from './components/VisualCalibrationView';
 import AdminPanel from './components/AdminPanel';
 import ActionTracking from './components/ActionTracking';
 import PersonalNotepad from './components/PersonalNotepad';
@@ -448,6 +449,8 @@ function App() {
             <NonconformitiesView autoOpenRecordId={autoOpenNcId} onNcOpened={() => setAutoOpenNcId(null)} onNavigateToFeedback={handleNavigateToFeedback} onNavigateToCA={handleNavigateToCA} />
           ) : activeModule.id === 'corrective_actions' ? (
             <CorrectiveActionsView autoOpenCaId={autoOpenCaId} onCaOpened={() => setAutoOpenCaId(null)} onNavigateToNC={handleNavigateToNC} />
+          ) : activeModule.id === 'visual_calibration' ? (
+            <VisualCalibrationView />
           ) : activeModule.id === 'equipment_hardware' ? (
             <ModuleView module={activeModule} userRole={role} autoOpenRecordId={autoOpenRecordId} onRecordOpened={() => setAutoOpenRecordId(null)} />
           ) : (

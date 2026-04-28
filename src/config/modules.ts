@@ -1,4 +1,4 @@
-import { Microscope, FileText, File as FileEdit, Scale, ClipboardList, FileCheck, TestTube, ShoppingCart, Shield, AlertTriangle, ClipboardCheck, MessageCircle, Presentation, XCircle, TrendingUp, Users, Truck, Thermometer, Wrench, FolderOpen, Building2, Target, Files, Archive, Database, BarChart3, ListOrdered, Award } from 'lucide-react';
+import { Microscope, FileText, File as FileEdit, Scale, ClipboardList, FileCheck, TestTube, ShoppingCart, Shield, AlertTriangle, ClipboardCheck, MessageCircle, Presentation, XCircle, TrendingUp, Users, Truck, Thermometer, Wrench, FolderOpen, Building2, Target, Files, Archive, Database, BarChart3, ListOrdered, Award, Camera } from 'lucide-react';
 import { Section } from '../types/modules';
 
 export const sections: Section[] = [
@@ -49,6 +49,12 @@ export const sections: Section[] = [
         name: 'Sonuçların Geçerliliği (QA)',
         table: 'quality_assurance',
         icon: TestTube,
+      },
+      {
+        id: 'visual_calibration',
+        name: 'Görsel Kalibrasyon Veri Aktarımı',
+        table: 'calibration_results',
+        icon: Camera,
       },
       {
         id: 'external_procurement',
