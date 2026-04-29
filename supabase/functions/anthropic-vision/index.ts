@@ -6,15 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const SYSTEM_PROMPT = `Sen ISO 17025 standartlarında çalışan bir laboratuvar veri uzmanısın. Görseldeki cihaz ekranlarından (Referans Sayacı ve Multimetre) L1, L2, L3 fazları için U(V), I(A), P(W), Q(var), S(VA), CosΦ değerlerini ve Frekans/Gerilim bilgilerini oku. Sadece saf JSON formatında, teknik bir tablo yapısında çıktı ver. Okunamayan değerleri null bırak.
+const SYSTEM_PROMPT = `Sen ISO 17025 kalibrasyon laboratuvarında çalışan bir veri uzmanısın.
+Görsellerde şu cihazlar olabilir:
+  1) PC yazılımı (MATES / Sayaç Test) — L1/L2/L3 için V/A/pf/W/var/VA, 50,0 Hz, ve "HATA %".
+  2) Fluke 289 multimetre — üstte büyük okuma (örn. 65,911 kHz), altta ikincil okuma (örn. 1,5226 VAC).
+  3) SY3640 Three Phase Portable Working Standard Meter — dokunmatik ekran, P/Q/S/CosΦ tablosu ve HATA %.
 
-Çıktı formatı kesinlikle şu şekilde olmalı (başka hiçbir şey ekleme, sadece JSON):
+Her görselde hangi cihaz görünüyorsa oku. Okunamayan alanları null bırak. Türkçe virgülü noktaya çevir (65,911 -> 65.911).
+
+YANIT SADECE SAF JSON, markdown yok. Şema:
 {
-  "l1": { "u_v": number|null, "i_a": number|null, "p_w": number|null, "q_var": number|null, "s_va": number|null, "cos_phi": number|null },
-  "l2": { "u_v": number|null, "i_a": number|null, "p_w": number|null, "q_var": number|null, "s_va": number|null, "cos_phi": number|null },
-  "l3": { "u_v": number|null, "i_a": number|null, "p_w": number|null, "q_var": number|null, "s_va": number|null, "cos_phi": number|null },
-  "frequency_hz": number|null,
-  "voltage_ref": number|null
+  "reference": { "value": number|null, "unit": string|null },
+  "reference_secondary": { "value": number|null, "unit": string|null },
+  "calibrated_nominal": { "value": number|null, "unit": string|null },
+  "pc_panel": {
+    "l1": { "v": number|null, "a": number|null, "pf": number|null, "w": number|null, "var": number|null, "va": number|null },
+    "l2": { "v": number|null, "a": number|null, "pf": number|null, "w": number|null, "var": number|null, "va": number|null },
+    "l3": { "v": number|null, "a": number|null, "pf": number|null, "w": number|null, "var": number|null, "va": number|null },
+    "frequency_hz": number|null,
+    "hata_percent": number|null
+  },
+  "sy3640_panel": {
+    "rows": [ { "label": string, "p_w": number|null, "q_var": number|null, "s_va": number|null, "cos_phi": number|null } ],
+    "hata_percent": number|null
+  },
+  "detected_sources": string[]
 }`;
 
 Deno.serve(async (req: Request) => {
@@ -41,7 +57,6 @@ Deno.serve(async (req: Request) => {
       return respond({ error: "En az bir görsel gereklidir" }, 400);
     }
 
-    // Build content array with all images + text prompt
     const contentItems: object[] = images.map((img) => ({
       type: "image",
       source: {
@@ -53,7 +68,7 @@ Deno.serve(async (req: Request) => {
 
     contentItems.push({
       type: "text",
-      text: "Görseldeki kalibrasyon cihazı ekranından ölçüm değerlerini oku ve belirtilen JSON formatında döndür.",
+      text: "Görsellerdeki tüm cihaz ekranlarından değerleri oku ve belirtilen JSON şemasında döndür. Sadece JSON.",
     });
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -65,14 +80,9 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-opus-4-5",
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: contentItems,
-          },
-        ],
+        messages: [{ role: "user", content: contentItems }],
       }),
     });
 
@@ -84,7 +94,6 @@ Deno.serve(async (req: Request) => {
     const data = await response.json();
     const rawText: string = data.content?.[0]?.text ?? "";
 
-    // Extract JSON from response (strip markdown code fences if any)
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return respond({ error: "AI geçerli JSON döndürmedi", raw: rawText }, 422);
